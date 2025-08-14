@@ -156,7 +156,7 @@
     <string name="depth">Depth</string>
     <string name="description">အကြောင်းအရာအသေးစိတ်</string>
     <string name="device_info">Device အချက်အလက်</string>
-    <string name="dialog_message_set_ringtone">အသံ Settings ပြုပြင်ရန် Retro Music ကိုခွင့်ပြုချက်ပေးပါ</string>
+    <string name="dialog_message_set_ringtone">အသံ Settings ပြုပြင်ရန် Lost Music ကိုခွင့်ပြုချက်ပေးပါ</string>
     <string name="dialog_title_set_ringtone">Ringtone ထားခြင်း</string>
     <string name="disc_hint">Disc Number</string>
     <string name="do_you_want_to_clear_the_blacklist">Blacklist ကိုရှင်းလင်းလိုပါသလား</string>
@@ -301,7 +301,7 @@
     <string name="personalize_settings_summary">Now Playing နှင့် UI controls များကိုစိတ်ကြိုက်ပြင်ဆင်မည်</string>
     <string name="pick_from_local_storage">Local Storage မှ ရွေးမည်</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Retro Music ဒီဇိုင်းအကြံဉာဏ်ကောင်းများအတွက် Pinterest page ကို follow ပါ</string>
+    <string name="pinterest_page_summary">Lost Music ဒီဇိုင်းအကြံဉာဏ်ကောင်းများအတွက် Pinterest page ကို follow ပါ</string>
     <string name="plain">ရှင်းရှင်းလင်းလင်းပုံစံ</string>
     <string name="playList_already_exits">Playlist already exists</string>
     <string name="playback_pitch">Pitch</string>
@@ -355,7 +355,7 @@
     <string name="pref_summary_home_banner">Home banner အား ပြသခြင်း၊ ဖျောက်ထားခြင်း</string>
     <string name="pref_summary_ignore_media_store_artwork">Album cover အရည်အသွေးပိုမိုကောင်းမွန်လာနိုင်သော်လည်း Loading time ပိုကြာနိုင်သည်။ အရည်အသွေးနိမ့်သောပုံများနှင့်အဆင်မပြေမှသာလျှင် ဤခလုတ်ကိုဖွင့်ပါ။</string>
     <string name="pref_summary_library_categories">Library category များ ဖော်ခြင်း၊ ဖျောက်ခြင်းနှင့် အထားအသိုများ ချိန်ညှိမည်</string>
-    <string name="pref_summary_lock_screen">Retro Music ၏ ပြင်ဆင်ထားသော Lockscreen controls များကိုသုံးမည်</string>
+    <string name="pref_summary_lock_screen">Lost Music ၏ ပြင်ဆင်ထားသော Lockscreen controls များကိုသုံးမည်</string>
     <string name="pref_summary_manage_audio_focus">Always play audio in background regardless of anything else being played</string>
     <string name="pref_summary_open_source_licences">Open Source software အတွက် လိုင်စင်အချက်အလက်များ</string>
     <string name="pref_summary_pause_history">When enabled, newly played songs won\'t show in history</string>
@@ -448,8 +448,8 @@
     <string name="restored_previous_purchase_please_restart">ယခင်ဝယ်ယူမှုကို ပြန်လည်ရယူပြီးပါပြီ။ Feature အားလုံးအလုပ်လုပ်ရန် app မှထွက်ပြီးပြန်ဝင်ပါ။</string>
     <string name="restored_previous_purchases">ယခင်ဝယ်ယူမှုအား ပြန်လည်ရယူပြီးပါပြီ</string>
     <string name="restoring_purchase">ယခင်ဝယ်ယူမှုအား ပြန်လည်ရယူနေသည်...</string>
-    <string name="retro_music_player">Retro Music Player</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lostmusic_player">Lost</string>
+    <string name="lostmusic_pro">Lost Music Pro</string>
     <string name="ringtone_summary">သီချင်းများကို Ringtone ထားရန် app အား System Settings များကိုပြင်ဆင်ခွင့်ပေးရန်လိုသည်။</string>
     <string name="ringtone_title">Ringtone (Optional)</string>
     <string name="permission_alarm_summary">The app needs permission to schedule exact alarms to set sleep timers</string>
@@ -533,9 +533,9 @@
     <string name="track_list">အပုဒ်နံပါတ်</string>
     <string name="translate">ဘာသာပြန်ခြင်း</string>
     <string name="translate_community">App ကိုသင့်ဘာသာစကားသို့ ကူပြန်ပေးပါ</string>
-    <string name="try_retro_music_premium">Retro Music Premium ကိုစမ်းကြည့်ပါ</string>
+    <string name="try_lostmusic_premium">Lost Music Premium ကိုစမ်းကြည့်ပါ</string>
     <string name="twitter_page">Twitter</string>
-    <string name="twitter_page_summary">သင့် Retro Music ဒီဇိုင်းများကိုမျှဝေပါ</string>
+    <string name="twitter_page_summary">သင့် Lost Music ဒီဇိုင်းများကိုမျှဝေပါ</string>
     <string name="unlabeled">Label မထိုးပါ</string>
     <string name="unplayable_file">ဤသီချင်းကို မ play နိုင်ပါ</string>
     <string name="up_next">လာမည့်အပုဒ်</string>
@@ -563,5 +563,5 @@
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">Issue tracker website သို့ခေါ်ဆောင်သွားပါမည်</string>
     <string name="your_account_data_is_only_used_for_authentication">သင့်အကောင့်အချက်အလက်ကို အတည်ပြုရန်အတွက်သာအသုံးပြုပါသည်။</string>
     <string name="could_not_write_tags_to_file">Could not write tags to the music file!</string>
-    <string name="sleep_timer_no_permission">No permission to schedule alarms, please allow Retro Music.</string>
+    <string name="sleep_timer_no_permission">No permission to schedule alarms, please allow Lost Music.</string>
 </resources>

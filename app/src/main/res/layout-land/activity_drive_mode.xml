@@ -20,7 +20,7 @@
     android:orientation="vertical">
 
 
-    <code.name.monkey.retromusic.views.StatusBarView
+    <code.name.monkey.lost.views.StatusBarView
         android:id="@+id/status_bar"
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -177,7 +177,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:maxHeight="3dp"
-        style="@style/Widget.Retro.Slider"
+        style="@style/Widget.Lost.Slider"
         android:progressDrawable="@drawable/color_progress_seek"
         android:progressTint="@color/md_white_1000"
         android:splitTrack="false"

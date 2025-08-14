@@ -9,7 +9,7 @@
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/playerAlbumCoverFragment"
-        android:name="code.name.monkey.retromusic.fragments.player.PlayerAlbumCoverFragment"
+        android:name="code.name.monkey.lost.fragments.player.PlayerAlbumCoverFragment"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -36,7 +36,7 @@
 
     <include layout="@layout/status_bar" />
 
-    <code.name.monkey.retromusic.views.VerticalTextView
+    <code.name.monkey.lost.views.VerticalTextView
         android:id="@+id/playerSongTotalTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -55,7 +55,7 @@
         tools:ignore="MissingPrefix"
         tools:text="@tools:sample/date/hhmm" />
 
-    <code.name.monkey.retromusic.views.VerticalTextView
+    <code.name.monkey.lost.views.VerticalTextView
         android:id="@+id/songInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -84,7 +84,7 @@
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/playbackControlsFragment"
-        android:name="code.name.monkey.retromusic.fragments.player.tiny.TinyPlaybackControlsFragment"
+        android:name="code.name.monkey.lost.fragments.player.tiny.TinyPlaybackControlsFragment"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
@@ -92,7 +92,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         tools:layout="@layout/fragment_tiny_controls_fragment" />
 
-    <code.name.monkey.retromusic.views.VerticalTextView
+    <code.name.monkey.lost.views.VerticalTextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
@@ -114,7 +114,7 @@
         tools:ignore="MissingPrefix"
         tools:text="@tools:sample/lorem/random" />
 
-    <code.name.monkey.retromusic.views.VerticalTextView
+    <code.name.monkey.lost.views.VerticalTextView
         android:id="@+id/text"
         android:layout_width="wrap_content"
         android:layout_height="0dp"

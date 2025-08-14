@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.RetroMusic.MD3.Black" parent="@style/Theme.RetroMusic.MD3">
+    <style name="Theme.Lost.MD3.Black" parent="@style/Theme.Lost.MD3">
         <item name="colorSurface">@color/blackColorSurface</item>
     </style>
 

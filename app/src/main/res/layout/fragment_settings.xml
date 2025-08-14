@@ -15,7 +15,7 @@
         app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
         app:navGraph="@navigation/settings_graph" />
 
-    <code.name.monkey.retromusic.views.TopAppBarLayout
+    <code.name.monkey.lost.views.TopAppBarLayout
         android:id="@+id/appBarLayout"
         style="?appBarLayoutStyle"
         android:layout_width="match_parent"

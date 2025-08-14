@@ -6,7 +6,7 @@ apply plugin: 'com.google.devtools.ksp'
 
 android {
     compileSdk 35
-    namespace "code.name.monkey.retromusic"
+    namespace "code.name.monkey.lost"
 
     defaultConfig {
         minSdk 21
@@ -20,7 +20,7 @@ android {
 
         buildConfigField("String", "GOOGLE_PLAY_LICENSING_KEY", "\"${getProperty(getProperties('../public.properties'), 'GOOGLE_PLAY_LICENSE_KEY')}\"")
     }
-    def signingProperties = getProperties('retro.properties')
+    def signingProperties = getProperties('lost.properties')
     def theSigningConfig
     if (signingProperties != null) {
         theSigningConfig = signingConfigs.create("release") {

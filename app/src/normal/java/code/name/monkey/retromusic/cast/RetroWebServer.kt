@@ -1,8 +1,8 @@
-package code.name.monkey.retromusic.cast
+package code.name.monkey.lost.cast
 
 import android.content.Context
-import code.name.monkey.retromusic.util.MusicUtil
-import code.name.monkey.retromusic.util.RetroUtil
+import code.name.monkey.lost.util.MusicUtil
+import code.name.monkey.lost.util.LostUtil
 import fi.iki.elonen.NanoHTTPD
 import fi.iki.elonen.NanoHTTPD.Response.Status
 import java.io.*
@@ -10,7 +10,7 @@ import java.io.*
 const val DEFAULT_SERVER_PORT = 9090
 private var currentServerPort = DEFAULT_SERVER_PORT
 
-class RetroWebServer(val context: Context) : NanoHTTPD(findAndInitializePort()) {
+class LostWebServer(val context: Context) : NanoHTTPD(findAndInitializePort()) {
     companion object {
         private const val MIME_TYPE_IMAGE = "image/jpg"
         const val MIME_TYPE_AUDIO = "audio/mp3"
@@ -40,7 +40,7 @@ class RetroWebServer(val context: Context) : NanoHTTPD(findAndInitializePort()) 
     override fun start() {
         try {
             super.start()
-            val ipAddress = RetroUtil.getIpAddress(true)
+            val ipAddress = LostUtil.getIpAddress(true)
             CastServerUtils.logInfo("Server started successfully on port $currentServerPort with IP: $ipAddress")
         } catch (e: Exception) {
             CastServerUtils.logError("Failed to start server: ${e.message}")

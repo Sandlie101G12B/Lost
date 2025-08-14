@@ -153,7 +153,7 @@
     <string name="depth">Profundidad</string>
     <string name="description">Descripción</string>
     <string name="device_info">Información del dispositivo</string>
-    <string name="dialog_message_set_ringtone">Permitir que Retro Music modifique la configuración de audio</string>
+    <string name="dialog_message_set_ringtone">Permitir que Lost Music modifique la configuración de audio</string>
     <string name="dialog_title_set_ringtone">Establecer tono de llamada</string>
     <string name="disc_hint">Número de disco</string>
     <string name="do_you_want_to_clear_the_blacklist">¿Quieres borrar la lista negra?</string>
@@ -281,7 +281,7 @@
     <string name="personalize_settings_summary">Personalizar la ventana de reproduciendo ahora y los controles de la interfaz</string>
     <string name="pick_from_local_storage">Elegir del almacenamiento local</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Follow Pinterest page for Retro Music design inspiration</string>
+    <string name="pinterest_page_summary">Follow Pinterest page for Lost Music design inspiration</string>
     <string name="plain">Plain</string>
     <string name="playList_already_exits">Playlist already exists</string>
     <string name="playback_pitch">Pitch</string>
@@ -333,7 +333,7 @@
     <string name="pref_summary_home_banner">Show or hide the home banner</string>
     <string name="pref_summary_ignore_media_store_artwork">Can increase the album cover quality, but causes slower image loading times. Only enable this if you have problems with low resolution artworks</string>
     <string name="pref_summary_library_categories">Configure visibility and order of library categories.</string>
-    <string name="pref_summary_lock_screen">Use Retro Music\'s custom lockscreen controls</string>
+    <string name="pref_summary_lock_screen">Use Lost Music\'s custom lockscreen controls</string>
     <string name="pref_summary_open_source_licences">License details for open source software</string>
     <string name="pref_summary_pause_history">When enabled, newly played songs won\'t show in history</string>
     <string name="pref_summary_remember_tab">Navigate to the last used tab on start</string>
@@ -422,8 +422,8 @@
     <string name="restored_previous_purchase_please_restart">Restored previous purchase. Please restart the app to make use of all features.</string>
     <string name="restored_previous_purchases">Restored previous purchases.</string>
     <string name="restoring_purchase">Restoring purchase…</string>
-    <string name="retro_music_player">Retro Music Player</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">The app needs permission to access your device settings in order to set music as Ringtone</string>
     <string name="ringtone_title">Ringtone (Optional)</string>
     <string name="saf_delete_failed">File delete failed: %s</string>
@@ -502,9 +502,9 @@
     <string name="track_list">Track number</string>
     <string name="translate">Translate</string>
     <string name="translate_community">Help us translate the app to your language</string>
-    <string name="try_retro_music_premium">Try Retro Music Premium</string>
+    <string name="try_lost_music_premium">Try Lost Music Premium</string>
     <string name="twitter_page">Twitter</string>
-    <string name="twitter_page_summary">Share your design with Retro Music</string>
+    <string name="twitter_page_summary">Share your design with Lost Music</string>
     <string name="unlabeled">Unlabeled</string>
     <string name="unplayable_file">Couldn\u2019t play this song.</string>
     <string name="up_next">Up next</string>

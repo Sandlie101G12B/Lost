@@ -1,9 +1,9 @@
-package code.name.monkey.retromusic.activities.base
+package code.name.monkey.lost.activities.base
 
-import code.name.monkey.retromusic.cast.RetroSessionManagerListener
-import code.name.monkey.retromusic.cast.RetroWebServer
-import code.name.monkey.retromusic.helper.MusicPlayerRemote
-import code.name.monkey.retromusic.service.CastPlayer
+import code.name.monkey.lost.cast.LostSessionManagerListener
+import code.name.monkey.lost.cast.LostWebServer
+import code.name.monkey.lost.helper.MusicPlayerRemote
+import code.name.monkey.lost.service.CastPlayer
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.common.ConnectionResult
@@ -18,7 +18,7 @@ abstract class AbsCastActivity : AbsSlidingMusicPanelActivity() {
         CastContext.getSharedInstance(this).sessionManager
     }
 
-    private val webServer: RetroWebServer by inject()
+    private val webServer: LostWebServer by inject()
 
     private val playServicesAvailable: Boolean by lazy {
         try {
@@ -30,7 +30,7 @@ abstract class AbsCastActivity : AbsSlidingMusicPanelActivity() {
     }
 
     private val sessionManagerListener by lazy {
-        object : RetroSessionManagerListener {
+        object : LostSessionManagerListener {
             override fun onSessionStarting(castSession: CastSession) {
                 webServer.start()
             }

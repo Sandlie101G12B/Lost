@@ -158,7 +158,7 @@
     <string name="depth">Βάθος</string>
     <string name="description">Περιγραφή</string>
     <string name="device_info">Πληροφορίες συσκευής</string>
-    <string name="dialog_message_set_ringtone">Επιτρέψτε στο Retro Music να τροποποιεί τις ρυθμίσεις ήχου</string>
+    <string name="dialog_message_set_ringtone">Επιτρέψτε στο Lost Music να τροποποιεί τις ρυθμίσεις ήχου</string>
     <string name="dialog_title_set_ringtone">Ορισμός ήχου κλήσης</string>
     <string name="disc_hint">Αριθμός δίσκου</string>
     <string name="do_you_want_to_clear_the_blacklist">Εκκαθάριση μαύρης λίστας;</string>
@@ -303,7 +303,7 @@
     <string name="personalize_settings_summary">Προσαρμόστε τα στοιχεία ελέγχου του παίζετε τώρα και του περιβάλλοντως χρήστη</string>
     <string name="pick_from_local_storage">Επιλογή από Χώρο Αποθήκευσης</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Ακολουθήστε τη σελίδα Pinterest για έμπνευση σχεδιασμού του Retro Music</string>
+    <string name="pinterest_page_summary">Ακολουθήστε τη σελίδα Pinterest για έμπνευση σχεδιασμού του Lost Music</string>
     <string name="plain">Απλό</string>
     <string name="playList_already_exits">Η λίστα αναπαραγωγής υπάρχει ήδη</string>
     <string name="playback_pitch">Τόνος</string>
@@ -357,7 +357,7 @@
     <string name="pref_summary_home_banner">Προβολή ή απόκρυψη πανό αρχικής οθόνης</string>
     <string name="pref_summary_ignore_media_store_artwork">Μπορεί να αυξήσει την ποιότητα των εξώφυλλων άλμπουμ, αλλά προκαλεί αργή φόρτωση εικόνων. Ενεργοποιήστε αυτή την επιλογή μόνο εάν αντιμετωπίζετε προβλήματα με εξώφυλλα χαμηλής ανάλυσης</string>
     <string name="pref_summary_library_categories">Ρυθμίστε την ορατότητα και τη σειρά των κατηγοριών βιβλιοθήκης.</string>
-    <string name="pref_summary_lock_screen">Χρήση προσαρμοσμένων χειριστηρίων οθόνης κλειδώματος του Retro Music</string>
+    <string name="pref_summary_lock_screen">Χρήση προσαρμοσμένων χειριστηρίων οθόνης κλειδώματος του Lost Music</string>
     <string name="pref_summary_manage_audio_focus">Να αναπαράγεται πάντα ο ήχος στο παρασκήνιο ανεξάρτητα από οτιδήποτε άλλο αναπαράγεται</string>
     <string name="pref_summary_open_source_licences">Λεπτομέρειες άδειας για τη χρήση λογισμικού ανοικτού κώδικα</string>
     <string name="pref_summary_pause_history">Όταν είναι ενεργοποιημένο, τα τραγούδια που αναπαράχθηκαν πρόσφατα δε θα εμφανίζονται στο ιστορικό</string>
@@ -450,8 +450,8 @@
     <string name="restored_previous_purchase_please_restart">Επαναφορά προηγούμενης αγοράς. Επανεκκινήστε την εφαρμογή για να χρησιμοποιήσετε όλες τις δυνατότητες.</string>
     <string name="restored_previous_purchases">Επαναφορά προηγούμενων αγορών επιτυχής.</string>
     <string name="restoring_purchase">Επαναφορά αγοράς…</string>
-    <string name="retro_music_player">Retro Music Player</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">Η εφαρμογή χρειάζεται άδεια πρόσβασης στις ρυθμίσεις της συσκευής σας, για να ορίσει τη μουσική ως ήχο κλήσης</string>
     <string name="ringtone_title">Ήχος Κλήσης (Προαιρετικό)</string>
     <string name="permission_alarm_summary">The app needs permission to schedule exact alarms to set sleep timers</string>
@@ -535,9 +535,9 @@
     <string name="track_list">Αριθμός κομματιού</string>
     <string name="translate">Μετάφραση</string>
     <string name="translate_community">Βοηθήστε μας να μεταφράσουμε την εφαρμογή στη γλώσσα σας</string>
-    <string name="try_retro_music_premium">Δοκιμάστε το Retro Music Premium</string>
+    <string name="try_lost_music_premium">Δοκιμάστε το Lost Music Premium</string>
     <string name="twitter_page">Twitter</string>
-    <string name="twitter_page_summary">Μοιραστείτε το σχέδιό σας με το Retro Music</string>
+    <string name="twitter_page_summary">Μοιραστείτε το σχέδιό σας με το Lost Music</string>
     <string name="unlabeled">Χωρίς ετικέτα</string>
     <string name="unplayable_file">Αδυναμία αναπαραγωγής αυτού του κομματιού.</string>
     <string name="up_next">Επόμενο</string>
@@ -565,5 +565,5 @@
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">Θα προωθηθείτε στον ιστότοπο παρακολούθησης ζητημάτων.</string>
     <string name="your_account_data_is_only_used_for_authentication">Τα δεδομένα του λογαριασμού σας χρησιμοποιούνται μόνο για έλεγχο ταυτότητας.</string>
     <string name="could_not_write_tags_to_file">Δεν ήταν δυνατή η εγγραφή ετικετών στο αρχείο μουσικής!</string>
-    <string name="sleep_timer_no_permission">Χωρίς άδεια για προγραμματισμό συναγερμών, παρακαλώ επιτρέψτε στο Retro Music.</string>
+    <string name="sleep_timer_no_permission">Χωρίς άδεια για προγραμματισμό συναγερμών, παρακαλώ επιτρέψτε στο Lost Music.</string>
 </resources>

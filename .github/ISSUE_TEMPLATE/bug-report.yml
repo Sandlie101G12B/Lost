@@ -7,7 +7,7 @@ body:
     attributes:
       label: Initial questions
       options:
-        - label: I have read the [FAQ](https://github.com/RetroMusicPlayer/RetroMusicPlayer/blob/master/FAQ.md).
+        - label: I have read the [FAQ](https://github.com/Lost/Lost/blob/master/FAQ.md).
           required: true
         - label: I have searched for similar bugs and have not found any.
           required: true

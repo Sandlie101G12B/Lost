@@ -450,8 +450,8 @@
     <string name="restored_previous_purchase_please_restart">पिछली खरीदारी पुनर्स्थापित की गई. कृपया सभी सुविधाओं का उपयोग करने के लिए ऐप को पुनः आरंभ करें।</string>
     <string name="restored_previous_purchases">पिछली खरीद को पुनर्स्थापित करें</string>
     <string name="restoring_purchase">खरीदारी पुनर्स्थापित की जा रही है..</string>
-    <string name="retro_music_player">रेट्रो म्यूजिक प्लेयर</string>
-    <string name="retro_music_pro">रेट्रो म्यूजिक प्रो</string>
+    <string name="lost_music_player">रेट्रो म्यूजिक प्लेयर</string>
+    <string name="lost_music_pro">रेट्रो म्यूजिक प्रो</string>
     <string name="ringtone_summary">संगीत को रिंगटोन के रूप में सेट करने के लिए ऐप को आपकी डिवाइस सेटिंग्स तक पहुंचने की अनुमति की आवश्यकता है।</string>
     <string name="ringtone_title">रिंगटोन (वैकल्पिक)</string>
     <string name="permission_alarm_summary">The app needs permission to schedule exact alarms to set sleep timers</string>
@@ -535,7 +535,7 @@
     <string name="track_list">ट्रैक संख्या</string>
     <string name="translate">अनुवाद करें</string>
     <string name="translate_community">ऐप को अपनी मूल भाषा में अनुवाद करने में मेरी सहायता करें</string>
-    <string name="try_retro_music_premium">रेट्रो म्यूज़िक प्रीमियम आज़माएँ</string>
+    <string name="try_lost_music_premium">रेट्रो म्यूज़िक प्रीमियम आज़माएँ</string>
     <string name="twitter_page">ट्विटर</string>
     <string name="twitter_page_summary">रेट्रो म्यूजिक के साथ अपना डिज़ाइन साझा करें</string>
     <string name="unlabeled">लेबल नहीं किया गया</string>
@@ -565,5 +565,5 @@
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">आपको इश्यू ट्रैकर वेबसाइट पर भेज दिया जाएगा।</string>
     <string name="your_account_data_is_only_used_for_authentication">आपके खाते का डेटा केवल प्रमाणीकरण के लिए उपयोग किया जाता है।</string>
     <string name="could_not_write_tags_to_file">म्यूजिक फ़ाइल में टैग नहीं लिखा जा सका!</string>
-    <string name="sleep_timer_no_permission">No permission to schedule alarms, please allow Retro Music.</string>
+    <string name="sleep_timer_no_permission">No permission to schedule alarms, please allow Lost Music.</string>
 </resources>

@@ -28,7 +28,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <code.name.monkey.retromusic.views.HeightFitSquareLayout
+            <code.name.monkey.lost.views.HeightFitSquareLayout
                 android:id="@+id/albumCoverContainer"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent">
@@ -64,7 +64,7 @@
                         android:text="@string/swipe_to_unlock"
                         android:textColor="?android:attr/textColorPrimary" />
                 </com.google.android.material.card.MaterialCardView>
-            </code.name.monkey.retromusic.views.HeightFitSquareLayout>
+            </code.name.monkey.lost.views.HeightFitSquareLayout>
 
 
             <LinearLayout
@@ -77,7 +77,7 @@
 
                 <androidx.fragment.app.FragmentContainerView
                     android:id="@+id/playback_controls_fragment"
-                    android:name="code.name.monkey.retromusic.fragments.player.lockscreen.LockScreenControlsFragment"
+                    android:name="code.name.monkey.lost.fragments.player.lockscreen.LockScreenControlsFragment"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     tools:layout="@layout/fragment_lock_screen_playback_controls" />

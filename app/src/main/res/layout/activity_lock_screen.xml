@@ -25,7 +25,7 @@
             <include layout="@layout/status_bar" />
         </FrameLayout>
 
-        <code.name.monkey.retromusic.views.WidthFitSquareCardView
+        <code.name.monkey.lost.views.WidthFitSquareCardView
             android:id="@+id/albumCoverContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,7 +44,7 @@
                 android:scaleType="centerCrop"
                 tools:srcCompat="@tools:sample/backgrounds/scenic[0]" />
 
-        </code.name.monkey.retromusic.views.WidthFitSquareCardView>
+        </code.name.monkey.lost.views.WidthFitSquareCardView>
 
 
         <LinearLayout
@@ -57,7 +57,7 @@
 
             <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/playback_controls_fragment"
-                android:name="code.name.monkey.retromusic.fragments.player.lockscreen.LockScreenControlsFragment"
+                android:name="code.name.monkey.lost.fragments.player.lockscreen.LockScreenControlsFragment"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 tools:layout="@layout/fragment_lock_screen_playback_controls" />

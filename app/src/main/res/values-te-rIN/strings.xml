@@ -342,8 +342,8 @@
     <string name="restored_previous_purchase_please_restart">మునుపటి కొనుగోలు పునరుద్ధరించబడింది.  దయచేసి అన్ని లక్షణాలను ఉపయోగించడానికి అనువర్తనాన్ని పున art ప్రారంభించండి.</string>
     <string name="restored_previous_purchases">మునుపటి కొనుగోళ్లను పునరుద్ధరించారు.</string>
     <string name="restoring_purchase">కొనుగోలును పునరుద్ధరిస్తోంది…</string>
-    <string name="retro_music_player">రెట్రో మ్యూజిక్ ప్లేయర్</string>
-    <string name="retro_music_pro">రెట్రో మ్యూజిక్ ప్రో</string>
+    <string name="lost_music_player">రెట్రో మ్యూజిక్ ప్లేయర్</string>
+    <string name="lost_music_pro">రెట్రో మ్యూజిక్ ప్రో</string>
     <string name="saf_delete_failed">ఫైల్ తొలగింపు విఫలమైంది:%s</string>
     <!-- SAF -->
     <string name="saf_error_uri">SAF URI పొందలేము</string>

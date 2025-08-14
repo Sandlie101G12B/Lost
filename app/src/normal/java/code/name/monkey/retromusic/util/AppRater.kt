@@ -1,4 +1,4 @@
-package code.name.monkey.retromusic.util
+package code.name.monkey.lost.util
 
 import android.app.Activity
 import android.content.SharedPreferences

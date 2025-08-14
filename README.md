@@ -1,6 +1,6 @@
 <p align="center">
     <img src="app\src\main\ic_launcher-web.png" height="128">
-    <b><h3 align="center">Lost</h3></b>
+    <b><h3 align="center">Lost Music Player</h3></b>
 </p>
 <br><br>
 

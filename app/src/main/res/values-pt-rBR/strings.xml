@@ -158,7 +158,7 @@
     <string name="depth">Profundidade</string>
     <string name="description">Descrição</string>
     <string name="device_info">Informações do dispositivo</string>
-    <string name="dialog_message_set_ringtone">Permite que o Retro Music modifique as configurações de áudio</string>
+    <string name="dialog_message_set_ringtone">Permite que o Lost Music modifique as configurações de áudio</string>
     <string name="dialog_title_set_ringtone">Definir como toque</string>
     <string name="disc_hint">Número do Disco</string>
     <string name="do_you_want_to_clear_the_blacklist">Você quer limpar a lista negra?</string>
@@ -303,7 +303,7 @@
     <string name="personalize_settings_summary">Personalizar os controles na tela de reprodução e interface do usuário</string>
     <string name="pick_from_local_storage">Escolha do armazenamento local</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Siga a página no Pinterest para se inspirar no design do Retro Music</string>
+    <string name="pinterest_page_summary">Siga a página no Pinterest para se inspirar no design do Lost Music</string>
     <string name="plain">Plano</string>
     <string name="playList_already_exits">A playlist já existe</string>
     <string name="playback_pitch">Tom</string>
@@ -357,7 +357,7 @@
     <string name="pref_summary_home_banner">Mostrar ou esconder o mural inicial</string>
     <string name="pref_summary_ignore_media_store_artwork">Pode aumentar a qualidade da capa do álbum, mas diminui a velocidade de carregamento. Ative isso apenas se você tiver problemas com capas de baixa resolução</string>
     <string name="pref_summary_library_categories">Configurar visibilidade e ordem das categorias da biblioteca.</string>
-    <string name="pref_summary_lock_screen">Usar controles personalizados do Retro Music na tela de bloqueio</string>
+    <string name="pref_summary_lock_screen">Usar controles personalizados do Lost Music na tela de bloqueio</string>
     <string name="pref_summary_manage_audio_focus">Sempre reproduzir o áudio em segundo plano independentemente de qualquer coisa que esteja sendo reproduzida</string>
     <string name="pref_summary_open_source_licences">Detalhes da licença para software de código aberto</string>
     <string name="pref_summary_pause_history">Quando ativado, as músicas tocadas recentemente não serão exibidas no histórico</string>
@@ -450,8 +450,8 @@
     <string name="restored_previous_purchase_please_restart">Compra anterior restaurada. Por favor, reinicie o aplicativo para fazer uso de todos os recursos.</string>
     <string name="restored_previous_purchases">Compras anteriores restauradas.</string>
     <string name="restoring_purchase">Restaurando compra...</string>
-    <string name="retro_music_player">Retro Music Player</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">O aplicativo precisa de permissão para acessar as configurações do seu dispositivo para definir músicas como toque</string>
     <string name="ringtone_title">Toque (opcional)</string>
     <string name="permission_alarm_summary">O aplicativo precisa de permissão para agendar alarmes precisos para configurar os temporizadores de sono</string>
@@ -535,9 +535,9 @@
     <string name="track_list">Número da música</string>
     <string name="translate">Traduzir</string>
     <string name="translate_community">Ajude-nos a traduzir o aplicativo para o seu idioma</string>
-    <string name="try_retro_music_premium">Experimente o Retro Music Premium</string>
+    <string name="try_lost_music_premium">Experimente o Lost Music Premium</string>
     <string name="twitter_page">Twitter </string>
-    <string name="twitter_page_summary">Compartilhe seu design com o Retro Music</string>
+    <string name="twitter_page_summary">Compartilhe seu design com o Lost Music</string>
     <string name="unlabeled">Não rotulado</string>
     <string name="unplayable_file">Não foi possível reproduzir esta música.</string>
     <string name="up_next">A seguir</string>
@@ -565,5 +565,5 @@
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">Você será encaminhado para o website de rastreio de problemas.</string>
     <string name="your_account_data_is_only_used_for_authentication">Os dados da sua conta são usados ​​apenas para autenticação.</string>
     <string name="could_not_write_tags_to_file">Não foi possível gravar as tags no arquivo de música!</string>
-    <string name="sleep_timer_no_permission">Sem permissão para agendar alarmes. Por favor, permita o Retro Music.</string>
+    <string name="sleep_timer_no_permission">Sem permissão para agendar alarmes. Por favor, permita o Lost Music.</string>
 </resources>

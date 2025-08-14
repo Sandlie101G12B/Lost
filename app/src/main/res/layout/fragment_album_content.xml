@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<code.name.monkey.retromusic.views.insets.InsetsConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<code.name.monkey.lost.views.insets.InsetsConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -194,4 +194,4 @@
         app:layout_constraintTop_toBottomOf="@id/scrobblesLabel"
         tools:text="100000"
         tools:visibility="visible" />
-</code.name.monkey.retromusic.views.insets.InsetsConstraintLayout>
+</code.name.monkey.lost.views.insets.InsetsConstraintLayout>

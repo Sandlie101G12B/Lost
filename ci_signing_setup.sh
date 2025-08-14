@@ -15,5 +15,5 @@ decode_env_to_file() {
   fi
 }
 
-decode_env_to_file "SIGNING_KEYSTORE_GITHUB" "retro.keystore"
-decode_env_to_file "SIGNING_PROPERTIES_GITHUB" "retro.properties"
+decode_env_to_file "SIGNING_KEYSTORE_GITHUB" "lost.keystore"
+decode_env_to_file "SIGNING_PROPERTIES_GITHUB" "lost.properties"

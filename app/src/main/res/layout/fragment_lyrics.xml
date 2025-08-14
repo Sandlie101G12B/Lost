@@ -58,7 +58,7 @@
                 tools:text="@tools:sample/lorem[100]" />
         </ScrollView>
 
-        <code.name.monkey.retromusic.lyrics.LrcView
+        <code.name.monkey.lost.lyrics.LrcView
             android:id="@+id/lyricsView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

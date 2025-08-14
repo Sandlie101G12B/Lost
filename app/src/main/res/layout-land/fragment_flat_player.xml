@@ -28,17 +28,17 @@
             android:layout_height="match_parent"
             android:orientation="horizontal">
 
-            <code.name.monkey.retromusic.views.HeightFitSquareLayout
+            <code.name.monkey.lost.views.HeightFitSquareLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
                 <androidx.fragment.app.FragmentContainerView
                     android:id="@+id/playerAlbumCoverFragment"
-                    android:name="code.name.monkey.retromusic.fragments.player.PlayerAlbumCoverFragment"
+                    android:name="code.name.monkey.lost.fragments.player.PlayerAlbumCoverFragment"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     tools:layout="@layout/fragment_album_flat_cover" />
-            </code.name.monkey.retromusic.views.HeightFitSquareLayout>
+            </code.name.monkey.lost.views.HeightFitSquareLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -55,7 +55,7 @@
 
                 <androidx.fragment.app.FragmentContainerView
                     android:id="@+id/playbackControlsFragment"
-                    android:name="code.name.monkey.retromusic.fragments.player.flat.FlatPlaybackControlsFragment"
+                    android:name="code.name.monkey.lost.fragments.player.flat.FlatPlaybackControlsFragment"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_gravity="bottom"

@@ -158,7 +158,7 @@
     <string name="depth">Profunditat</string>
     <string name="description">Descripció</string>
     <string name="device_info">Informació del dispositiu</string>
-    <string name="dialog_message_set_ringtone">Permet que Retro Music modifiqui la configuració d\'àudio</string>
+    <string name="dialog_message_set_ringtone">Permet que Lost Music modifiqui la configuració d\'àudio</string>
     <string name="dialog_title_set_ringtone">Estableix el to de trucada</string>
     <string name="disc_hint">Número del disc</string>
     <string name="do_you_want_to_clear_the_blacklist">Voleu esborrar la llista negra?</string>
@@ -303,7 +303,7 @@
     <string name="personalize_settings_summary">Personalitzeu els controls de la interfície d\'usuari i de la reproducció en curs</string>
     <string name="pick_from_local_storage">Tria des del dispositiu</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Seguiu la pàgina de Pinterest per a la inspiració en el disseny del Retro Music</string>
+    <string name="pinterest_page_summary">Seguiu la pàgina de Pinterest per a la inspiració en el disseny del Lost Music</string>
     <string name="plain">Simple</string>
     <string name="playList_already_exits">La llista de reproducció ja existeix</string>
     <string name="playback_pitch">To</string>
@@ -357,7 +357,7 @@
     <string name="pref_summary_home_banner">Mostra o amaga el bàner d\'inici</string>
     <string name="pref_summary_ignore_media_store_artwork">Pot augmentar la qualitat de la portada de l\'àlbum, però fa que els temps de càrrega de la imatge siguin més lents. Activeu-ho només si teniu problemes amb portades d\'àlbum de baixa resolució</string>
     <string name="pref_summary_library_categories">Configura la visibilitat i l\'ordre de les categories de la biblioteca.</string>
-    <string name="pref_summary_lock_screen">Utilitzeu els controls de pantalla de bloqueig personalitzats de Retro Music</string>
+    <string name="pref_summary_lock_screen">Utilitzeu els controls de pantalla de bloqueig personalitzats de Lost Music</string>
     <string name="pref_summary_manage_audio_focus">Reprodueix sempre l\'àudio en segon pla, independentment de qualsevol altra cosa que es reprodueixi</string>
     <string name="pref_summary_open_source_licences">Detalls de la llicència del programari lliure</string>
     <string name="pref_summary_pause_history">Quan està activat, les cançons recentment reproduïdes no es mostraran a l\'historial</string>
@@ -450,8 +450,8 @@
     <string name="restored_previous_purchase_please_restart">Compra anterior restaurada. Reinicia l\'aplicació per fer ús de totes les funcions.</string>
     <string name="restored_previous_purchases">Compres anteriors restaurades.</string>
     <string name="restoring_purchase">S\'està restaurant la compra…</string>
-    <string name="retro_music_player">Retro Music Player</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">L\'aplicació necessita permís per accedir a la configuració del dispositiu per configurar la música com a to de trucada</string>
     <string name="ringtone_title">To de trucada (Opcional)</string>
     <string name="permission_alarm_summary">The app needs permission to schedule exact alarms to set sleep timers</string>
@@ -535,9 +535,9 @@
     <string name="track_list">Número de pista</string>
     <string name="translate">Tradueix</string>
     <string name="translate_community">Ajuda\'ns a traduir l\'aplicació al teu idioma</string>
-    <string name="try_retro_music_premium">Prova Retro Music Premium</string>
+    <string name="try_lost_music_premium">Prova Lost Music Premium</string>
     <string name="twitter_page">Twitter</string>
-    <string name="twitter_page_summary">Comparteix el teu disseny amb Retro Music</string>
+    <string name="twitter_page_summary">Comparteix el teu disseny amb Lost Music</string>
     <string name="unlabeled">Sense etiqueta</string>
     <string name="unplayable_file">No s\'ha pogut reproduir aquesta cançó.</string>
     <string name="up_next">A continuació</string>
@@ -565,5 +565,5 @@
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">Se us enviarà al lloc web de seguiment de problemes.</string>
     <string name="your_account_data_is_only_used_for_authentication">Les dades del vostre compte només s\'utilitzen per a l\'autenticació.</string>
     <string name="could_not_write_tags_to_file">No s\'han pogut modificar les etiquetes al fitxer de música!</string>
-    <string name="sleep_timer_no_permission">No permission to schedule alarms, please allow Retro Music.</string>
+    <string name="sleep_timer_no_permission">No permission to schedule alarms, please allow Lost Music.</string>
 </resources>

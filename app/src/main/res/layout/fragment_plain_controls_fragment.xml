@@ -32,7 +32,7 @@
         app:layout_constraintStart_toEndOf="@id/songCurrentProgress"
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="RtlHardcoded,UnusedAttribute"
-        style="@style/Widget.Retro.Slider"
+        style="@style/Widget.Lost.Slider"
         tools:progress="20" />
 
     <com.google.android.material.textview.MaterialTextView

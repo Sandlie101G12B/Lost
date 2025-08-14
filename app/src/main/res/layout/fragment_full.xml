@@ -11,7 +11,7 @@
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/playerAlbumCoverFragment"
-        android:name="code.name.monkey.retromusic.fragments.player.PlayerAlbumCoverFragment"
+        android:name="code.name.monkey.lost.fragments.player.PlayerAlbumCoverFragment"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -33,7 +33,7 @@
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/playbackControlsFragment"
-        android:name="code.name.monkey.retromusic.fragments.player.full.FullPlaybackControlsFragment"
+        android:name="code.name.monkey.lost.fragments.player.full.FullPlaybackControlsFragment"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_gravity="bottom"
@@ -124,7 +124,7 @@
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/cover_lyrics"
-        android:name="code.name.monkey.retromusic.fragments.player.CoverLyricsFragment"
+        android:name="code.name.monkey.lost.fragments.player.CoverLyricsFragment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"

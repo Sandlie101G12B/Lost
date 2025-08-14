@@ -1,25 +1,25 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.RetroMusic" parent="Theme.RetroMusic.Base" />
+    <style name="Theme.Lost" parent="Theme.Lost.Base" />
 
-    <style name="Theme.RetroMusic.Light" parent="Theme.RetroMusic.Base.Light" />
+    <style name="Theme.Lost.Light" parent="Theme.Lost.Base.Light" />
 
-    <style name="Theme.RetroMusic.Black" parent="Theme.RetroMusic.Base.Black" />
+    <style name="Theme.Lost.Black" parent="Theme.Lost.Base.Black" />
 
-    <style name="Theme.RetroMusic.FollowSystem" parent="Theme.RetroMusic.Base.Adaptive">
+    <style name="Theme.Lost.FollowSystem" parent="Theme.Lost.Base.Adaptive">
         <item name="android:windowBackground">?colorSurface</item>
     </style>
 
-    <style name="Theme.RetroMusic.MD3" parent="@style/Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Lost.MD3" parent="@style/Theme.Material3.DayNight.NoActionBar">
         <item name="roundSelector">@drawable/round_selector</item>
         <item name="rectSelector">@drawable/rect_selector</item>
         <item name="materialCardViewStyle">@style/Widget.Material3.CardView.Elevated</item>
         <item name="materialButtonStyle">@style/MaterialButtonTheme</item>
     </style>
 
-    <style name="Theme.RetroMusic.Notification" parent="@android:style/TextAppearance.StatusBar.EventContent" />
+    <style name="Theme.Lost.Notification" parent="@android:style/TextAppearance.StatusBar.EventContent" />
 
-    <style name="Theme.RetroMusic.Notification.Title" parent="@android:style/TextAppearance.StatusBar.EventContent.Title" />
+    <style name="Theme.Lost.Notification.Title" parent="@android:style/TextAppearance.StatusBar.EventContent.Title" />
 
     <style name="OverFlowButton">
         <item name="srcCompat">@drawable/ic_more_vert</item>
@@ -119,7 +119,7 @@
         <item name="cornerSize">0dp</item>
     </style>
 
-    <style name="Theme.RetroMusic.SplashScreen" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <style name="Theme.Lost.SplashScreen" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowBackground">@drawable/splash</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
@@ -222,7 +222,7 @@
         <item name="colorPrimary">@color/md_deep_purple_500</item>
     </style>
 
-    <style name="Theme.RetroMusic.Dialog" parent="Theme.Material3.DayNight.Dialog">
+    <style name="Theme.Lost.Dialog" parent="Theme.Material3.DayNight.Dialog">
         <item name="windowNoTitle">true</item>
         <item name="android:windowIsFloating">true</item>
         <item name="android:windowIsTranslucent">true</item>
@@ -256,13 +256,13 @@
         <item name="cornerSize">50%</item>
     </style>
 
-    <style name="Widget.Retro.Slider" parent="Widget.Material3.Slider.Legacy">
+    <style name="Widget.Lost.Slider" parent="Widget.Material3.Slider.Legacy">
         <item name="labelBehavior">gone</item>
         <item name="thumbRadius">6dp</item>
         <item name="haloRadius">18dp</item>
     </style>
 
-    <style name="Widget.Retro.MD3.Custom.Slider" parent="Widget.Material3.Slider">
+    <style name="Widget.Lost.MD3.Custom.Slider" parent="Widget.Material3.Slider">
         <item name="labelBehavior">gone</item>
         <item name="thumbHeight">26dp</item>
         <item name="thumbWidth">4dp</item>

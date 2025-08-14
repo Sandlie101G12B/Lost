@@ -1,11 +1,11 @@
-package code.name.monkey.retromusic.cast
+package code.name.monkey.lost.cast
 
 import androidx.core.net.toUri
-import code.name.monkey.retromusic.cast.RetroWebServer.Companion.MIME_TYPE_AUDIO
-import code.name.monkey.retromusic.cast.RetroWebServer.Companion.PART_COVER_ART
-import code.name.monkey.retromusic.cast.RetroWebServer.Companion.PART_SONG
-import code.name.monkey.retromusic.model.Song
-import code.name.monkey.retromusic.util.RetroUtil
+import code.name.monkey.lost.cast.LostWebServer.Companion.MIME_TYPE_AUDIO
+import code.name.monkey.lost.cast.LostWebServer.Companion.PART_COVER_ART
+import code.name.monkey.lost.cast.LostWebServer.Companion.PART_SONG
+import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.util.LostUtil
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaInfo.STREAM_TYPE_BUFFERED
 import com.google.android.gms.cast.MediaMetadata
@@ -24,7 +24,7 @@ object CastHelper {
         val song = this
         val baseUrl: URL
         try {
-            baseUrl = URL(CAST_URL_PROTOCOL, RetroUtil.getIpAddress(true), getCurrentServerPort(), "")
+            baseUrl = URL(CAST_URL_PROTOCOL, LostUtil.getIpAddress(true), getCurrentServerPort(), "")
         } catch (e: MalformedURLException) {
             return null
         }

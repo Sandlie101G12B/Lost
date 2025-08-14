@@ -10,8 +10,8 @@
         layout="@layout/card_credit" />
 
     <include
-        android:id="@+id/card_retro_info"
-        layout="@layout/card_retro_info" />
+        android:id="@+id/card_lost_info"
+        layout="@layout/card_lost_info" />
 
     <include
         android:id="@+id/card_social"

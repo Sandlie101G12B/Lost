@@ -159,7 +159,7 @@ https://play.google.com/store/apps/details?id=%s</string>
     <string name="depth">Kurahî</string>
     <string name="description">Danasîn</string>
     <string name="device_info">Zanyariyên amûrê</string>
-    <string name="dialog_message_set_ringtone">Mafê bide Retro Music da ku sazkariyên dengî biguherîne</string>
+    <string name="dialog_message_set_ringtone">Mafê bide Lost Music da ku sazkariyên dengî biguherîne</string>
     <string name="dialog_title_set_ringtone">Dengê zengilê saz bike</string>
     <string name="disc_hint">Jimara diskê</string>
     <string name="do_you_want_to_clear_the_blacklist">Tu dixwazî rêzoka reş pak bikî?</string>
@@ -304,7 +304,7 @@ https://play.google.com/store/apps/details?id=%s</string>
     <string name="personalize_settings_summary">Kontrolên lêdanê û navrûya bikarhêneriyê xwe kesane bike</string>
     <string name="pick_from_local_storage">Ji bîrgeha herêmî hilbijêre</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Ji bo ramanên dîzayn ên Retro Music rûpela Pinterest bişopîne</string>
+    <string name="pinterest_page_summary">Ji bo ramanên dîzayn ên Lost Music rûpela Pinterest bişopîne</string>
     <string name="plain">Sade</string>
     <string name="playList_already_exits">Rêzoka lêdanê jixwe heye</string>
     <string name="playback_pitch">Awaz</string>
@@ -359,7 +359,7 @@ têne guhertin</string>
     <string name="pref_summary_home_banner">Wêneya navrûyê veşêre an jî nîşan bide</string>
     <string name="pref_summary_ignore_media_store_artwork">Dikare kalîteya bergê albûmê bilind bike, lê dibe sedema ku demên barkirina wêneyê hêdî bibe. Tenê ku pirsgirêkên te bi bergê albumên bi çareseriya kêm re hebin vê yekê çalak bike</string>
     <string name="pref_summary_library_categories">Dîtin û rêzkirina beşên pirtûkxaneyê pevsaz bike.</string>
-    <string name="pref_summary_lock_screen">Kontrolên dîmendera kilîtkirinê yên kesanekirî yên Retro Music bi kar bîne</string>
+    <string name="pref_summary_lock_screen">Kontrolên dîmendera kilîtkirinê yên kesanekirî yên Lost Music bi kar bîne</string>
     <string name="pref_summary_manage_audio_focus">Her dem dengê li paşrûyê bide lêdan tevî ku tiştek din hatibe lêdan</string>
     <string name="pref_summary_open_source_licences">Hûrguliyên Lîsansê ji bo nermalava çavkaniya vekirî</string>
     <string name="pref_summary_pause_history">Dema ku çalak be, stranên ku nû hatine lêdan wê di dîrokê de neyên xuyakirin</string>
@@ -452,8 +452,8 @@ têne guhertin</string>
     <string name="restored_previous_purchase_please_restart">Kirîna berê hate vegerandin. Ji kerema xwe sepanê ji nû ve bide destpêkirin da ku hemû taybetmendiyan bi kar bînî.</string>
     <string name="restored_previous_purchases">Kirînên berê hatin vegerandin.</string>
     <string name="restoring_purchase">Kirîn tê vegerandin…</string>
-    <string name="retro_music_player">Lêdera muzîkê ya Retro</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lost_music_player">Lêdera muzîkê ya Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">Ji bo ku muzîkê wekî dengê zengilê saz bikî pêdivî bi mafdayînê heye ku bigihîje sazkariyên amûra te</string>
     <string name="ringtone_title">Dengê zengilê (Vebijêrkî)</string>
     <string name="permission_alarm_summary">Ev sepana re izina xişte kirina \'elarman hewce dike bo demjimêrên xewê cih bike</string>
@@ -537,9 +537,9 @@ têne guhertin</string>
     <string name="track_list">Jimara herikê</string>
     <string name="translate">Wergerandin</string>
     <string name="translate_community">Alîkariya me bike ku em sepanê wergerînin zimanê te</string>
-    <string name="try_retro_music_premium">Retro Music Premium biceribîne</string>
+    <string name="try_lost_music_premium">Lost Music Premium biceribîne</string>
     <string name="twitter_page">Twitter</string>
-    <string name="twitter_page_summary">Dîzayna xwe bi Retro Music re parve bike</string>
+    <string name="twitter_page_summary">Dîzayna xwe bi Lost Music re parve bike</string>
     <string name="unlabeled">Nenîşankirî</string>
     <string name="unplayable_file">Nikare vê stranê\u2019 lêdê.</string>
     <string name="up_next">Pêş</string>
@@ -567,5 +567,5 @@ têne guhertin</string>
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">Tu yê ji bo malpera şopandina pirsgirêkê werî beralîkirin.</string>
     <string name="your_account_data_is_only_used_for_authentication">Daneyên ajimêra te tenê ji bo pejirandinê têne bikaranîn.</string>
     <string name="could_not_write_tags_to_file">Nikare etîketan li pelê muzîkê binivîsîne!</string>
-    <string name="sleep_timer_no_permission">Izin ji xiştekirina \'elarman re tune, bi kerema xwe izin bidin Retro Music\'ê.</string>
+    <string name="sleep_timer_no_permission">Izin ji xiştekirina \'elarman re tune, bi kerema xwe izin bidin Lost Music\'ê.</string>
 </resources>

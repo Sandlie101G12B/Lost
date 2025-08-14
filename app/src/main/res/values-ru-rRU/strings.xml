@@ -162,7 +162,7 @@
     <string name="depth">Масштабирование</string>
     <string name="description">Описание</string>
     <string name="device_info">Информация об устройстве</string>
-    <string name="dialog_message_set_ringtone">Разрешить Retro Music изменять настройки звука</string>
+    <string name="dialog_message_set_ringtone">Разрешить Lost Music изменять настройки звука</string>
     <string name="dialog_title_set_ringtone">Выбрать мелодию звонка</string>
     <string name="disc_hint">Номер диска</string>
     <string name="do_you_want_to_clear_the_blacklist">Очистить чёрный список?</string>
@@ -307,7 +307,7 @@
     <string name="personalize_settings_summary">Настройка экрана воспроизведения и интерфейса управления музыкой</string>
     <string name="pick_from_local_storage">Выбрать из хранилища</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Подпишитесь на страницу Retro Music в Pinterest</string>
+    <string name="pinterest_page_summary">Подпишитесь на страницу Lost Music в Pinterest</string>
     <string name="plain">Гладкое</string>
     <string name="playList_already_exits">Плейлист уже существует</string>
     <string name="playback_pitch">Высота</string>
@@ -333,7 +333,7 @@
     <string name="pref_header_library">Библиотека</string>
     <string name="pref_header_lockscreen">Экран блокировки</string>
     <string name="pref_header_playlists">Плейлисты</string>
-    <string name="pref_keep_pause_on_zero_volume_summary">Ставить музыку на паузу при уменьшении громкости до нуля и продолжать воспроизведение после увеличения громкости. Предупреждение: при увеличении громкости вне приложения, Retro Music также начнёт воспроизведение</string>
+    <string name="pref_keep_pause_on_zero_volume_summary">Ставить музыку на паузу при уменьшении громкости до нуля и продолжать воспроизведение после увеличения громкости. Предупреждение: при увеличении громкости вне приложения, Lost Music также начнёт воспроизведение</string>
     <string name="pref_keep_pause_on_zero_volume_title">Пауза при нулевой громкости</string>
     <string name="pref_keep_screen_on_summary">Имейте в виду, что включение этой функции может повлиять на время работы от батареи</string>
     <string name="pref_keep_screen_on_title">Оставлять экран включённым</string>
@@ -361,7 +361,7 @@
     <string name="pref_summary_home_banner">Показывать шапку в разделе \"Для вас\"</string>
     <string name="pref_summary_ignore_media_store_artwork">Может повысить качество обложки альбома, но привести к более медленной загрузке изображения. Включайте это только в том случае, если у вас есть проблемы с обложками низкого разрешения</string>
     <string name="pref_summary_library_categories">Настроить вид и порядок вкладок в библиотеке.</string>
-    <string name="pref_summary_lock_screen">Используйте собственный экран блокировки Retro Music</string>
+    <string name="pref_summary_lock_screen">Используйте собственный экран блокировки Lost Music</string>
     <string name="pref_summary_manage_audio_focus">Всегда воспроизводить звук в фоне вне зависимости от других источников звука</string>
     <string name="pref_summary_open_source_licences">Сведения о лицензиях на ПО с открытым исходным кодом</string>
     <string name="pref_summary_pause_history">Если включено, то новые треки не будут отображаться в истории</string>
@@ -454,8 +454,8 @@
     <string name="restored_previous_purchase_please_restart">Предыдущая покупка восстановлена. Перезагрузите приложение, чтобы воспользоваться всеми функциями.</string>
     <string name="restored_previous_purchases">Предыдущие покупки восстановлены.</string>
     <string name="restoring_purchase">Восстановление покупки…</string>
-    <string name="retro_music_player">Retro Music Player</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">Приложению требуется разрешение на доступ к изменению настроек вашего устройства, чтобы устанавливать музыку в качестве мелодии звонка</string>
     <string name="ringtone_title">Мелодия звонка (необязательно)</string>
     <string name="permission_alarm_summary">Приложению нужно разрешение на установку будильников, чтобы устанавливать таймеры сна</string>
@@ -539,9 +539,9 @@
     <string name="track_list">Номер трека</string>
     <string name="translate">Помочь с переводом</string>
     <string name="translate_community">Помогите нам перевести приложение на ваш язык</string>
-    <string name="try_retro_music_premium">Попробуйте Retro Music Premium</string>
+    <string name="try_lost_music_premium">Попробуйте Lost Music Premium</string>
     <string name="twitter_page">Twitter</string>
-    <string name="twitter_page_summary">Поделитесь своим дизайном Retro Music</string>
+    <string name="twitter_page_summary">Поделитесь своим дизайном Lost Music</string>
     <string name="unlabeled">Не показывать</string>
     <string name="unplayable_file">Невозможно проиграть этот трек.</string>
     <string name="up_next">Следующие треки</string>

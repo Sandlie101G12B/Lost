@@ -14,7 +14,7 @@
 
 <resources>
 
-    <style name="Theme.RetroMusic.Base.Adaptive" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Lost.Base.Adaptive" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="toolbarPopupTheme">@style/ThemeOverlay.Material3.Light</item>
         <item name="roundSelector">@drawable/round_selector</item>
         <item name="rectSelector">@drawable/rect_selector</item>
@@ -27,7 +27,7 @@
         <item name="windowActionModeOverlay">true</item>
     </style>
 
-    <style name="Theme.RetroMusic.Base" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.Lost.Base" parent="Theme.Material3.Dark.NoActionBar">
         <item name="toolbarPopupTheme">@style/ThemeOverlay.Material3.Dark</item>
         <item name="roundSelector">@drawable/round_selector</item>
         <item name="rectSelector">@drawable/rect_selector</item>
@@ -43,7 +43,7 @@
         <item name="windowActionModeOverlay">true</item>
     </style>
 
-    <style name="Theme.RetroMusic.Base.Light" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.Lost.Base.Light" parent="Theme.Material3.Light.NoActionBar">
         <item name="roundSelector">@drawable/round_selector</item>
         <item name="rectSelector">@drawable/rect_selector</item>
         <item name="toolbarPopupTheme">@style/ThemeOverlay.Material3.Light</item>

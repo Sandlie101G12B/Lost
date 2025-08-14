@@ -46,7 +46,7 @@
             app:shapeAppearanceOverlay="@style/circleImageView"
             app:srcCompat="@drawable/material_design_default" />
 
-        <code.name.monkey.retromusic.views.RetroShapeableImageView
+        <code.name.monkey.lost.views.LostShapeableImageView
             android:id="@+id/userImage"
             android:layout_width="72dp"
             android:layout_height="72dp"
@@ -57,7 +57,7 @@
             android:transitionName="user_image"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:retroCornerSize="36dp"
+            app:lostCornerSize="36dp"
             app:srcCompat="@drawable/ic_person_flat" />
 
         <com.google.android.material.textfield.TextInputLayout

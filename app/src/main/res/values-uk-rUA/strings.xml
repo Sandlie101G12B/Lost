@@ -162,7 +162,7 @@
     <string name="depth">Глибина</string>
     <string name="description">Опис</string>
     <string name="device_info">Інформація про пристрій</string>
-    <string name="dialog_message_set_ringtone">Дозволити Retro Music змінювати налаштування звуку</string>
+    <string name="dialog_message_set_ringtone">Дозволити Lost Music змінювати налаштування звуку</string>
     <string name="dialog_title_set_ringtone">Встановити як мелодію дзвінка</string>
     <string name="disc_hint">Номер диску</string>
     <string name="do_you_want_to_clear_the_blacklist">Ви хочете очистити чорний список?</string>
@@ -307,7 +307,7 @@
     <string name="personalize_settings_summary">Налаштуйте екран відтворення та зовнішній вигляд</string>
     <string name="pick_from_local_storage">Вибрати з локального сховища</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Слідкуйте за сторінкою Pinterest від Retro Music для натхнення дизайну</string>
+    <string name="pinterest_page_summary">Слідкуйте за сторінкою Pinterest від Lost Music для натхнення дизайну</string>
     <string name="plain">Звичайний</string>
     <string name="playList_already_exits">Список відтворення вже існує</string>
     <string name="playback_pitch">Тон</string>
@@ -361,7 +361,7 @@
     <string name="pref_summary_home_banner">Сховати головний банер</string>
     <string name="pref_summary_ignore_media_store_artwork">Може збільшити якість обкладинки альбому, але збільшує час завантаження зображення. Використовуйте тільки якщо у вас проблеми з обкладинками низької роздільної здатності</string>
     <string name="pref_summary_library_categories">Налаштувати видимість та порядок категорій бібліотеки.</string>
-    <string name="pref_summary_lock_screen">Використовувати керування музикою на екрані блокування від Retro Music</string>
+    <string name="pref_summary_lock_screen">Використовувати керування музикою на екрані блокування від Lost Music</string>
     <string name="pref_summary_manage_audio_focus">Завжди відтворювати аудіо у фоновому режимі, незважаючи на інше відтворення </string>
     <string name="pref_summary_open_source_licences">Деталі ліцензії для програмного забезпечення з відкритим кодом</string>
     <string name="pref_summary_pause_history">Коли увімкнено, нові пісні не відображатимуться в історії</string>
@@ -454,8 +454,8 @@
     <string name="restored_previous_purchase_please_restart">Відновлено попередню покупку. Перезапустіть застосунок, щоб скористатися всіма функціями.</string>
     <string name="restored_previous_purchases">Відновлені попередні покупки.</string>
     <string name="restoring_purchase">Відновлення покупки…</string>
-    <string name="retro_music_player">Retro Music плеєр</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lost_music_player">Lost Music плеєр</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">Застосунку потрібен дозвіл на доступ до налаштувань вашого пристрою для того, щоб встановити музику як рингтон</string>
     <string name="ringtone_title">Мелодія (Необов\'язково)</string>
     <string name="permission_alarm_summary">Застосунку потрібен дозвіл на планування точних будильників для встановлення таймерів сну</string>
@@ -539,9 +539,9 @@
     <string name="track_list">Номер пісні</string>
     <string name="translate">Перекласти</string>
     <string name="translate_community">Допоможіть нам перекласти застосунок на вашу мову</string>
-    <string name="try_retro_music_premium">Спробуйте Retro Music Преміум</string>
+    <string name="try_lost_music_premium">Спробуйте Lost Music Преміум</string>
     <string name="twitter_page">Твіттер</string>
-    <string name="twitter_page_summary">Поділіться своїм дизайном із Retro Music</string>
+    <string name="twitter_page_summary">Поділіться своїм дизайном із Lost Music</string>
     <string name="unlabeled">Без позначки</string>
     <string name="unplayable_file">Не можу відтворити пісню.</string>
     <string name="up_next">Наступне</string>
@@ -569,5 +569,5 @@
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">Вас буде перенаправлено на сайт відстеження проблем.</string>
     <string name="your_account_data_is_only_used_for_authentication">Дані вашого облікового запису використовуються лише для автентифікації.</string>
     <string name="could_not_write_tags_to_file">Не вдалося записати теги у файл!</string>
-    <string name="sleep_timer_no_permission">Немає дозволу на планування будильників, надайте дозвіл Retro Music.</string>
+    <string name="sleep_timer_no_permission">Немає дозволу на планування будильників, надайте дозвіл Lost Music.</string>
 </resources>

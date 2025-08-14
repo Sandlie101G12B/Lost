@@ -157,7 +157,7 @@ tiếp tục xảy ra hãy \"Xóa dữ liệu ứng dụng\"</string>
     <string name="depth">Độ sâu</string>
     <string name="description">Mô tả</string>
     <string name="device_info">Thông tin thiết bị</string>
-    <string name="dialog_message_set_ringtone">Cho phép Retro Music cấu hình cài đặt âm thanh</string>
+    <string name="dialog_message_set_ringtone">Cho phép Lost Music cấu hình cài đặt âm thanh</string>
     <string name="dialog_title_set_ringtone">Cài làm nhạc chuông</string>
     <string name="disc_hint">Số đĩa</string>
     <string name="do_you_want_to_clear_the_blacklist">Bạn có muốn xóa danh sách đen?</string>
@@ -302,7 +302,7 @@ tiếp tục xảy ra hãy \"Xóa dữ liệu ứng dụng\"</string>
     <string name="personalize_settings_summary">Tùy chỉnh màn hình phát và giao diện người dùng</string>
     <string name="pick_from_local_storage">Chọn từ bộ nhớ trong</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Theo dõi trang Pinterest để lấy cảm hứng thiết kế Retro Music</string>
+    <string name="pinterest_page_summary">Theo dõi trang Pinterest để lấy cảm hứng thiết kế Lost Music</string>
     <string name="plain">Giản dị</string>
     <string name="playList_already_exits">Danh sách phát đã tồn tại</string>
     <string name="playback_pitch">Cao độ</string>
@@ -356,7 +356,7 @@ tiếp tục xảy ra hãy \"Xóa dữ liệu ứng dụng\"</string>
     <string name="pref_summary_home_banner">Hiện hoặc ẩn banner màn hình chính</string>
     <string name="pref_summary_ignore_media_store_artwork">Có thể tăng chất lượng hiển thị ảnh bìa album, nhưng sẽ làm thời gian tải hình ảnh chậm hơn. Chỉ bật tính năng này nếu bạn không thích chất lượng ảnh gốc</string>
     <string name="pref_summary_library_categories">Khả năng hiển thị và thứ tự của các danh mục trong thư viện.</string>
-    <string name="pref_summary_lock_screen">Sử dụng các điều khiển màn hình khóa tùy chỉnh của Retro Music</string>
+    <string name="pref_summary_lock_screen">Sử dụng các điều khiển màn hình khóa tùy chỉnh của Lost Music</string>
     <string name="pref_summary_manage_audio_focus">Luôn phát âm thanh trong nền bất kể các nguồn âm thanh đang phát khác</string>
     <string name="pref_summary_open_source_licences">Chi tiết giấy phép của phần mềm mã nguồn mở</string>
     <string name="pref_summary_pause_history">Khi được bật, những bài hát mới phát sẽ không xuất hiện trong lịch sử</string>
@@ -449,8 +449,8 @@ tiếp tục xảy ra hãy \"Xóa dữ liệu ứng dụng\"</string>
     <string name="restored_previous_purchase_please_restart">Khôi phục mua trước đó. Vui lòng khởi động lại ứng dụng để sử dụng tất cả các tính năng.</string>
     <string name="restored_previous_purchases">Đã khôi phục lần mua trước.</string>
     <string name="restoring_purchase">Đang khôi phục mua hàng...</string>
-    <string name="retro_music_player">Retro Music Player</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">Ứng dụng cần quyền truy cập cài đặt thiết bị của bạn để đặt nhạc làm Nhạc chuông</string>
     <string name="ringtone_title">Nhạc chuông (Tùy chọn)</string>
     <string name="permission_alarm_summary">Ứng dụng cần được cấp quyền để lên lịch báo thức chính xác để hẹn giờ ngừng phát</string>
@@ -534,9 +534,9 @@ tiếp tục xảy ra hãy \"Xóa dữ liệu ứng dụng\"</string>
     <string name="track_list">Số rãnh</string>
     <string name="translate">Dịch</string>
     <string name="translate_community">Hãy giúp chúng tôi dịch ứng dụng sang ngôn ngữ của bạn nhé</string>
-    <string name="try_retro_music_premium">Thử Retro Music Premium</string>
+    <string name="try_lost_music_premium">Thử Lost Music Premium</string>
     <string name="twitter_page">Twitter</string>
-    <string name="twitter_page_summary">Chia sẻ thiết kế của bạn với Retro Music</string>
+    <string name="twitter_page_summary">Chia sẻ thiết kế của bạn với Lost Music</string>
     <string name="unlabeled">Chưa gắn nhãn</string>
     <string name="unplayable_file">Không thể phát bài hát này.</string>
     <string name="up_next">Tiếp theo</string>
@@ -564,5 +564,5 @@ tiếp tục xảy ra hãy \"Xóa dữ liệu ứng dụng\"</string>
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">Bạn sẽ được chuyển tiếp đến trang web theo dõi vấn đề.</string>
     <string name="your_account_data_is_only_used_for_authentication">Dữ liệu tài khoản của bạn chỉ được sử dụng để xác thực.</string>
     <string name="could_not_write_tags_to_file">Không thể ghi thẻ vào tệp nhạc!</string>
-    <string name="sleep_timer_no_permission">Không được cấp quyền để lên lịch báo thức, vui lòng cho phép Retro Music.</string>
+    <string name="sleep_timer_no_permission">Không được cấp quyền để lên lịch báo thức, vui lòng cho phép Lost Music.</string>
 </resources>

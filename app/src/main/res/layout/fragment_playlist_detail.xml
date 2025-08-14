@@ -24,7 +24,7 @@
             app:titleTextAppearance="@style/ToolbarTextAppearanceNormal" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <code.name.monkey.retromusic.views.insets.InsetsRecyclerView
+    <code.name.monkey.lost.views.insets.InsetsRecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

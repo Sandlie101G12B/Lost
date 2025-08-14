@@ -28,7 +28,7 @@
 -dontwarn **$$Lambda$*
 -dontwarn javax.annotation.**
 
-# RetroFit
+# LostFit
 -dontwarn retrofit.**
 -keep class retrofit.** { *; }
 -keep,allowobfuscation,allowshrinking interface retrofit2.Call
@@ -69,8 +69,8 @@
 -keep class * extends androidx.fragment.app.Fragment{}
 -keepnames class * extends android.os.Parcelable
 -keepnames class * extends java.io.Serializable
-#-keep class code.name.monkey.retromusic.network.model.** { *; }
--keep class code.name.monkey.retromusic.** { *; }
+#-keep class code.name.monkey.lost.network.model.** { *; }
+-keep class code.name.monkey.lost.** { *; }
 -keep class com.google.android.material.bottomsheet.** { *; }
 
 # TypeToken https://stackoverflow.com/questions/70969756/caused-by-java-lang-runtimeexception-missing-type-parameter
@@ -79,7 +79,7 @@
 -keep public class * implements java.lang.reflect.Type
 
 ## Keep Song, SongMetadata, Sng, Songmeta and all fields for Gson
-#-keep class code.name.monkey.retromusic.helper.FlowType { *; }
+#-keep class code.name.monkey.lost.helper.FlowType { *; }
 #-keepclassmembers class * {
 #    @com.google.gson.annotations.SerializedName <fields>;
 #}

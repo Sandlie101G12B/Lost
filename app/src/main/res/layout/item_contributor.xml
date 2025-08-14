@@ -25,7 +25,7 @@
     android:paddingEnd="12dp"
     tools:ignore="PrivateResource">
 
-    <code.name.monkey.retromusic.views.RetroShapeableImageView
+    <code.name.monkey.lost.views.LostShapeableImageView
         android:id="@+id/icon"
         android:layout_width="42dp"
         android:layout_height="42dp"
@@ -35,7 +35,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:retroCornerSize="21dp"
+        app:lostCornerSize="21dp"
         app:srcCompat="@drawable/ic_account"
         tools:srcCompat="@tools:sample/backgrounds/scenic" />
 
@@ -52,7 +52,7 @@
         app:layout_constraintStart_toEndOf="@+id/icon"
         tools:text="@tools:sample/full_names" />
 
-    <code.name.monkey.retromusic.views.BaselineGridTextView
+    <code.name.monkey.lost.views.BaselineGridTextView
         android:id="@+id/text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"

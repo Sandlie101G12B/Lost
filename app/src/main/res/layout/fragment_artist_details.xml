@@ -59,7 +59,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <code.name.monkey.retromusic.views.BaselineGridTextView
+            <code.name.monkey.lost.views.BaselineGridTextView
                 android:id="@+id/artistTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -75,7 +75,7 @@
                 app:layout_constraintTop_toBottomOf="@id/artistCoverContainer"
                 tools:text="@tools:sample/full_names" />
 
-            <code.name.monkey.retromusic.views.BaselineGridTextView
+            <code.name.monkey.lost.views.BaselineGridTextView
                 android:id="@+id/text"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"

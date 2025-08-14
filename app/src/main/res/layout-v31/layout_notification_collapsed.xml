@@ -42,7 +42,7 @@
             android:ellipsize="end"
             android:lines="1"
             android:singleLine="true"
-            android:textAppearance="@style/Theme.RetroMusic.Notification"
+            android:textAppearance="@style/Theme.Lost.Notification"
             android:textStyle="bold"
             tools:text="@tools:sample/lorem/random" />
 
@@ -53,7 +53,7 @@
             android:ellipsize="end"
             android:lines="1"
             android:singleLine="true"
-            android:textAppearance="@style/Theme.RetroMusic.Notification.Title"
+            android:textAppearance="@style/Theme.Lost.Notification.Title"
             tools:text="@tools:sample/lorem/random" />
 
     </LinearLayout>

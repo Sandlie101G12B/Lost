@@ -160,7 +160,7 @@
     <string name="depth">Profunzime</string>
     <string name="description">Descriere</string>
     <string name="device_info">Informații dispozitiv</string>
-    <string name="dialog_message_set_ringtone">Permite aplicației Retro Music să modifice setările audio</string>
+    <string name="dialog_message_set_ringtone">Permite aplicației Lost Music să modifice setările audio</string>
     <string name="dialog_title_set_ringtone">Setare ton apel</string>
     <string name="disc_hint">Număr disc</string>
     <string name="do_you_want_to_clear_the_blacklist">Doriți să ștergeți lista neagră?</string>
@@ -305,7 +305,7 @@
     <string name="personalize_settings_summary">Personalizează UI si pagina de redare</string>
     <string name="pick_from_local_storage">Alegeți din spațiul de stocare local</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Urmărește pagina Pinterest pentru inspirație de design Retro Music</string>
+    <string name="pinterest_page_summary">Urmărește pagina Pinterest pentru inspirație de design Lost Music</string>
     <string name="plain">Simplu</string>
     <string name="playList_already_exits">Lista de redare există deja</string>
     <string name="playback_pitch">Pas</string>
@@ -359,7 +359,7 @@
     <string name="pref_summary_home_banner">Arată sau ascunde banner-ul acasă</string>
     <string name="pref_summary_ignore_media_store_artwork">Poate mări calitatea copertei de album, dar cauzează încărcarea mai lentă a imaginilor. Activați această opțiune doar dacă aveți probleme cu coperta de album cu rezoluție mică.</string>
     <string name="pref_summary_library_categories">Configurează vizibilitatea și ordinea categoriilor de librării.</string>
-    <string name="pref_summary_lock_screen">Comenzi pe ecranul de blocare pentru Retro music.</string>
+    <string name="pref_summary_lock_screen">Comenzi pe ecranul de blocare pentru Lost.</string>
     <string name="pref_summary_manage_audio_focus">Redă mereu audio în fundal, indiferent dacă altceva este redat</string>
     <string name="pref_summary_open_source_licences">Detalii privind licența pentru software open source</string>
     <string name="pref_summary_pause_history">Când este activată, melodiile noi recent redate, nu vor apărea în istoric</string>
@@ -452,8 +452,8 @@
     <string name="restored_previous_purchase_please_restart">A fost restaurată achiziția anterioară. Reporniți aplicația pentru a utiliza toate funcțiile.</string>
     <string name="restored_previous_purchases">Au fost restabilite achizițiile anterioare.</string>
     <string name="restoring_purchase">Se restabilește achiziția...</string>
-    <string name="retro_music_player">Retro Music Player</string>
-    <string name="retro_music_pro">Cumpărați RetroMusic Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Cumpărați Lost Pro</string>
     <string name="ringtone_summary">Aplicația are nevoie de permisiunea de a accesa setările dispozitivului pentru a seta muzica ca ton de apel</string>
     <string name="ringtone_title">Ton sonerie (opțional)</string>
     <string name="permission_alarm_summary">The app needs permission to schedule exact alarms to set sleep timers</string>
@@ -537,9 +537,9 @@
     <string name="track_list">Numărul piesei</string>
     <string name="translate">Traducere</string>
     <string name="translate_community">Ajută-ne să traducem aplicația</string>
-    <string name="try_retro_music_premium">Încearcă Retro Muzică Premium</string>
+    <string name="try_lost_music_premium">Încearcă Lost Muzică Premium</string>
     <string name="twitter_page">Twitter</string>
-    <string name="twitter_page_summary">Împărtășește design-ul tău cu Retro Music</string>
+    <string name="twitter_page_summary">Împărtășește design-ul tău cu Lost Music</string>
     <string name="unlabeled">Neetichetat</string>
     <string name="unplayable_file">Nu s-a putut reda aceast\u0103 melodie.</string>
     <string name="up_next">Urmează</string>
@@ -567,5 +567,5 @@
     <string name="you_will_be_forwarded_to_the_issue_tracker_website">O să fii redirecționat spre un site pentru monitorizarea erorilor.</string>
     <string name="your_account_data_is_only_used_for_authentication">Datele contului tău sunt folosite doar pentru autentificare.</string>
     <string name="could_not_write_tags_to_file">Nu s-au putut scrie etichetele în fișierul muzical!</string>
-    <string name="sleep_timer_no_permission">No permission to schedule alarms, please allow Retro Music.</string>
+    <string name="sleep_timer_no_permission">No permission to schedule alarms, please allow Lost Music.</string>
 </resources>

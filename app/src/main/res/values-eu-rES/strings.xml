@@ -134,7 +134,7 @@
     <string name="depth">Sakonera</string>
     <string name="description">Azalpena</string>
     <string name="device_info">Gailuaren informazioa</string>
-    <string name="dialog_message_set_ringtone">Allow Retro Music to modify audio settings</string>
+    <string name="dialog_message_set_ringtone">Allow Lost Music to modify audio settings</string>
     <string name="dialog_title_set_ringtone">Set ringtone</string>
     <string name="do_you_want_to_clear_the_blacklist">Zerrenda beltza garbitu nahi duzu?</string>
     <string name="do_you_want_to_remove_from_the_blacklist"><![CDATA[<b>%1$s</b> zerrenda beltzetik ezabatu nahi duzu?]]></string>
@@ -242,7 +242,7 @@
     <string name="personalize_settings_summary">Pertsonalizatu zure orain erreproduzitzen eta UI kontrolak</string>
     <string name="pick_from_local_storage">Tokiko biltegitik hautatu</string>
     <string name="pinterest_page">Pinterest</string>
-    <string name="pinterest_page_summary">Follow Pinterest page for Retro Music design inspiration</string>
+    <string name="pinterest_page_summary">Follow Pinterest page for Lost Music design inspiration</string>
     <string name="plain">Arrunta</string>
     <string name="playing_notification_description">Erreproduzitzen jakinarazpenak erreproduzitu/pausatu etab. ekintzak eskaintzen ditu</string>
     <string name="playing_notification_name">Erreproduzitzen jakinarazpena</string>
@@ -286,7 +286,7 @@
     <string name="pref_summary_home_banner">Txandakatu hasierako banner estiloa</string>
     <string name="pref_summary_ignore_media_store_artwork">Album azalaren kalitatea hobetu dezake, baina irudien kargatze-denbora moteltzen du. Soilik bereizmen baxuko azalekin arazoa baduzu aktibatu</string>
     <string name="pref_summary_library_categories">Configure visibility and order of library categories.</string>
-    <string name="pref_summary_lock_screen">Retro Music-en pantaila-blokeoko kontrolak erabili</string>
+    <string name="pref_summary_lock_screen">Lost Music-en pantaila-blokeoko kontrolak erabili</string>
     <string name="pref_summary_open_source_licences">Software librerako lizentziaren xehetasunak</string>
     <string name="pref_summary_toggle_full_screen">Murgiltze modua</string>
     <string name="pref_summary_toggle_headset">Hasi erreproduzitzen entzungailuak konektatzeaz bat</string>
@@ -347,8 +347,8 @@
     <string name="restored_previous_purchase_please_restart">Aurreko erosketa leheneratua. Mesedez aplikazioa berrabiarazi ezaugarri guztiak erabiltzeko</string>
     <string name="restored_previous_purchases">Aurreko erosketa leheneratua</string>
     <string name="restoring_purchase">Erosketa leheneratzen...</string>
-    <string name="retro_music_player">Retro Music Player</string>
-    <string name="retro_music_pro">Retro Music Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="saf_delete_failed">File delete failed: %s</string>
     <!-- SAF -->
     <string name="saf_error_uri">Can\'t get SAF URI</string>
@@ -421,9 +421,9 @@
     <string name="track_list">Pista zenbakia</string>
     <string name="translate">Itzuli</string>
     <string name="translate_community">Lagun iezaguzu aplikazioa zure hizkuntzara itzultzen</string>
-    <string name="try_retro_music_premium">Try Retro Music Premium</string>
+    <string name="try_lost_music_premium">Try Lost Music Premium</string>
     <string name="twitter_page">Twitter</string>
-    <string name="twitter_page_summary">Partekatu zure Retro Music-en diseinua</string>
+    <string name="twitter_page_summary">Partekatu zure Lost Music-en diseinua</string>
     <string name="unlabeled">Etiketa gabe</string>
     <string name="unplayable_file">Ezin izan da abestia erreproduzitu</string>
     <string name="up_next">Jarraian</string>

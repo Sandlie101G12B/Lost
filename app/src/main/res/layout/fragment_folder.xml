@@ -7,7 +7,7 @@
     android:fitsSystemWindows="true"
     android:transitionGroup="true">
 
-    <code.name.monkey.retromusic.views.insets.InsetsRecyclerView
+    <code.name.monkey.lost.views.insets.InsetsRecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -16,7 +16,7 @@
         android:scrollbars="none"
         app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
 
-    <code.name.monkey.retromusic.views.TopAppBarLayout
+    <code.name.monkey.lost.views.TopAppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -24,14 +24,14 @@
         style="?appBarLayoutStyle"
         android:fitsSystemWindows="true">
 
-        <code.name.monkey.retromusic.views.BreadCrumbLayout
+        <code.name.monkey.lost.views.BreadCrumbLayout
             android:id="@+id/breadCrumbs"
             android:layout_width="match_parent"
             android:layout_height="@dimen/tab_height"
             android:paddingStart="60dp"
             android:paddingEnd="8dp"
             app:layout_collapseMode="pin" />
-    </code.name.monkey.retromusic.views.TopAppBarLayout>
+    </code.name.monkey.lost.views.TopAppBarLayout>
 
     <LinearLayout
         android:id="@android:id/empty"
