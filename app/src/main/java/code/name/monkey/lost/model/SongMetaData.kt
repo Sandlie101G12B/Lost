@@ -18,7 +18,10 @@ data class SongMetaData(
     val valence: Double? = null,      // 0.0 - 1.0 (musical positivity)
     val market: List<String>? = null,
     var skips: Int = 0,
-    val bpm: Float? = null
+    val bpm: Float? = null,
+    var playTimestamps: MutableList<Long> = mutableListOf(), // Added to track play history
+    var skipTimestamps: MutableList<Long> = mutableListOf(), // Added to track skip history
+    var likedTimestamp: Long? = null // Timestamp of when the song was last liked
 )
 
 // Dummy classes to replace missing references (You should replace these with actual project classes)

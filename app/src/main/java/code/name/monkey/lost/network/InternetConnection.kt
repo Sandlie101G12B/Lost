@@ -60,6 +60,7 @@ object InternetConnection {
                     .setOngoing(true)
                 notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
 
+
                 try {
                     Thread.sleep(sleepDurationForThisIterationMillis)
                 } catch (e: InterruptedException) {
@@ -69,6 +70,7 @@ object InternetConnection {
                         .setProgress(0, 0, false)
                         .setOngoing(false)
                     notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
+                    notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
                     return
                 }
                 totalWaitTimeMillis += sleepDurationForThisIterationMillis // Accumulate wait time

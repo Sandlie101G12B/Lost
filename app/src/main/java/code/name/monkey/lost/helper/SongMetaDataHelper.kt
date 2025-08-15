@@ -307,13 +307,9 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val notificationBuilder = NotificationCompat.Builder(context, ENHANCEMENT_CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_notification)
-        .setContentTitle("Song Metadata Enhancement")
-        .setContentText("Starting enhancement process...")
         .setPriority(NotificationCompat.PRIORITY_LOW)
         .setOngoing(true)
         .setProgress(0, 0, true)
-
-    notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
 
     scanAndAddNewDeviceSongs(context, inputPath, deviceSongs)
     fixMissingSongMetaFields(context, outputPath)
@@ -337,11 +333,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
     if (newEntries.isNotEmpty()) {
         val myApiKeys = getApiKeys(context)
         if (myApiKeys.isEmpty()) {
-            notificationBuilder
-                .setContentText("Enhancement stopped: No API keys found.")
-                .setProgress(0, 0, false)
-                .setOngoing(false)
-            notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
+            notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
             return
         }
 
@@ -409,26 +401,14 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                         InternetConnection.waitForConnection(context, notificationBuilder, notificationManager)
                     }
                 }else{
-                    notificationBuilder
-                        .setContentText("Enhancement partially complete. API/Model issues after $songsProcessedCount songs.")
-                        .setProgress(totalSongsToProcess, songsProcessedCount, false)
-                        .setOngoing(false)
-                    notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
+                    notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
                     return
                 }
             }
         }
-        notificationBuilder
-            .setContentText("Enhancement complete. $songsProcessedCount songs processed.")
-            .setProgress(totalSongsToProcess, songsProcessedCount, false)
-            .setOngoing(false)
-        notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
+        notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
     } else {
-        notificationBuilder
-            .setContentText("No new songs to enhance.")
-            .setProgress(0, 0, false)
-            .setOngoing(false)
-        notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
+        notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
     }
 }
 

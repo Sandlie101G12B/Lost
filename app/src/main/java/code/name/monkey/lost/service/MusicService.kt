@@ -44,9 +44,11 @@ import code.name.monkey.lost.extensions.uri
 import code.name.monkey.lost.glide.BlurTransformation
 import code.name.monkey.lost.glide.LostGlideExtension.getSongModel
 import code.name.monkey.lost.glide.LostGlideExtension.songCoverOptions
+import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
 import code.name.monkey.lost.helper.ShuffleHelper.makeShuffleList
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.Song.Companion.emptySong
+import code.name.monkey.lost.model.SongMetaData // Added import
 import code.name.monkey.lost.model.smartplaylist.AbsSmartPlaylist
 import code.name.monkey.lost.providers.HistoryStore
 import code.name.monkey.lost.providers.MusicPlaybackQueueStore
@@ -82,6 +84,7 @@ import kotlinx.coroutines.Dispatchers.Default
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import org.koin.java.KoinJavaComponent.get
+import java.io.File // Added import
 import java.util.*
 
 
@@ -793,11 +796,48 @@ class MusicService : MediaBrowserServiceCompat(),
         notifyChange(PLAY_STATE_CHANGED)
     }
 
+    private fun recordPlayTimestampForCurrentSong() {
+        if (currentSong == emptySong) return
+        val songToUpdate = currentSong // Capture the current song before it changes
+        serviceScope.launch(IO) {
+            val allMetaData = MetaDataManagerHelper.getSongMetaDataList()
+            val songKey = File(songToUpdate.data).nameWithoutExtension.lowercase()
+            val songMetaData = allMetaData.find { File(it.file).nameWithoutExtension.lowercase() == songKey }
+            songMetaData?.let { meta ->
+                if (meta.playTimestamps == null) {
+                    meta.playTimestamps = mutableListOf()
+                }
+                meta.playTimestamps.add(System.currentTimeMillis())
+                MetaDataManagerHelper.saveSongMetaDataList(allMetaData)
+            }
+        }
+    }
+
+
+    private fun recordSkipTimestampForCurrentSong() {
+        if (currentSong == emptySong) return
+        val songToUpdate = currentSong // Capture the current song before it changes
+        serviceScope.launch(IO) {
+            val allMetaData = MetaDataManagerHelper.getSongMetaDataList()
+            val songKey = File(songToUpdate.data).nameWithoutExtension.lowercase()
+            val songMetaData = allMetaData.find { File(it.file).nameWithoutExtension.lowercase() == songKey }
+            songMetaData?.let { meta ->
+                if (meta.skipTimestamps == null) {
+                    meta.skipTimestamps = mutableListOf()
+                }
+                meta.skipTimestamps.add(System.currentTimeMillis())
+                MetaDataManagerHelper.saveSongMetaDataList(allMetaData)
+            }
+        }
+    }
+
     fun playNextSong(force: Boolean) {
+        recordSkipTimestampForCurrentSong()
         playSongAt(getNextPosition(force))
     }
 
     fun playPreviousSong(force: Boolean) {
+        recordSkipTimestampForCurrentSong() // Also record skip when going to previous
         playSongAt(getPreviousPosition(force))
     }
 
@@ -1130,6 +1170,9 @@ class MusicService : MediaBrowserServiceCompat(),
                     }
                     songPlayCountHelper.notifySongChanged(currentSong)
                     storage.saveSong(currentSong)
+
+                    // Add play timestamp
+                    recordPlayTimestampForCurrentSong() // Call the refactored function
                 }
             }
 

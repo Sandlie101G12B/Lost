@@ -6,7 +6,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
+    android:background="?android:attr/windowBackground"
     android:paddingBottom="@dimen/mini_player_height">
+
+    <View
+        android:id="@+id/colorGradientBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
@@ -54,8 +64,13 @@
                 android:layout_height="wrap_content"
                 android:padding="@dimen/normal_lyrics_padding"
                 android:textIsSelectable="true"
-                android:textSize="@dimen/lyrics_text_size"
-                tools:text="@tools:sample/lorem[100]" />
+                android:textSize="30sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:paddingStart="45dp"
+                android:paddingEnd="45dp"
+                tools:text="@tools:sample/lorem[200]"
+                tools:gravity="left"/>
+
         </ScrollView>
 
         <code.name.monkey.lost.lyrics.LrcView
@@ -65,9 +80,10 @@
             app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
             app:lrcLabel="@string/no_lyrics_found"
             app:lrcNormalTextSize="24sp"
-            app:lrcPadding="8dp"
+            app:lrcPadding="18dp"
             app:lrcTextGravity="left"
-            app:lrcTextSize="28sp" />
+            app:lrcTextSize="30sp"
+            android:textColor="?android:attr/textColorPrimary"/>
 
         <TextView
             android:id="@+id/noLyricsFound"
@@ -75,6 +91,7 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:text="@string/no_lyrics_found"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="24sp"
             android:visibility="gone" />
     </FrameLayout>

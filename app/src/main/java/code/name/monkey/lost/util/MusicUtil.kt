@@ -38,6 +38,8 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Pattern
+import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
+import code.name.monkey.lost.model.SongMetaData
 
 
 object MusicUtil : KoinComponent {
@@ -67,16 +69,16 @@ object MusicUtil : KoinComponent {
 
             val files = ArrayList<Uri>()
 
-            for (song in songs) {
+            for (song_item in songs) { // Changed song to song_item to avoid conflict
                 files.add(
                     try {
                         FileProvider.getUriForFile(
                             context,
                             context.applicationContext.packageName,
-                            File(song.data)
+                            File(song_item.data)
                         )
                     } catch (e: IllegalArgumentException) {
-                        getSongFileUri(song.id)
+                        getSongFileUri(song_item.id)
                     }
                 )
             }
@@ -143,56 +145,52 @@ object MusicUtil : KoinComponent {
     }
 
     fun getLyrics(song: Song): String? {
-        var lyrics: String? = "No lyrics found"
+        var lyrics: String? = "No lyrics found" // Default message
         val file = File(song.data)
         try {
             lyrics = AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        if (lyrics == null || lyrics.trim { it <= ' ' }.isEmpty() || AbsSynchronizedLyrics
-                .isSynchronized(lyrics)
-        ) {
+
+        // Try to load from .lrc or .txt file if embedded lyrics are missing or synchronized
+        if (lyrics == null || lyrics.trim { it <= ' ' }.isEmpty() || AbsSynchronizedLyrics.isSynchronized(lyrics)) {
             val dir = file.absoluteFile.parentFile
             if (dir != null && dir.exists() && dir.isDirectory) {
                 val format = ".*%s.*\\.(lrc|txt)"
-                val filename = Pattern.quote(
-                    FileUtil.stripExtension(file.name)
-                )
+                val filename = Pattern.quote(FileUtil.stripExtension(file.name))
                 val songtitle = Pattern.quote(song.title)
-                val patterns =
-                    ArrayList<Pattern>()
-                patterns.add(
-                    Pattern.compile(
-                        String.format(format, filename),
-                        Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE
-                    )
-                )
-                patterns.add(
-                    Pattern.compile(
-                        String.format(format, songtitle),
-                        Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE
-                    )
-                )
-                val files =
-                    dir.listFiles { f: File ->
-                        for (pattern in patterns) {
-                            if (pattern.matcher(f.name).matches()) {
-                                return@listFiles true
-                            }
+                val patterns = ArrayList<Pattern>()
+                patterns.add(Pattern.compile(String.format(format, filename), Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE))
+                patterns.add(Pattern.compile(String.format(format, songtitle), Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CASE))
+
+                val files = dir.listFiles { f: File ->
+                    for (pattern in patterns) {
+                        if (pattern.matcher(f.name).matches()) {
+                            return@listFiles true
                         }
-                        false
                     }
+                    false
+                }
+
                 if (files != null && files.isNotEmpty()) {
                     for (f in files) {
                         try {
-                            val newLyrics =
-                                FileUtil.read(f)
-                            if (newLyrics != null && newLyrics.trim { it <= ' ' }.isNotEmpty()) {
+                            val newLyrics = FileUtil.read(f)
+                            if (newLyrics != null && newLyrics.trim { it <= '\n' }.isNotEmpty()) {
+                                // If synchronized, we might still want to clean it or return as is
+                                // For now, let's assume if it's synchronized, the AbsSynchronizedLyrics class handles its display.
+                                // If cleaning is needed for synchronized lyrics too, that logic could be added.
                                 if (AbsSynchronizedLyrics.isSynchronized(newLyrics)) {
-                                    return newLyrics
+                                     // If you want to clean synchronized lyrics as well, apply cleaning here.
+                                     // Otherwise, return them as is, or assign to 'lyrics' to be cleaned below.
+                                     // For now, let's assume synchronized lyrics don't need this specific cleaning.
+                                    lyrics = newLyrics // Assign to lyrics to be potentially cleaned by the generic cleaner later if needed
+                                                     // or return newLyrics directly if they have their own display logic
+                                    break 
                                 }
                                 lyrics = newLyrics
+                                break // Found lyrics, no need to check other files
                             }
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -201,7 +199,24 @@ object MusicUtil : KoinComponent {
                 }
             }
         }
-        return lyrics
+
+        // Clean the lyrics if found and not the default "No lyrics found"
+        if (lyrics != null && lyrics != "No lyrics found") {
+            // 1. Remove HTML-like tags (e.g., <01:43.458>)
+            var cleanedLyrics = lyrics.replace(Regex("<[^>]*>"), "").replace("v1:", "")
+
+            // 2. Remove "v1:" prefix from each line and rebuild the string
+            //    Also handles trimming of lines after removing prefix
+            cleanedLyrics = cleanedLyrics.lines().joinToString(separator = "") { line ->
+                line.trimStart().removePrefix("v1:").trimStart()
+            }
+            
+            // Return cleaned lyrics if it's not empty, otherwise null
+            return cleanedLyrics.trim().ifEmpty { null }
+        }
+        
+        // If lyrics is still "No lyrics found" or became null/empty after processing
+        return null
     }
 
     @JvmStatic
@@ -366,15 +381,55 @@ object MusicUtil : KoinComponent {
     }
 
     private val repository = get<Repository>()
-    suspend fun toggleFavorite(song: Song) {
+    
+    suspend fun toggleFavorite(song: Song) { // Removed context parameter
+        var newIsFavoriteStatus = false
         withContext(IO) {
             val playlist: PlaylistEntity = repository.favoritePlaylist()
             val songEntity = song.toSongEntity(playlist.playListId)
-            val isFavorite = repository.isFavoriteSong(songEntity).isNotEmpty()
-            if (isFavorite) {
+            val isCurrentlyFavorite = repository.isFavoriteSong(songEntity).isNotEmpty()
+            if (isCurrentlyFavorite) {
                 repository.removeSongFromPlaylist(songEntity)
+                newIsFavoriteStatus = false
             } else {
                 repository.insertSongs(listOf(song.toSongEntity(playlist.playListId)))
+                newIsFavoriteStatus = true
+            }
+        }
+        // Update SongMetaData with the new liked status and timestamp
+        updateSongMetaDataWithLikedStatus(song, newIsFavoriteStatus)
+    }
+
+    private fun getSongKeyForMetaData(song: Song): String {
+        // Consistent with ShuffleHelper's getSongKey logic
+        return File(song.data).nameWithoutExtension.lowercase()
+    }
+    
+    private suspend fun updateSongMetaDataWithLikedStatus(song: Song, isLiked: Boolean) { // Removed context parameter
+        withContext(Dispatchers.IO) { // Perform file operations on IO dispatcher
+            val metaDataList = MetaDataManagerHelper.getSongMetaDataList().toMutableList() // No context needed
+            val songKey = getSongKeyForMetaData(song)
+            val songMetaIndex = metaDataList.indexOfFirst { 
+                // Handle potential errors if it.file is blank or invalid path
+                try {
+                    File(it.file).nameWithoutExtension.lowercase() == songKey
+                } catch (e: Exception) {
+                    Log.e("MusicUtil", "Error processing metadata file key for: ${it.title}", e)
+                    false
+                }
+            }
+
+            if (songMetaIndex != -1) {
+                val currentMetaData = metaDataList[songMetaIndex]
+                val updatedMetaData = currentMetaData.copy(
+                    liked = isLiked,
+                    likedTimestamp = if (isLiked) System.currentTimeMillis() else null
+                )
+                metaDataList[songMetaIndex] = updatedMetaData
+                MetaDataManagerHelper.saveSongMetaDataList(metaDataList) // No context needed
+                Log.d("MusicUtil", "Updated liked status for ${song.title} to $isLiked with timestamp ${updatedMetaData.likedTimestamp}")
+            } else {
+                Log.w("MusicUtil", "SongMetaData not found for song: ${song.title} (key: $songKey) to update liked status.")
             }
         }
     }
@@ -428,8 +483,8 @@ object MusicUtil : KoinComponent {
                     cursor.moveToFirst()
                     while (!cursor.isAfterLast) {
                         val id = cursor.getLong(BaseColumns._ID)
-                        val song: Song = songRepository.song(id)
-                        removeFromQueue(song)
+                        val song_item: Song = songRepository.song(id) // Changed song to song_item
+                        removeFromQueue(song_item)
                         cursor.moveToNext()
                     }
 

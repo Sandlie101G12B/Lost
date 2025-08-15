@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import code.name.monkey.lost.R // Assuming you have a R.drawable.ic_notification or similar
 import com.google.gson.JsonParser
@@ -38,6 +39,7 @@ object LyricsGetter {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun writeLyricsToFile(
         file: File?,
         lrcContent: String,
@@ -52,6 +54,7 @@ object LyricsGetter {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun handleFileNotFoundException(
         context: Context,
         song: SongTMPContainer,
@@ -133,7 +136,7 @@ object LyricsGetter {
     }
 
     fun removeHtmlTags(input: String): String {
-        return input.replace(Regex("<.*?>"), "")
+        return input.replace("v1:<", " <").replace(Regex("<.*?>"), "")
     }
 
     fun buildLyricsApiUrl(artist: String, title: String): String {
@@ -142,7 +145,11 @@ object LyricsGetter {
         val titleParam = URLEncoder.encode(title, "UTF-8")
         return "$baseUrl?artist_name=$artistParam&track_name=$titleParam"
     }
-
+    fun cancelLyricsDownloadNotification(context: Context) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(LYRICS_NOTIFICATION_ID)
+    }
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun downloadLyrics(context: Context) {
         createLyricsNotificationChannel(context)
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -184,7 +191,7 @@ object LyricsGetter {
                 .setContentText(waitMsg)
                 .setProgress(0, 0, true)
             notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-
+            notificationManager.cancel(LYRICS_NOTIFICATION_ID)
             try {
                 Thread.sleep(sleepDurationForThisIterationMillis)
             } catch (e: InterruptedException) {
@@ -194,6 +201,7 @@ object LyricsGetter {
                     .setProgress(0, 0, false)
                     .setOngoing(false)
                 notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
+                notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
                 return
             }
             totalWaitTimeMillis += sleepDurationForThisIterationMillis
@@ -225,27 +233,21 @@ object LyricsGetter {
                 .setProgress(0, 0, false)
                 .setOngoing(false)
             notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
+            notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
             return
         }
 
         var songsProcessedCount = 0
         val totalSongsToProcess = deviceSongs.size
 
-        notificationBuilder.setProgress(totalSongsToProcess, songsProcessedCount, false)
+        // Set initial progress
+        notificationBuilder.setProgress(totalSongsToProcess, 0, false)
+        notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
 
         for (song in deviceSongs) {
             songsProcessedCount++
-            notificationBuilder
-                .setContentText("Processing ${song.title} ($songsProcessedCount/$totalSongsToProcess)")
-                .setProgress(totalSongsToProcess, songsProcessedCount, false)
-            notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-            if(songsProcessedCount == totalSongsToProcess){
-                notificationBuilder
-                    .setContentText("Lyrics download complete. Processed $songsProcessedCount songs.")
-                    .setProgress(0, 0, false)
-                    .setOngoing(false)
-                notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-            }
+
+            // Update notification for the current song being processed
             val file = song.data.toLrcFile()
             if (doesFileExist(file)) {
                 continue
@@ -254,16 +256,20 @@ object LyricsGetter {
             if (lyrics != null && lyrics != "No Lyrics Found" && lyrics.isNotBlank()) {
                  writeLyricsToFile(file, lyrics, context, song, null)
             } else if (lyrics == "No Lyrics Found") {
+                // Optionally, log or handle this case, e.g., create an empty .lrc file
                 continue
             }
-            Thread.sleep(500)
+            // Small delay between API calls, if necessary
+            Thread.sleep(1000)
         }
 
+        // After the loop, set the final completion notification
         notificationBuilder
             .setContentText("Lyrics download complete. Processed $songsProcessedCount songs.")
-            .setProgress(0, 0, false)
+            .setProgress(0, 0, false) // Or (totalSongsToProcess, totalSongsToProcess, false)
             .setOngoing(false)
         notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
+        notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
     }
 
     fun doesFileExist(file: File?): Boolean {

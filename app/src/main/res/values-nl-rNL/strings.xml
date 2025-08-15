@@ -450,8 +450,8 @@
     <string name="restored_previous_purchase_please_restart">Vorige aankoop hersteld. Gelieve de app te herstarten om alle functies te benutten.</string>
     <string name="restored_previous_purchases">Teruggezette aankopen</string>
     <string name="restoring_purchase">Aankoop herstellen…</string>
-    <string name="lostmusic_player">Lost</string>
-    <string name="lostmusic_pro">Lost Music Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">The app needs permission to access your device settings in order to set music as Ringtone</string>
     <string name="ringtone_title">Beltoon (Optioneel)</string>
     <string name="permission_alarm_summary">The app needs permission to schedule exact alarms to set sleep timers</string>
@@ -535,7 +535,7 @@
     <string name="track_list">Track nummer</string>
     <string name="translate">Vertalen</string>
     <string name="translate_community">Help us translate the app to your language</string>
-    <string name="try_lostmusic_premium">Probeer Lost Muziek Premium</string>
+    <string name="try_lost_music_premium">Probeer Lost Muziek Premium</string>
     <string name="twitter_page">Twitter</string>
     <string name="twitter_page_summary">Deel jouw ontwerp met Lost Muziek</string>
     <string name="unlabeled">Niet gelabeld</string>

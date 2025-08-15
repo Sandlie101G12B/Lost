@@ -448,8 +448,8 @@
     <string name="restored_previous_purchase_please_restart">ယခင်ဝယ်ယူမှုကို ပြန်လည်ရယူပြီးပါပြီ။ Feature အားလုံးအလုပ်လုပ်ရန် app မှထွက်ပြီးပြန်ဝင်ပါ။</string>
     <string name="restored_previous_purchases">ယခင်ဝယ်ယူမှုအား ပြန်လည်ရယူပြီးပါပြီ</string>
     <string name="restoring_purchase">ယခင်ဝယ်ယူမှုအား ပြန်လည်ရယူနေသည်...</string>
-    <string name="lostmusic_player">Lost</string>
-    <string name="lostmusic_pro">Lost Music Pro</string>
+    <string name="lost_music_player">Lost</string>
+    <string name="lost_music_pro">Lost Music Pro</string>
     <string name="ringtone_summary">သီချင်းများကို Ringtone ထားရန် app အား System Settings များကိုပြင်ဆင်ခွင့်ပေးရန်လိုသည်။</string>
     <string name="ringtone_title">Ringtone (Optional)</string>
     <string name="permission_alarm_summary">The app needs permission to schedule exact alarms to set sleep timers</string>
@@ -533,7 +533,7 @@
     <string name="track_list">အပုဒ်နံပါတ်</string>
     <string name="translate">ဘာသာပြန်ခြင်း</string>
     <string name="translate_community">App ကိုသင့်ဘာသာစကားသို့ ကူပြန်ပေးပါ</string>
-    <string name="try_lostmusic_premium">Lost Music Premium ကိုစမ်းကြည့်ပါ</string>
+    <string name="try_lost_music_premium">Lost Music Premium ကိုစမ်းကြည့်ပါ</string>
     <string name="twitter_page">Twitter</string>
     <string name="twitter_page_summary">သင့် Lost Music ဒီဇိုင်းများကိုမျှဝေပါ</string>
     <string name="unlabeled">Label မထိုးပါ</string>

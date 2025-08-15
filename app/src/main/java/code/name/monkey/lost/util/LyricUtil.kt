@@ -121,11 +121,13 @@ object LyricUtil {
     private fun convertStreamToString(inputStream: InputStream): String {
         return inputStream.bufferedReader().readLines().joinToString(separator = "\n")
     }
-
+    fun removeHtmlTags(input: String): String {
+        return input.replace("v1:", "").replace(Regex("<.*?>"), "\n")
+    }
     fun getStringFromLrc(file: File?): String {
         try {
             val reader = BufferedReader(FileReader(file))
-            return reader.readLines().joinToString(separator = "\n")
+            return removeHtmlTags(reader.readLines().joinToString(separator = "\n"))
         } catch (e: Exception) {
             Log.i("Error", "Error Occurred")
         }

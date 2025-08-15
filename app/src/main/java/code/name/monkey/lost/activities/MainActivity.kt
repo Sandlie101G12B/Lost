@@ -26,6 +26,7 @@ import org.koin.android.ext.android.get
 import code.name.monkey.lost.helper.SongDataManager
 import code.name.monkey.lost.helper.SongStatisticsManager
 import code.name.monkey.lost.helper.LyricsGetter
+import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
 import code.name.monkey.lost.helper.getApiKeys
 import code.name.monkey.lost.helper.addApiKey
 import code.name.monkey.lost.helper.initialiseMetaDataProcess
@@ -42,8 +43,12 @@ class MainActivity : AbsCastActivity() {
         setTaskDescriptionColorAuto()
         hideStatusBar()
         updateTabs()
+
+        // Save application context for MetaDataManagerHelper
+        MetaDataManagerHelper.saveContext(applicationContext)
+
         AppRater.appLaunched(this)
-        SongDataManager.loadDefaultSongsJson(this@MainActivity)
+        SongDataManager.loadDefaultSongsJson(this@MainActivity) // Still needs context for its own file ops
 
         // Ensure API keys exist before starting background work
         val apiKeys = getApiKeys(this)
@@ -63,7 +68,6 @@ class MainActivity : AbsCastActivity() {
         }
 
         setupNavigationController()
-
         WhatsNewFragment.showChangeLog(this)
     }
 
