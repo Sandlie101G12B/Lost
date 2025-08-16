@@ -15,9 +15,6 @@ import code.name.monkey.lost.extensions.getStringOrNull
 import code.name.monkey.lost.model.PlaylistSong
 import code.name.monkey.lost.model.Song
 
-/**
- * Created by hemanths on 16/08/17.
- */
 @Suppress("Deprecation")
 object PlaylistSongsLoader {
 

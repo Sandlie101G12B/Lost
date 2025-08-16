@@ -20,12 +20,7 @@ import code.name.monkey.lost.providers.BlacklistStore
 import code.name.monkey.lost.util.PreferenceUtil
 import code.name.monkey.lost.util.getExternalStoragePublicDirectory
 import java.text.Collator
-import com.google.gson.Gson
-import java.io.File // Added import
 
-/**
- * Created by hemanths on 10/08/17.
- */
 interface SongRepository {
 
     fun songs(): List<Song>
@@ -44,8 +39,6 @@ interface SongRepository {
 }
 
 class RealSongRepository(private val context: Context) : SongRepository {
-
-    private val gson = Gson()
 
     override fun songs(): List<Song> {
         return sortedSongs(makeSongCursor(null, null))
@@ -97,14 +90,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
         cursor?.close()
         return song
     }
-    // Extension function to get the corresponding .lrc file for a song data path
-    fun String.toLrcFile(): File? {
-        return if (this.isNotEmpty()) {
-            File(this.substringBeforeLast('.') + ".lrc")
-        } else {
-            null
-        }
-    }
+
     override fun songs(query: String): List<Song> {
         val songsFromTitleQuery: List<Song> = songs(makeSongCursor(AudioColumns.TITLE + " LIKE ?", arrayOf("%$query%")))
         val songsFromArtistQuery: List<Song> = songs(makeSongCursor(AudioColumns.ARTIST + " LIKE ?", arrayOf("%$query%")))
@@ -126,7 +112,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
             val combinedSelectionArgs = selectionArgsList.toTypedArray()
             songsFromCombinedTitleArtistQuery = songs(makeSongCursor(combinedSelection, combinedSelectionArgs))
         }
-        var songsFromLyricsQuery: List<Song> = emptyList()
+        val songsFromLyricsQuery: List<Song> = emptyList()
 
 //======================================================================================================================//
 //                                                                                                                      //
@@ -199,7 +185,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
         val composer = cursor.getStringOrNull(AudioColumns.COMPOSER)
         val albumArtist = cursor.getStringOrNull("album_artist")
         
-        val bpm = getBPMFromFile(context,data)
+        val bpm = null
         
         return Song(
             id,
@@ -217,15 +203,6 @@ class RealSongRepository(private val context: Context) : SongRepository {
             albumArtist ?: "",
             bpm
         )
-    }
-
-    fun getBPMFromFile(
-        context: Context,
-        filePath: String,
-        bufferSize: Int = 2048,
-        overlap: Int = 1024
-    ): Float? {
-        return null
     }
 
 
@@ -247,7 +224,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
 
             // Whitelist/Blacklist logic
             if (PreferenceUtil.isWhiteList) {
-                val musicDir = getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)?.canonicalPath
+                val musicDir = getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC).canonicalPath
                 if (musicDir != null) {
                     selectionFinal = "$selectionFinal AND ${Constants.DATA} LIKE ?"
                     selectionValuesFinal = addSelectionValues(selectionValuesFinal, arrayListOf("$musicDir%"))
@@ -276,7 +253,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
                 selectionValuesFinal,
                 sortOrder // Note: for lyrics search, we get all songs, so sortOrder is less critical here
             )
-        } catch (ex: SecurityException) {
+        } catch (_: SecurityException) {
             return null
         }
     }

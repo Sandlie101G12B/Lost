@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit // Added for time calculations
 object SongDataManager {
     var defaultSongsJson = "[]"
     fun loadDefaultSongsJson(context: Context) {
-        // This should be replaced by MetaDataManagerHelper.readRawOutputFile(context)
         val file = File(context.filesDir, "outputile.txt")
         defaultSongsJson = if (!file.exists() || file.readText().isBlank()) {
             "[]"
@@ -22,14 +21,12 @@ object SongDataManager {
         }
     }
     var songs: MutableList<SongMetaData> = mutableListOf()
-    fun getSongByTitle(title: String): SongMetaData? = songs.find { it.title == title }
 }
 
 object ShuffleHelper {
     private var metadataMap: Map<String, SongMetaData>? = null
     private fun loadMetadataMap(): Map<String, SongMetaData> {
         if (metadataMap != null) return metadataMap!!
-        // This should use MetaDataManagerHelper.getSongMetaDataList(context) and pass context
         val defaultSongsJson = SongDataManager.defaultSongsJson
         val listType = object : TypeToken<List<SongMetaData>>() {}.type
         val metadataList: List<SongMetaData> = Gson().fromJson(defaultSongsJson, listType)
@@ -96,9 +93,6 @@ object ShuffleHelper {
         }
     }
 
-    /**
-     * Selects the flow type based on the current song's metadata.
-     */
     private fun selectFlowType(currentMeta: SongMetaData): FlowType {
         return when {
             (currentMeta.energy ?: 0.0) > 0.7 && (currentMeta.danceability)!! > 0.7 -> FlowType.Pulse
@@ -197,7 +191,7 @@ object ShuffleHelper {
         // 5. Market Similarity
         val marketScore = try {
             b.market?.let { a.market?.intersect(it.toSet())?.size ?: 0 }?.times(2) ?: 0
-        } catch (e: Exception) { 0 }
+        } catch (_: Exception) { 0 }
 
         // 6. Year Proximity
         val yearScore = try {
@@ -206,14 +200,14 @@ object ShuffleHelper {
             if (aYear != null && bYear != null && aYear > 0 && bYear > 0) {
                 (4 - (kotlin.math.abs(aYear - bYear) / 2).coerceAtMost(10)).coerceAtLeast(-4)
             } else 0
-        } catch (e: Exception) { 0 }
+        } catch (_: Exception) { 0 }
 
         // 7. Modern Song Bonus — strong boost for newer songs
         val modernBonus = try {
             val bYear = b.year.toIntOrNull()
             val normalized = (((bYear?.coerceIn(1990, 2025) ?: 0) - 1990) / 35.0)
             (normalized * 25).toInt()
-        } catch (e: Exception) { 0 }
+        } catch (_: Exception) { 0 }
 
         // 8. Energy
         val energyScore = if (a.energy != null && b.energy != null) {
@@ -251,8 +245,7 @@ object ShuffleHelper {
 
         if (b.liked && b.likedTimestamp != null) {
             val likedTimeAgo = currentTime - (b.likedTimestamp ?: currentTime) // milliseconds
-            // Calculate likedValue: starts at 7, decreases by 1 each day, minimum 1
-            val daysAgo = TimeUnit.MILLISECONDS.toDays(likedTimeAgo)
+           val daysAgo = TimeUnit.MILLISECONDS.toDays(likedTimeAgo)
             val likedValue = (7 - daysAgo).toInt().coerceAtLeast(1)
             playHistoryPenalty -= likedValue
             skipHistoryPenalty -= likedValue
@@ -273,7 +266,7 @@ object ShuffleHelper {
             favMoodBoost +
             modernBonus -
             playHistoryPenalty -
-            skipHistoryPenalty // Subtract skip penalty
+            skipHistoryPenalty
     }
 
     private fun isCorrupted(meta: SongMetaData): Boolean {

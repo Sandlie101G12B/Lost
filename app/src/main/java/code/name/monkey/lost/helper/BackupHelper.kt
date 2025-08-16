@@ -40,7 +40,6 @@ object BackupHelper : KoinComponent {
         getUserImageZipItems(context)?.let { zipItems.addAll(it) }
         zipItems.addAll(getCustomArtistZipItems(context))
         zipAll(context, zipItems, backupFile)
-        // Clean Cache Playlist Directory
         File(context.filesDir, PLAYLISTS_PATH).deleteRecursively()
     }
 
@@ -69,7 +68,6 @@ object BackupHelper : KoinComponent {
 
     private suspend fun getPlaylistZipItems(context: Context): List<ZipItem> {
         val playlistZipItems = mutableListOf<ZipItem>()
-        // Cache Playlist files in App storage
         val playlistFolder = File(context.filesDir, PLAYLISTS_PATH)
         if (!playlistFolder.exists()) {
             playlistFolder.mkdirs()
@@ -94,8 +92,8 @@ object BackupHelper : KoinComponent {
     private fun getSettingsZipItems(context: Context): List<ZipItem> {
         val sharedPrefPath = File(context.filesDir.parentFile, "shared_prefs")
         return listOf(
-            "${BuildConfig.APPLICATION_ID}_preferences.xml", // App settings pref path
-            "$THEME_PREFS_KEY_DEFAULT.xml"  // appthemehelper pref path
+            "${BuildConfig.APPLICATION_ID}_preferences.xml",
+            "$THEME_PREFS_KEY_DEFAULT.xml"
         ).map {
             ZipItem(File(sharedPrefPath, it).absolutePath, SETTINGS_PATH.child(it))
         }
@@ -194,7 +192,7 @@ object BackupHelper : KoinComponent {
         val playlistName = zipEntry.getFileName().substringBeforeLast(".")
         val songs = mutableListOf<Song>()
 
-        // Get songs from m3u playlist files
+
         zipIn.bufferedReader().lineSequence().forEach { line ->
             if (line.startsWith(File.separator)) {
                 if (File(line).exists()) {

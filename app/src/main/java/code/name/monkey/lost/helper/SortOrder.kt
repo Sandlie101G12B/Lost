@@ -5,9 +5,6 @@ import code.name.monkey.lost.ALBUM_ARTIST
 
 class SortOrder {
 
-    /**
-     * Artist sort order entries.
-     */
     interface ArtistSortOrder {
 
         companion object {

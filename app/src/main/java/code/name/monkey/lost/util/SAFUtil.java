@@ -13,7 +13,6 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.documentfile.provider.DocumentFile;
-import androidx.fragment.app.Fragment;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.exceptions.CannotWriteException;
@@ -25,6 +24,7 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import code.name.monkey.lost.R;
 import code.name.monkey.lost.model.Song;
@@ -32,10 +32,6 @@ import code.name.monkey.lost.model.Song;
 public class SAFUtil {
 
   public static final String TAG = SAFUtil.class.getSimpleName();
-  public static final String SEPARATOR = "###/SAF/###";
-
-  public static final int REQUEST_SAF_PICK_FILE = 42;
-  public static final int REQUEST_SAF_PICK_TREE = 43;
 
   public static boolean isSAFRequired(File file) {
     return !file.canWrite();
@@ -53,13 +49,6 @@ public class SAFUtil {
     return isSAFRequired(song.getData());
   }
 
-  public static boolean isSAFRequired(List<String> paths) {
-    for (String path : paths) {
-      if (isSAFRequired(path)) return true;
-    }
-    return false;
-  }
-
   public static boolean isSAFRequiredForSongs(List<Song> songs) {
     for (Song song : songs) {
       if (isSAFRequired(song)) return true;
@@ -67,37 +56,10 @@ public class SAFUtil {
     return false;
   }
 
-  public static void openFilePicker(Activity activity) {
-    Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-    i.addCategory(Intent.CATEGORY_OPENABLE);
-    i.setType("audio/*");
-    i.putExtra("android.content.extra.SHOW_ADVANCED", true);
-    activity.startActivityForResult(i, SAFUtil.REQUEST_SAF_PICK_FILE);
-  }
-
-  public static void openFilePicker(Fragment fragment) {
-    Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-    i.addCategory(Intent.CATEGORY_OPENABLE);
-    i.setType("audio/*");
-    i.putExtra("android.content.extra.SHOW_ADVANCED", true);
-    fragment.startActivityForResult(i, SAFUtil.REQUEST_SAF_PICK_FILE);
-  }
-
-  public static void openTreePicker(Activity activity) {
-    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-    i.putExtra("android.content.extra.SHOW_ADVANCED", true);
-    activity.startActivityForResult(i, SAFUtil.REQUEST_SAF_PICK_TREE);
-  }
-
-  public static void openTreePicker(Fragment fragment) {
-    Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-    i.putExtra("android.content.extra.SHOW_ADVANCED", true);
-    fragment.startActivityForResult(i, SAFUtil.REQUEST_SAF_PICK_TREE);
-  }
-
   public static void saveTreeUri(Context context, Intent data) {
     Uri uri = data.getData();
-    context
+      assert uri != null;
+      context
         .getContentResolver()
         .takePersistableUriPermission(
             uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -120,17 +82,7 @@ public class SAFUtil {
 
     return false;
   }
-
-  /**
-   * https://github.com/vanilla-music/vanilla-music-tag-editor/commit/e00e87fef289f463b6682674aa54be834179ccf0#diff-d436417358d5dfbb06846746d43c47a5R359
-   * Finds needed file through Document API for SAF. It's not optimized yet - you can still gain
-   * wrong URI on files such as "/a/b/c.mp3" and "/b/a/c.mp3", but I consider it complete enough to
-   * be usable.
-   *
-   * @param dir - document file representing current dir of search
-   * @param segments - path segments that are left to find
-   * @return URI for found file. Null if nothing found.
-   */
+  
   @Nullable
   public static Uri findDocument(DocumentFile dir, List<String> segments) {
     for (DocumentFile file : dir.listFiles()) {
@@ -160,7 +112,7 @@ public class SAFUtil {
       try {
         writeFile(audio);
       } catch (CannotWriteException e) {
-        e.printStackTrace();
+        Log.e(TAG, "Error writing file", e);
       }
     }
   }
@@ -181,7 +133,7 @@ public class SAFUtil {
       List<String> pathSegments =
           new ArrayList<>(Arrays.asList(audio.getFile().getAbsolutePath().split("/")));
       Uri sdcard = Uri.parse(PreferenceUtil.INSTANCE.getSafSdCardUri());
-      uri = findDocument(DocumentFile.fromTreeUri(context, sdcard), pathSegments);
+      uri = findDocument(Objects.requireNonNull(DocumentFile.fromTreeUri(context, sdcard)), pathSegments);
     }
 
     if (uri == null) {
@@ -235,13 +187,16 @@ public class SAFUtil {
       } catch (NullPointerException e) {
         Log.e("MusicUtils", "Failed to find file " + path);
       } catch (Exception e) {
-        e.printStackTrace();
+        Log.e(TAG, "Error deleting file $e");
       }
     }
   }
 
   public static void deleteFile(String path) {
-    new File(path).delete();
+    File fileToDelete = new File(path);
+    if (!fileToDelete.delete()) {
+      Log.w(TAG, "Failed to delete file: " + path);
+    }
   }
 
   public static void deleteSAF(Context context, String path, Uri safUri) {
@@ -255,7 +210,7 @@ public class SAFUtil {
     if (isTreeUriSaved(context)) {
       List<String> pathSegments = new ArrayList<>(Arrays.asList(path.split("/")));
       Uri sdcard = Uri.parse(PreferenceUtil.INSTANCE.getSafSdCardUri());
-      uri = findDocument(DocumentFile.fromTreeUri(context, sdcard), pathSegments);
+      uri = findDocument(Objects.requireNonNull(DocumentFile.fromTreeUri(context, sdcard)), pathSegments);
     }
 
     if (uri == null) {

@@ -48,7 +48,6 @@ import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
 import code.name.monkey.lost.helper.ShuffleHelper.makeShuffleList
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.Song.Companion.emptySong
-import code.name.monkey.lost.model.SongMetaData // Added import
 import code.name.monkey.lost.model.smartplaylist.AbsSmartPlaylist
 import code.name.monkey.lost.providers.HistoryStore
 import code.name.monkey.lost.providers.MusicPlaybackQueueStore
@@ -77,7 +76,6 @@ import code.name.monkey.lost.volume.AudioVolumeObserver
 import code.name.monkey.lost.volume.OnAudioVolumeChangedListener
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
-import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.request.transition.Transition
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.Default
@@ -1094,7 +1092,7 @@ class MusicService : MediaBrowserServiceCompat(),
                 request.transform(BlurTransformation.Builder(this@MusicService).build())
             }
             request.into(object :
-                CustomTarget<Bitmap?>(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL) {
+                CustomTarget<Bitmap?>(SIZE_ORIGINAL, SIZE_ORIGINAL) {
                 override fun onLoadFailed(errorDrawable: Drawable?) {
                     super.onLoadFailed(errorDrawable)
                     metaData.putBitmap(

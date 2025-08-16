@@ -36,28 +36,19 @@ class MainActivity : AbsCastActivity() {
         const val TAG = "MainActivity"
         const val EXPAND_PANEL = "expand_panel"
     }
-    
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setTaskDescriptionColorAuto()
         hideStatusBar()
         updateTabs()
-
-        // Save application context for MetaDataManagerHelper
         MetaDataManagerHelper.saveContext(applicationContext)
 
         AppRater.appLaunched(this)
-        SongDataManager.loadDefaultSongsJson(this@MainActivity) // Still needs context for its own file ops
-
-        // Ensure API keys exist before starting background work
+        SongDataManager.loadDefaultSongsJson(this@MainActivity)
         val apiKeys = getApiKeys(this)
         if (apiKeys.isEmpty()) {
-            // Show dialog on UI thread, then proceed if keys are saved
             addApiKey(this)
-            // User must restart or re-enter the screen to continue, or you can listen for dialog completion and then launch the background process.
         } else {
-            // Run initialiseDataProcess in the background
             lifecycleScope.launch(IO) {
                 SongStatisticsManager.load(this@MainActivity)
                 initialiseMetaDataProcess(this@MainActivity)
@@ -66,7 +57,6 @@ class MainActivity : AbsCastActivity() {
                 LyricsGetter.downloadLyrics(this@MainActivity)
             }
         }
-
         setupNavigationController()
         WhatsNewFragment.showChangeLog(this)
     }
@@ -75,7 +65,6 @@ class MainActivity : AbsCastActivity() {
         val navController = findNavController(R.id.fragment_container)
         val navInflater = navController.navInflater
         val navGraph = navInflater.inflate(R.navigation.main_graph)
-
         val categoryInfo: CategoryInfo = PreferenceUtil.libraryCategory.first { it.visible }
         if (categoryInfo.visible) {
             if (!navGraph.contains(PreferenceUtil.lastTab)) PreferenceUtil.lastTab =
@@ -94,7 +83,6 @@ class MainActivity : AbsCastActivity() {
         }
         navController.graph = navGraph
         navigationView.setupWithNavController(navController)
-        // Scroll Fragment to top
         navigationView.setOnItemReselectedListener {
             currentFragment(R.id.fragment_container).apply {
                 if (this is IScrollHelper) {
@@ -108,11 +96,9 @@ class MainActivity : AbsCastActivity() {
             }
             when (destination.id) {
                 R.id.action_home, R.id.action_song, R.id.action_album, R.id.action_artist, R.id.action_folder, R.id.action_playlist, R.id.action_genre, R.id.action_search -> {
-                    // Save the last tab
                     if (PreferenceUtil.rememberLastTab) {
                         saveTab(destination.id)
                     }
-                    // Show Bottom Navigation Bar
                     setBottomNavVisibility(visible = true, animate = true)
                 }
                 R.id.playing_queue_fragment -> {
@@ -121,7 +107,7 @@ class MainActivity : AbsCastActivity() {
                 else -> setBottomNavVisibility(
                     visible = false,
                     animate = true
-                ) // Hide Bottom Navigation Bar
+                )
             }
         }
     }
@@ -168,7 +154,7 @@ class MainActivity : AbsCastActivity() {
             if (uri != null && uri.toString().isNotEmpty()) {
                 MusicPlayerRemote.playFromUri(this@MainActivity, uri)
                 handled = true
-            } else if (MediaStore.Audio.Playlists.CONTENT_TYPE == mimeType) {
+            } else if ("vnd.android.cursor.dir/playlist" == mimeType) { // Replaced MediaStore.Audio.Playlists.CONTENT_TYPE
                 val id = parseLongFromIntent(intent, "playlistId", "playlist")
                 if (id >= 0L) {
                     val position: Int = intent.getIntExtra("position", 0)
@@ -176,7 +162,7 @@ class MainActivity : AbsCastActivity() {
                     MusicPlayerRemote.openQueue(songs, position, true)
                     handled = true
                 }
-            } else if (MediaStore.Audio.Albums.CONTENT_TYPE == mimeType) {
+            } else if ("vnd.android.cursor.dir/albums" == mimeType) { // Replaced MediaStore.Audio.Albums.CONTENT_TYPE
                 val id = parseLongFromIntent(intent, "albumId", "album")
                 if (id >= 0L) {
                     val position: Int = intent.getIntExtra("position", 0)
@@ -188,7 +174,7 @@ class MainActivity : AbsCastActivity() {
                     )
                     handled = true
                 }
-            } else if (MediaStore.Audio.Artists.CONTENT_TYPE == mimeType) {
+            } else if ("vnd.android.cursor.dir/artists" == mimeType) { // Replaced MediaStore.Audio.Artists.CONTENT_TYPE
                 val id = parseLongFromIntent(intent, "artistId", "artist")
                 if (id >= 0L) {
                     val position: Int = intent.getIntExtra("position", 0)

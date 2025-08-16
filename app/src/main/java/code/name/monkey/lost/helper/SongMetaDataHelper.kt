@@ -10,7 +10,7 @@ import android.widget.EditText
 import androidx.core.app.NotificationCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import code.name.monkey.lost.R // Assuming you have a general notification icon
+import code.name.monkey.lost.R 
 import code.name.monkey.lost.model.SongMetaData
 import code.name.monkey.lost.model.SongTMPContainer
 import code.name.monkey.lost.network.InternetConnection
@@ -27,17 +27,18 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.withContext // Add this import
-import kotlinx.coroutines.CoroutineScope // Will add this
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch // Will add this
+import kotlinx.coroutines.launch
+import androidx.core.content.edit
 
 
 const val inputPath = "inputile.txt"
 const val outputPath = "outputile.txt"
 
 private const val ENHANCEMENT_CHANNEL_ID = "song_enhancement_channel"
-public const val ENHANCEMENT_NOTIFICATION_ID = 1001
+const val ENHANCEMENT_NOTIFICATION_ID = 1001
 
 fun initialiseMetaDataProcess(context: Context) {
     val songRepository = RealSongRepository(context)
@@ -163,7 +164,7 @@ Now, here is the input JSON:
                 return "Error making API request: ${response.code} ${response.message}"
             }
             val responseBodyString = response.body.string()
-            val json = JsonParser().parse(responseBodyString).asJsonObject
+            val json = JsonParser.parseString(responseBodyString).asJsonObject
             val candidates = json.getAsJsonArray("candidates")
             if (candidates != null && candidates.size() > 0) {
                 val content = candidates[0].asJsonObject.getAsJsonObject("content")
@@ -205,9 +206,9 @@ fun songToSongMetaData(song: SongTMPContainer): SongMetaData {
 fun scanAndAddNewDeviceSongs(context: Context, songsDataPath: String, deviceSongs: List<SongTMPContainer>) {
     val gson = Gson()
     val existingSongs: List<JsonObject> = try {
-        val arr = JsonParser().parse(readFileOrCreate(context, songsDataPath, "[]")).asJsonArray
+        val arr = JsonParser.parseString(readFileOrCreate(context, songsDataPath, "[]")).asJsonArray
         arr.map { it.asJsonObject }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         emptyList()
     }
 
@@ -238,7 +239,7 @@ fun saveApiKeys(context: Context, apiKeys: List<String>) {
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
-    sharedPreferences.edit().putString("api_keys", apiKeys.joinToString(",")).apply()
+    sharedPreferences.edit { putString("api_keys", apiKeys.joinToString(",")) }
 }
 
 fun getApiKeys(context: Context): List<String> {
@@ -318,11 +319,11 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
         InternetConnection.waitForConnection(context, notificationBuilder, notificationManager)
     }
 
-    val songs = JsonParser().parse(readFileOrCreate(context, inputPath, "[]")).asJsonArray
+    val songs = JsonParser.parseString(readFileOrCreate(context, inputPath, "[]")).asJsonArray
     val enhancedSongs: MutableList<JsonObject> = try {
-        val arr = JsonParser().parse(readFileOrCreate(context, outputPath, "[]")).asJsonArray
+        val arr = JsonParser.parseString(readFileOrCreate(context, outputPath, "[]")).asJsonArray
         arr.map { it.asJsonObject }.toMutableList()
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         mutableListOf()
     }
 
@@ -367,7 +368,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                         .replace("\"markets\"", "market")
                         .trim()
                     try {
-                        val enhancedSong = JsonParser().parse(result).asJsonObject
+                        val enhancedSong = JsonParser.parseString(result).asJsonObject
                         enhancedSongs.add(enhancedSong)
                         writeToInternalStorage(context, outputPath, gson.toJson(enhancedSongs))
                         SongDataManager.loadDefaultSongsJson(context)
@@ -378,9 +379,9 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                             .setProgress(totalSongsToProcess, songsProcessedCount, false)
                         notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
                         Thread.sleep(3000)
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         if (!InternetConnection.hasInternetConnection(context)){
-                            processedThisSong == true
+                            processedThisSong
                         }else{
                             modelIndex++
                         }
@@ -388,7 +389,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                 }
                 if (!processedThisSong) {
                     if (!InternetConnection.hasInternetConnection(context)){
-                        processedThisSong == true
+                        !true
                     }else{
                         apiKeyIndex++
                         modelIndex = 0
@@ -443,7 +444,7 @@ fun fixMissingSongMetaFields(context: Context, outputPath: String) {
     val fileContent = readFileOrCreate(context, outputPath, "[]") ?: "[]"
     if (fileContent !== "[]") {
     try {
-        val arr = JsonParser().parse(fileContent).asJsonArray
+        val arr = JsonParser.parseString(fileContent).asJsonArray
         val filteredArr = arr.filter { element ->
             if (!element.isJsonObject) return@filter false
             val obj = element.asJsonObject
@@ -480,7 +481,7 @@ fun fixMissingSongMetaFields(context: Context, outputPath: String) {
         if (filteredArr.size != arr.size()) {
             writeToInternalStorage(context, outputPath, gson.toJson(filteredArr))
         }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         writeToInternalStorage(context, outputPath, "[]")
     }
     }

@@ -24,8 +24,6 @@ import code.name.monkey.lost.util.PreferenceUtil.playbackSpeed
 import code.name.monkey.lost.util.logE
 import kotlinx.coroutines.*
 
-/** @author Prathamesh M */
-
 /*
 * To make Crossfade work we need two MediaPlayer's
 * Basically, we switch back and forth between those two mp's
@@ -321,7 +319,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                         if (success) {
                             // --- BPM matching logic start ---
                             val currentSong = MusicPlayerRemote.currentSong
-                            val currentBpm = currentSong?.bpm ?: 0f
+                            val currentBpm = currentSong.bpm ?: 0f
                             val nextBpm = nextSong.bpm ?: 0f
                             if (currentBpm > 0f && nextBpm > 0f && currentBpm != nextBpm) {
                                 val speed = currentBpm / nextBpm
@@ -340,7 +338,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                             // --- BPM matching logic start ---
                             val currentSong = MusicPlayerRemote.currentSong
                             val nextSong = MusicPlayerRemote.nextSong
-                            val currentBpm = currentSong?.bpm ?: 0f
+                            val currentBpm = currentSong.bpm ?: 0f
                             val nextBpm = nextSong?.bpm ?: 0f
                             if (currentBpm > 0f && nextBpm > 0f && currentBpm != nextBpm) {
                                 player.setPlaybackSpeedPitch(currentBpm / nextBpm, playbackPitch)
@@ -361,7 +359,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         // --- Gradually restore BPM after crossfade ---
         val nextSong = MusicPlayerRemote.nextSong
         val currentSong = MusicPlayerRemote.currentSong
-        val currentBpm = currentSong?.bpm ?: 0f
+        val currentBpm = currentSong.bpm ?: 0f
         val nextBpm = nextSong?.bpm ?: 0f
         if (currentBpm > 0f && nextBpm > 0f && currentBpm != nextBpm) {
             val initialSpeed = currentBpm / nextBpm
@@ -414,7 +412,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
             )
-            if (VersionUtils.hasMarshmallow())
+            if (hasMarshmallow())
                 player.playbackParams =
                     PlaybackParams().setSpeed(playbackSpeed).setPitch(playbackPitch)
 

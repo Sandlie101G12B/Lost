@@ -13,9 +13,6 @@ import code.name.monkey.lost.providers.SongPlayCountStore
 import code.name.monkey.lost.util.PreferenceUtil
 
 
-/**
- * Created by hemanths on 16/08/17.
- */
 
 interface TopPlayedRepository {
     fun recentlyPlayedTracks(): List<Song>
@@ -80,24 +77,13 @@ class RealTopPlayedRepository(
         // clean up the databases with any ids not found
         if (retCursor != null) {
             val missingIds = retCursor.missingIds
-            if (missingIds != null && missingIds.size > 0) {
+            if (missingIds != null && missingIds.isNotEmpty()) {
                 for (id in missingIds) {
                     SongPlayCountStore.getInstance(context).removeItem(id)
                 }
             }
         }
         return retCursor
-    }
-
-    private fun makeRecentTracksCursorImpl(): SortedLongCursor? {
-        // first get the top results ids from the internal database
-        val songs = HistoryStore.getInstance(context).queryRecentIds()
-        songs.use {
-            return makeSortedCursor(
-                it,
-                it.getColumnIndex(HistoryStore.RecentStoreColumns.ID)
-            )
-        }
     }
 
     private fun makeTopTracksCursorImpl(): SortedLongCursor? {
@@ -185,7 +171,7 @@ class RealTopPlayedRepository(
         // clean up the databases with any ids not found
         if (retCursor != null) {
             val missingIds = retCursor.missingIds
-            if (missingIds != null && missingIds.size > 0) {
+            if (missingIds != null && missingIds.isNotEmpty()) {
                 for (id in missingIds) {
                     HistoryStore.getInstance(context).removeSongId(id)
                 }
@@ -199,7 +185,7 @@ class RealTopPlayedRepository(
         reverseOrder: Boolean
     ): SortedLongCursor? {
         val cutoff =
-            (if (ignoreCutoffTime) 0 else PreferenceUtil.getRecentlyPlayedCutoffTimeMillis()).toLong()
+            (if (ignoreCutoffTime) 0 else PreferenceUtil.getRecentlyPlayedCutoffTimeMillis())
         val songs =
             HistoryStore.getInstance(context).queryRecentIds(cutoff * if (reverseOrder) -1 else 1)
         return songs.use {

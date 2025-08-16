@@ -1,27 +1,13 @@
 package code.name.monkey.lost.helper
 
-/**
- * @Author by Pinankh Patel
- * Created on Date = 13-05-2025  17:54
- * Github = https://github.com/Pinankh
- * LinkdIN = https://www.linkedin.com/in/pinankh-patel-19400350/
- * Stack Overflow = https://stackoverflow.com/users/4564376/pinankh
- * Medium = https://medium.com/@pinankhpatel
- * Email = pinankhpatel@gmail.com
- */
-import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.Toast
-import androidx.core.os.postDelayed
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.observe
 import code.name.monkey.lost.R
 import code.name.monkey.lost.databinding.BottomSheetScanMusicBinding
 import code.name.monkey.lost.extensions.accentColor

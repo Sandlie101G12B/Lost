@@ -4,9 +4,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import code.name.monkey.lost.R // Assuming you have a R.drawable.ic_notification or similar
+import code.name.monkey.lost.R
 import com.google.gson.JsonParser
 import okhttp3.*
 import java.io.File
@@ -39,7 +38,6 @@ object LyricsGetter {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun writeLyricsToFile(
         file: File?,
         lrcContent: String,
@@ -49,12 +47,11 @@ object LyricsGetter {
     ) {
         try {
             file?.writeText(lrcContent)
-        } catch (e: FileNotFoundException) {
+        } catch (_: FileNotFoundException) {
             handleFileNotFoundException(context, song, file, lrcContent, sdCardPath)
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun handleFileNotFoundException(
         context: Context,
         song: SongTMPContainer,
@@ -113,8 +110,8 @@ object LyricsGetter {
             client.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
                     val body = response.body.string()
-                    if (body.isNullOrBlank()) return ""
-                    val json = JsonParser().parse(body).asJsonObject
+                    if (body.isBlank()) return ""
+                    val json = JsonParser.parseString(body).asJsonObject
                     val syncedLyrics = if (json.has("syncedLyrics") && !json.get("syncedLyrics").isJsonNull) json.get("syncedLyrics").asString else null
                     val plainLyrics = if (json.has("plainLyrics") && !json.get("plainLyrics").isJsonNull) json.get("plainLyrics").asString else null
                     val rawApiLyrics = syncedLyrics ?: plainLyrics ?: ""
@@ -145,11 +142,6 @@ object LyricsGetter {
         val titleParam = URLEncoder.encode(title, "UTF-8")
         return "$baseUrl?artist_name=$artistParam&track_name=$titleParam"
     }
-    fun cancelLyricsDownloadNotification(context: Context) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancel(LYRICS_NOTIFICATION_ID)
-    }
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     fun downloadLyrics(context: Context) {
         createLyricsNotificationChannel(context)
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -172,12 +164,12 @@ object LyricsGetter {
         var sleepDurationForThisIterationMillis: Long
 
         while (!InternetConnection.hasInternetConnection(context)) {
-            if (totalWaitTimeMillis >= oneHourMillis) {
-                sleepDurationForThisIterationMillis = oneHourThresholdSleepTimeMillis
+            sleepDurationForThisIterationMillis = if (totalWaitTimeMillis >= oneHourMillis) {
+                oneHourThresholdSleepTimeMillis
             } else if (totalWaitTimeMillis >= thirtyMinutesMillis) {
-                sleepDurationForThisIterationMillis = thirtyMinThresholdSleepTimeMillis
+                thirtyMinThresholdSleepTimeMillis
             } else {
-                sleepDurationForThisIterationMillis = initialSleepTimeMillis
+                initialSleepTimeMillis
             }
 
             val nextCheckInMinutes = sleepDurationForThisIterationMillis / (60 * 1000)
@@ -194,7 +186,7 @@ object LyricsGetter {
             notificationManager.cancel(LYRICS_NOTIFICATION_ID)
             try {
                 Thread.sleep(sleepDurationForThisIterationMillis)
-            } catch (e: InterruptedException) {
+            } catch (_: InterruptedException) {
                 Thread.currentThread().interrupt()
                 notificationBuilder
                     .setContentText("Lyrics download interrupted while waiting for internet.")

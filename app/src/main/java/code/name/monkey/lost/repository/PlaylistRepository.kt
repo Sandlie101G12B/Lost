@@ -4,10 +4,8 @@ package code.name.monkey.lost.repository
 
 import android.content.ContentResolver
 import android.database.Cursor
-import android.provider.BaseColumns
 import android.provider.MediaStore.Audio.AudioColumns
 import android.provider.MediaStore.Audio.Playlists.*
-import android.provider.MediaStore.Audio.PlaylistsColumns
 import code.name.monkey.lost.Constants
 import code.name.monkey.lost.extensions.getInt
 import code.name.monkey.lost.extensions.getLong
@@ -17,9 +15,6 @@ import code.name.monkey.lost.model.Playlist
 import code.name.monkey.lost.model.PlaylistSong
 import code.name.monkey.lost.model.Song
 
-/**
- * Created by hemanths on 16/08/17.
- */
 interface PlaylistRepository {
     fun playlist(cursor: Cursor?): Playlist
 
@@ -55,20 +50,20 @@ class RealPlaylistRepository(
     }
 
     override fun playlist(playlistName: String): Playlist {
-        return playlist(makePlaylistCursor(PlaylistsColumns.NAME + "=?", arrayOf(playlistName)))
+        return playlist(makePlaylistCursor("$NAME=?", arrayOf(playlistName)))
     }
 
     override fun playlist(playlistId: Long): Playlist {
         return playlist(
             makePlaylistCursor(
-                BaseColumns._ID + "=?",
+                "$_ID=?",
                 arrayOf(playlistId.toString())
             )
         )
     }
 
     override fun searchPlaylist(query: String): List<Playlist> {
-        return playlists(makePlaylistCursor(PlaylistsColumns.NAME + "=?", arrayOf(query)))
+        return playlists(makePlaylistCursor("$NAME=?", arrayOf(query)))
     }
 
     override fun playlists(): List<Playlist> {
@@ -89,7 +84,7 @@ class RealPlaylistRepository(
     override fun favoritePlaylist(playlistName: String): List<Playlist> {
         return playlists(
             makePlaylistCursor(
-                PlaylistsColumns.NAME + "=?",
+                "$NAME=?",
                 arrayOf(playlistName)
             )
         )
@@ -132,18 +127,18 @@ class RealPlaylistRepository(
 
     private fun getPlaylistSongFromCursorImpl(cursor: Cursor, playlistId: Long): PlaylistSong {
         val id = cursor.getLong(Members.AUDIO_ID)
-        val title = cursor.getString(AudioColumns.TITLE)
+        val title = cursor.getString(TITLE)
         val trackNumber = cursor.getInt(AudioColumns.TRACK)
         val year = cursor.getInt(AudioColumns.YEAR)
-        val duration = cursor.getLong(AudioColumns.DURATION)
+        val duration = cursor.getLong(DURATION)
         val data = cursor.getString(Constants.DATA)
         val dateModified = cursor.getLong(AudioColumns.DATE_MODIFIED)
         val albumId = cursor.getLong(AudioColumns.ALBUM_ID)
-        val albumName = cursor.getString(AudioColumns.ALBUM)
+        val albumName = cursor.getString(ALBUM)
         val artistId = cursor.getLong(AudioColumns.ARTIST_ID)
-        val artistName = cursor.getString(AudioColumns.ARTIST)
+        val artistName = cursor.getString(ARTIST)
         val idInPlaylist = cursor.getLong(Members._ID)
-        val composer = cursor.getStringOrNull(AudioColumns.COMPOSER)
+        val composer = cursor.getStringOrNull(COMPOSER)
         val albumArtist = cursor.getStringOrNull("album_artist")
         return PlaylistSong(
             id,
@@ -171,8 +166,8 @@ class RealPlaylistRepository(
         return contentResolver.query(
             EXTERNAL_CONTENT_URI,
             arrayOf(
-                BaseColumns._ID, /* 0 */
-                PlaylistsColumns.NAME /* 1 */
+                _ID, /* 0 */
+                NAME /* 1 */
             ),
             selection,
             values,
@@ -186,18 +181,18 @@ class RealPlaylistRepository(
             Members.getContentUri("external", playlistId),
             arrayOf(
                 Members.AUDIO_ID, // 0
-                AudioColumns.TITLE, // 1
+                TITLE, // 1
                 AudioColumns.TRACK, // 2
                 AudioColumns.YEAR, // 3
-                AudioColumns.DURATION, // 4
+                DURATION, // 4
                 Constants.DATA, // 5
                 AudioColumns.DATE_MODIFIED, // 6
                 AudioColumns.ALBUM_ID, // 7
-                AudioColumns.ALBUM, // 8
+                ALBUM, // 8
                 AudioColumns.ARTIST_ID, // 9
-                AudioColumns.ARTIST, // 10
+                ARTIST, // 10
                 Members._ID,//11
-                AudioColumns.COMPOSER,//12
+                COMPOSER,//12
                 "album_artist"//13
             ), Constants.IS_MUSIC, null, Members.DEFAULT_SORT_ORDER
         )
