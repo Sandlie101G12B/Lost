@@ -33,6 +33,7 @@ import code.name.monkey.lost.util.FileUtils
 import code.name.monkey.lost.util.LyricUtil
 import code.name.monkey.lost.util.UriUtil
 import com.afollestad.materialdialogs.input.input
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.jaudiotagger.audio.AudioFileIO
@@ -181,6 +182,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         return false
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     @SuppressLint("CheckResult")
     private fun editNormalLyrics(lyrics: String? = null) {
         val file = File(song.data)

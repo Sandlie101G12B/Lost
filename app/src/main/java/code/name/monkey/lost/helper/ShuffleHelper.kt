@@ -7,8 +7,6 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import android.content.Context
 import code.name.monkey.lost.model.FlowType
-import kotlin.random.Random
-import java.util.concurrent.TimeUnit // Added for time calculations
 
 object SongDataManager {
     var defaultSongsJson = "[]"
@@ -27,6 +25,7 @@ object ShuffleHelper {
     private var metadataMap: Map<String, SongMetaData>? = null
     private fun loadMetadataMap(): Map<String, SongMetaData> {
         if (metadataMap != null) return metadataMap!!
+
         val defaultSongsJson = SongDataManager.defaultSongsJson
         val listType = object : TypeToken<List<SongMetaData>>() {}.type
         val metadataList: List<SongMetaData> = Gson().fromJson(defaultSongsJson, listType)
@@ -39,7 +38,7 @@ object ShuffleHelper {
     fun makeShuffleList(listToShuffle: MutableList<Song>, current: Int) {
         if (listToShuffle.isEmpty() || current !in listToShuffle.indices) return
 
-        val metadata = loadMetadataMap() // Consider passing context here if MetaDataManagerHelper is used directly
+        val metadata = loadMetadataMap()
         val currentSong = listToShuffle.removeAt(current)
         val currentMeta = metadata[getSongKey(currentSong)]
         val hasAnyMetadata = listToShuffle.any { metadata[getSongKey(it)] != null }
@@ -52,13 +51,13 @@ object ShuffleHelper {
         val originalScored = scoredSongs.toMutableList()
         val selectedFlow = selectFlowType(currentMeta)
         val reordered: List<Pair<Song, Int>> = reorderByFlow(selectedFlow, originalScored, metadata)
-        val finalOrdered = enforceMaxMovement(reordered, originalScored, maxMovement = Random.nextInt(5, 11))
+        val finalOrdered = enforceMaxMovement(reordered, originalScored, maxMovement = 5)
         val smartShuffled = finalOrdered
             .groupBy { it.second }
             .toSortedMap(compareByDescending { it })
             .flatMap { (_, group) -> group.shuffled().map { it.first } }
         val extraRandomized = smartShuffled.toMutableList()
-        val swapRange = Random.nextInt(2,21)
+        val swapRange = 4
         val swaps = (extraRandomized.size / 7).coerceAtLeast(1)
         repeat(swaps) {
             val i = (1 until extraRandomized.size).random()
@@ -93,6 +92,9 @@ object ShuffleHelper {
         }
     }
 
+    /**
+     * Selects the flow type based on the current song's metadata.
+     */
     private fun selectFlowType(currentMeta: SongMetaData): FlowType {
         return when {
             (currentMeta.energy ?: 0.0) > 0.7 && (currentMeta.danceability)!! > 0.7 -> FlowType.Pulse
@@ -232,47 +234,26 @@ object ShuffleHelper {
         val favGenreBoost = b.genre.count { it in favoriteGenres } * 10
         val favMoodBoost = b.mood.count { it in favoriteMoods } * 10
 
-        // 13. Play History Penalty
-        val currentTime = System.currentTimeMillis()
-        val twoWeeksInMillis = TimeUnit.DAYS.toMillis(14)
-        val recentPlays = (b.playTimestamps ?: emptyList()).count { (currentTime - it) < twoWeeksInMillis }
-        var playHistoryPenalty = recentPlays * 7 
-
-        // 14. Skip History Penalty
-        val oneWeekInMillis = TimeUnit.DAYS.toMillis(7)
-        val recentSkips = (b.skipTimestamps ?: emptyList()).count { (currentTime - it) < oneWeekInMillis }
-        var skipHistoryPenalty = recentSkips * 12
-
-        if (b.liked && b.likedTimestamp != null) {
-            val likedTimeAgo = currentTime - (b.likedTimestamp ?: currentTime) // milliseconds
-           val daysAgo = TimeUnit.MILLISECONDS.toDays(likedTimeAgo)
-            val likedValue = (7 - daysAgo).toInt().coerceAtLeast(1)
-            playHistoryPenalty -= likedValue
-            skipHistoryPenalty -= likedValue
-        }
-
         return artistScore +
-            genreScore +
-            moodScore +
-            danceabilityScore +
-            marketScore +
-            yearScore +
-            energyScore +
-            valenceScore +
-            tempoScore +
-            genreArtistSimilarity +
-            favArtistBoost +
-            favGenreBoost +
-            favMoodBoost +
-            modernBonus -
-            playHistoryPenalty -
-            skipHistoryPenalty
+                genreScore +
+                moodScore +
+                danceabilityScore +
+                marketScore +
+                yearScore +
+                energyScore +
+                valenceScore +
+                tempoScore +
+                genreArtistSimilarity +
+                favArtistBoost +
+                favGenreBoost +
+                favMoodBoost +
+                modernBonus
     }
 
     private fun isCorrupted(meta: SongMetaData): Boolean {
         return meta.file.isBlank()
-            || meta.artists.isEmpty()
-            || meta.danceability?.isNaN() == true
+                || meta.artists.isEmpty()
+                || meta.danceability?.isNaN() == true
     }
 
     private val similarArtistGroups = listOf(

@@ -3,6 +3,8 @@ package code.name.monkey.lost.helper
 import android.content.Context
 import android.util.Log
 import code.name.monkey.lost.model.SongMetaData
+// It's good practice to add the import for Song if it's not already implicitly available
+import code.name.monkey.lost.model.Song // Added import for Song model
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
@@ -65,4 +67,17 @@ object MetaDataManagerHelper {
             // Handle error
         }
     }
+
+    // Defines the canonical string key for a Song object.
+    // Assumes Song has a unique 'id: Long' property.
+    fun getSongKey(song: Song): String { // Changed to use the imported Song type directly
+        return song.id.toString()
+    }
+
+    // Loads all song metadata into a map, keyed by the song's ID string.
+    // Assumes SongMetaData has a unique 'id: Long' property corresponding to Song.id.
+//    fun loadMetadataMap(): Map<String, SongMetaData> {
+//        val list = getSongMetaDataList() // Existing function
+//        return list.associateBy { it.id.toString() } // Assumes SongMetaData has 'id: Long'
+//    }
 }

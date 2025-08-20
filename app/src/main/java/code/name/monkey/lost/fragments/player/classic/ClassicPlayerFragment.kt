@@ -14,9 +14,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.commit
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import code.name.monkey.appthemehelper.util.ColorUtil
@@ -53,6 +51,7 @@ import com.h6ah4i.android.widget.advrecyclerview.draggable.RecyclerViewDragDropM
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.RecyclerViewSwipeManager
 import com.h6ah4i.android.widget.advrecyclerview.touchguard.RecyclerViewTouchActionGuardManager
 import com.h6ah4i.android.widget.advrecyclerview.utils.WrapperAdapterUtils
+import androidx.core.view.WindowCompat
 
 
 class ClassicPlayerFragment : AbsPlayerFragment(R.layout.fragment_classic_player),
@@ -590,10 +589,13 @@ class ClassicPlayerFragment : AbsPlayerFragment(R.layout.fragment_classic_player
             //check if color is already applied, if not applied then update navigationBarColor
             backgroundColor?.let { color ->
                 if (isLandscapeMode()) {
+                    // Use WindowInsetsControllerCompat to set navigation bar color
                     val window = requireActivity().window
-                    window?.navigationBarColor.let { navBarColor ->
-                        if (navBarColor == null || navBarColor != color) {
-                            mainActivity.setNavigationBarColor(color)
+                    if (window != null) {
+                        WindowCompat.getInsetsController(window, window.decorView).let { controller ->
+                            controller.isAppearanceLightNavigationBars = !color.isColorLight // Or based on your logic
+                            @Suppress("DEPRECATION")
+                            window.navigationBarColor = color // Set the color directly
                         }
                     }
                 }
@@ -609,9 +611,7 @@ class ClassicPlayerFragment : AbsPlayerFragment(R.layout.fragment_classic_player
     }
 
     private fun isLandscapeMode(): Boolean {
-        val config = resources.configuration;
-
-        // Check if the device is in landscape mode
+        val config = resources.configuration
         return config.orientation == Configuration.ORIENTATION_LANDSCAPE
     }
 }

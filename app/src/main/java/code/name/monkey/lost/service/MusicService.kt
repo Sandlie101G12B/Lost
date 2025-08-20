@@ -44,8 +44,9 @@ import code.name.monkey.lost.extensions.uri
 import code.name.monkey.lost.glide.BlurTransformation
 import code.name.monkey.lost.glide.LostGlideExtension.getSongModel
 import code.name.monkey.lost.glide.LostGlideExtension.songCoverOptions
-import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
+import code.name.monkey.lost.helper.MetaDataManagerHelper 
 import code.name.monkey.lost.helper.ShuffleHelper.makeShuffleList
+import kotlinx.coroutines.launch
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.Song.Companion.emptySong
 import code.name.monkey.lost.model.smartplaylist.AbsSmartPlaylist
@@ -406,7 +407,8 @@ class MusicService : MediaBrowserServiceCompat(),
         get() = if (isLastTrack && repeatMode == REPEAT_MODE_NONE) {
             null
         } else {
-            getSongAt(getNextPosition(false))
+            val next = getSongAt(getNextPosition(false))
+            next
         }
 
     private fun getNextPosition(force: Boolean): Int {
@@ -745,25 +747,57 @@ class MusicService : MediaBrowserServiceCompat(),
         startPosition: Int,
         startPlaying: Boolean,
     ) {
-        if (!playingQueue.isNullOrEmpty()
-            && startPosition >= 0 && startPosition < playingQueue.size
-        ) {
-            // it is important to copy the playing queue here first as we might add/remove songs later
-            originalPlayingQueue = ArrayList(playingQueue)
-            this.playingQueue = ArrayList(originalPlayingQueue)
-            var position = startPosition
-            if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
-                makeShuffleList(this.playingQueue, startPosition)
-                position = 0
+        if (playingQueue.isNullOrEmpty() || startPosition < 0 || startPosition >= playingQueue.size) {
+            // Invalid input, perhaps log an error or handle as appropriate
+            return
+        }
+
+        // Store the original queue order.
+        originalPlayingQueue = ArrayList(playingQueue)
+        // Set the service's current playing queue to the new unshuffled list for immediate use.
+        this.playingQueue = ArrayList(originalPlayingQueue)
+
+        // Start playback or set the current position immediately using the unshuffled queue.
+        // playSongAt() or setPosition() will update 'this.position' and 'currentSong' internally.
+        if (startPlaying) {
+            playSongAt(startPosition)
+        } else {
+            setPosition(startPosition)
+        }
+
+        if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
+            // If shuffle mode is active, perform the shuffling in a background coroutine.
+            serviceScope.launch(Dispatchers.Default) {
+                // Create a mutable copy of the original queue to be shuffled.
+                val queueToShuffleInBackground = ArrayList(originalPlayingQueue)
+
+                // ShuffleHelper.makeShuffleList will modify queueToShuffleInBackground
+                // and is expected to place the song originally at 'startPosition'
+                // at index 0 of the shuffled list.
+                makeShuffleList(queueToShuffleInBackground, startPosition)
+
+                // Switch back to the main thread to update service state safely.
+                withContext(Main) {
+                    // Update the service's playing queue to the newly shuffled list.
+                    this@MusicService.playingQueue = queueToShuffleInBackground
+                    // The song that was initially selected (and might be playing)
+                    // is now at the beginning (index 0) of the shuffled queue.
+                    this@MusicService.position = 0
+
+                    // Prepare the next track based on the new shuffled queue and position.
+                    prepareNextImpl()
+                    // Notify listeners that the queue has been updated.
+                    notifyChange(QUEUE_CHANGED)
+                }
             }
-            if (startPlaying) {
-                playSongAt(position)
-            } else {
-                setPosition(position)
-            }
+            // Note: If shuffling, QUEUE_CHANGED is notified asynchronously after shuffling completes.
+        } else {
+            // If shuffle mode is not active, the queue is already set (unshuffled).
+            // Notify listeners that the queue has changed.
             notifyChange(QUEUE_CHANGED)
         }
     }
+
 
     @Synchronized
     fun openTrackAndPrepareNextAt(position: Int, completion: (success: Boolean) -> Unit) {
@@ -862,7 +896,7 @@ class MusicService : MediaBrowserServiceCompat(),
             val nextPosition = getNextPosition(false)
             playbackManager.setNextDataSource(getSongAt(nextPosition).uri)
             this.nextPosition = nextPosition
-        } catch (ignored: Exception) {
+        } catch (_: Exception) {
         }
     }
 
@@ -1009,7 +1043,7 @@ class MusicService : MediaBrowserServiceCompat(),
             val newPosition = playbackManager.seek(millis, force)
             throttledSeekHandler?.notifySeek()
             newPosition
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             -1
         }
     }
@@ -1460,4 +1494,7 @@ class MusicService : MediaBrowserServiceCompat(),
                 or PlaybackStateCompat.ACTION_STOP
                 or PlaybackStateCompat.ACTION_SEEK_TO)
     }
+    // This new method will be added to the MusicService class
+
+
 }

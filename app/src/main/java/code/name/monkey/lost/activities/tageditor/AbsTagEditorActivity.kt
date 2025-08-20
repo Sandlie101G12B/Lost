@@ -1,6 +1,5 @@
 package code.name.monkey.lost.activities.tageditor
 
-import android.app.Activity
 import android.app.SearchManager
 import android.content.Intent
 import android.content.res.ColorStateList
@@ -37,6 +36,7 @@ import code.name.monkey.lost.util.logD
 import code.name.monkey.lost.util.logE
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.jaudiotagger.audio.AudioFile
@@ -54,10 +54,6 @@ abstract class AbsTagEditorActivity<VB : ViewBinding> : AbsBaseActivity() {
         private set
     private var paletteColorPrimary: Int = 0
     private var songPaths: List<String>? = null
-    private var savedSongPaths: List<String>? = null
-    private val currentSongPath: String? = null
-    private var savedTags: Map<FieldKey, String>? = null
-    private var savedArtworkInfo: ArtworkInfo? = null
     private var _binding: VB? = null
     protected val binding: VB get() = _binding!!
     private var cacheFiles = listOf<File>()
@@ -232,7 +228,7 @@ abstract class AbsTagEditorActivity<VB : ViewBinding> : AbsBaseActivity() {
         }
         setUpViews()
         launcher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
-            if (it.resultCode == Activity.RESULT_OK) {
+            if (it.resultCode == RESULT_OK) {
                 writeToFiles(getSongUris(), cacheFiles)
             }
         }
@@ -341,6 +337,7 @@ abstract class AbsTagEditorActivity<VB : ViewBinding> : AbsBaseActivity() {
         saveFab.backgroundTintList = ColorStateList.valueOf(if (color == 0) Color.GRAY else color)
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     protected fun writeValuesToFiles(
         fieldKeyValueMap: Map<FieldKey, String>,
         artworkInfo: ArtworkInfo?
@@ -370,31 +367,6 @@ abstract class AbsTagEditorActivity<VB : ViewBinding> : AbsBaseActivity() {
                         songPaths,
                         fieldKeyValueMap,
                         artworkInfo
-                    )
-                )
-            }
-        }
-    }
-
-    private fun writeTags(paths: List<String>?) {
-        GlobalScope.launch {
-            if (VersionUtils.hasR()) {
-                cacheFiles = TagWriter.writeTagsToFilesR(
-                    this@AbsTagEditorActivity, AudioTagInfo(
-                        paths,
-                        savedTags,
-                        savedArtworkInfo
-                    )
-                )
-                val pendingIntent = MediaStore.createWriteRequest(contentResolver, getSongUris())
-
-                launcher.launch(IntentSenderRequest.Builder(pendingIntent).build())
-            } else {
-                TagWriter.writeTagsToFiles(
-                    this@AbsTagEditorActivity, AudioTagInfo(
-                        paths,
-                        savedTags,
-                        savedArtworkInfo
                     )
                 )
             }
@@ -442,6 +414,5 @@ abstract class AbsTagEditorActivity<VB : ViewBinding> : AbsBaseActivity() {
         const val EXTRA_ID = "extra_id"
         const val EXTRA_PALETTE = "extra_palette"
         private val TAG = AbsTagEditorActivity::class.java.simpleName
-        private const val REQUEST_CODE_SELECT_IMAGE = 1000
     }
 }

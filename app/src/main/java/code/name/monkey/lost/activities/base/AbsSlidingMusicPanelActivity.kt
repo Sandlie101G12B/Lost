@@ -97,6 +97,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_SETTLING
 import com.google.android.material.bottomsheet.BottomSheetBehavior.from
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import androidx.core.view.size
 
 
 abstract class AbsSlidingMusicPanelActivity : AbsMusicServiceActivity(),
@@ -332,7 +333,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsMusicServiceActivity(),
         if (VersionUtils.hasOreo()) return
         navigationBarColorAnimator?.cancel()
         navigationBarColorAnimator = ValueAnimator
-            .ofArgb(window.navigationBarColor, color).apply {
+            .ofArgb(@Suppress("DEPRECATION") window.navigationBarColor, color).apply {
                 duration = ViewUtil.RETRO_MUSIC_ANIM_TIME.toLong()
                 interpolator = PathInterpolator(0.4f, 0f, 1f, 1f)
                 addUpdateListener { animation: ValueAnimator ->
@@ -457,7 +458,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsMusicServiceActivity(),
                     .setIcon(menu.icon)
             }
         }
-        if (binding.navigationView.menu.size() == 1) {
+        if (binding.navigationView.menu.size == 1) {
             isInOneTabMode = true
             binding.navigationView.isVisible = false
         } else {

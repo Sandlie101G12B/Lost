@@ -13,6 +13,7 @@ import code.name.monkey.lost.R
 import code.name.monkey.lost.extensions.showToast
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.repository.SongRepository
+import code.name.monkey.lost.service.CastPlayer
 import code.name.monkey.lost.service.MusicService
 import code.name.monkey.lost.util.getExternalStorageDirectory
 import code.name.monkey.lost.util.logE
@@ -92,6 +93,9 @@ object MusicPlayerRemote : KoinComponent {
             musicService!!.audioSessionId
         } else -1
 
+    val isServiceConnected: Boolean
+        get() = musicService != null
+
     fun bindToService(context: Context, callback: ServiceConnection): ServiceToken? {
 
         val realActivity = context as Activity
@@ -149,6 +153,10 @@ object MusicPlayerRemote : KoinComponent {
             cursor?.close()
         }
         return null
+    }
+
+    fun getQueueDurationSongs(): Int {
+        return musicService?.playingQueue?.size ?: -1
     }
 
     fun playSongAt(position: Int) {
@@ -433,6 +441,14 @@ object MusicPlayerRemote : KoinComponent {
     private fun getSongIdFromMediaProvider(uri: Uri): String {
         return DocumentsContract.getDocumentId(uri).split(":".toRegex())
             .dropLastWhile { it.isEmpty() }.toTypedArray()[1]
+    }
+
+    fun switchToRemotePlayback(castPlayer: CastPlayer) {
+        musicService?.switchToRemotePlayback(castPlayer)
+    }
+
+    fun switchToLocalPlayback() {
+        musicService?.switchToLocalPlayback()
     }
 
     class ServiceBinder internal constructor(private val mCallback: ServiceConnection?) :
