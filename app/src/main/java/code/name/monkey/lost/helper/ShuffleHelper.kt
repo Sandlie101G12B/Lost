@@ -94,7 +94,7 @@ object ShuffleHelper {
             .toSortedMap(compareByDescending { it })
             .flatMap { (_, group) -> group.shuffled().map { it.first } }
         val extraRandomized = smartShuffled.toMutableList()
-        val swapRange = Random.nextInt(2,21)
+        val swapRange = Random.nextInt(2,5)
         val swaps = (extraRandomized.size / 7).coerceAtLeast(1)
         repeat(swaps) {
             val i = (1 until extraRandomized.size).random()
@@ -216,22 +216,22 @@ object ShuffleHelper {
 
         // 1. Artist Matching
         val commonArtists = a.artists.intersect(b.artists.toSet())
-        val artistScore = commonArtists.size * 12  // Increased weight
+        val artistScore = commonArtists.size * Random.nextInt(9, 12)
 
         // 2. Genre Matching
         val commonGenres = a.genre.intersect(b.genre.toSet())
-        val genreScore = commonGenres.size * 8
+        val genreScore = commonGenres.size * Random.nextInt(8, 20)
 
         // 3. Mood Matching
         val commonMoods = a.mood.intersect(b.mood.toSet())
-        val moodScore = commonMoods.size * 8
+        val moodScore = commonMoods.size * Random.nextInt(7, 10)
 
         // 4. Danceability
-        val danceabilityScore = (8 - (kotlin.math.abs(a.danceability?.minus(b.danceability ?: 0.0) ?: 0.0) * 4).coerceAtMost(8.0)).toInt()
+        val danceabilityScore = (10 - (kotlin.math.abs(a.danceability?.minus(b.danceability ?: 0.0) ?: 0.0) * 10).coerceAtMost(10.0)).toInt()
 
         // 5. Market Similarity
         val marketScore = try {
-            b.market?.let { a.market?.intersect(it.toSet())?.size ?: 0 }?.times(2) ?: 0
+            b.market?.let { a.market?.intersect(it.toSet())?.size ?: 0 }?.times(4) ?: 0
         } catch (_: Exception) { 0 }
 
         // 6. Year Proximity
@@ -239,7 +239,7 @@ object ShuffleHelper {
             val aYear = a.year.toIntOrNull()
             val bYear = b.year.toIntOrNull()
             if (aYear != null && bYear != null && aYear > 0 && bYear > 0) {
-                (4 - (kotlin.math.abs(aYear - bYear) / 2).coerceAtMost(10)).coerceAtLeast(-4)
+                (7 - (kotlin.math.abs(aYear - bYear) / 2).coerceAtMost(10)).coerceAtLeast(-7)
             } else 0
         } catch (_: Exception) { 0 }
 
@@ -247,7 +247,7 @@ object ShuffleHelper {
         val modernBonus = try {
             val bYear = b.year.toIntOrNull()
             val normalized = (((bYear?.coerceIn(1990, 2025) ?: 0) - 1990) / 35.0)
-            (normalized * 25).toInt()
+            (normalized * Random.nextInt(5, 25)).toInt()
         } catch (_: Exception) { 0 }
 
         // 8. Energy
@@ -282,7 +282,7 @@ object ShuffleHelper {
         // 14. Skip History Penalty
         val oneWeekInMillis = TimeUnit.DAYS.toMillis(7)
         val recentSkips = (b.skipTimestamps ?: emptyList()).count { (currentTime - it) < oneWeekInMillis }
-        var skipHistoryPenalty = recentSkips * 12
+        var skipHistoryPenalty = recentSkips * Random.nextInt(9, 12)
 
         if (b.liked && b.likedTimestamp != null) {
             val likedTimeAgo = currentTime - (b.likedTimestamp ?: currentTime) // milliseconds

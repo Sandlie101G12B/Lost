@@ -41,8 +41,10 @@ class MainActivity : AbsCastActivity() {
         setTaskDescriptionColorAuto()
         hideStatusBar()
         updateTabs()
-        MetaDataManagerHelper.saveContext(applicationContext)
 
+        lifecycleScope.launch(IO) {
+            MetaDataManagerHelper.saveContext(applicationContext)
+        }
         AppRater.appLaunched(this)
         SongDataManager.loadDefaultSongsJson(this@MainActivity)
         val apiKeys = getApiKeys(this)

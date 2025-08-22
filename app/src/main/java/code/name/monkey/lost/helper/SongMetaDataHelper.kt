@@ -10,7 +10,7 @@ import android.widget.EditText
 import androidx.core.app.NotificationCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import code.name.monkey.lost.R 
+import code.name.monkey.lost.R
 import code.name.monkey.lost.model.SongMetaData
 import code.name.monkey.lost.model.SongTMPContainer
 import code.name.monkey.lost.network.InternetConnection
@@ -32,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.core.content.edit
+import code.name.monkey.lost.helper.MetaDataManagerHelper.reconcileLikedStatusWithLibrary
 
 
 const val inputPath = "inputile.txt"
@@ -40,9 +41,10 @@ const val outputPath = "outputile.txt"
 private const val ENHANCEMENT_CHANNEL_ID = "song_enhancement_channel"
 const val ENHANCEMENT_NOTIFICATION_ID = 1001
 
-fun initialiseMetaDataProcess(context: Context) {
+suspend fun initialiseMetaDataProcess(context: Context) {
     val songRepository = RealSongRepository(context)
-    val deviceSongs = songRepository.songs().map {
+    val songs = songRepository.songs()
+    val deviceSongs = songs.map {
         SongTMPContainer(
             title = it.title,
             artistName = it.artistName
@@ -58,6 +60,7 @@ fun initialiseMetaDataProcess(context: Context) {
     }
     CoroutineScope(Dispatchers.IO).launch {
         enhanceSongsData(inputPath, outputPath, deviceSongs, context)
+        reconcileLikedStatusWithLibrary(songs)
     }
 }
 

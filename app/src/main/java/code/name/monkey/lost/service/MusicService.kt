@@ -59,7 +59,7 @@ import code.name.monkey.lost.service.notification.PlayingNotificationImpl24
 import code.name.monkey.lost.service.playback.Playback
 import code.name.monkey.lost.service.playback.Playback.PlaybackCallbacks
 import code.name.monkey.lost.util.MusicUtil
-import code.name.monkey.lost.util.MusicUtil.toggleFavorite
+// import code.name.monkey.lost.util.MusicUtil.toggleFavorite // Removed as we now call MetaDataManagerHelper directly
 import code.name.monkey.lost.util.PackageValidator
 import code.name.monkey.lost.util.PreferenceUtil.crossFadeDuration
 import code.name.monkey.lost.util.PreferenceUtil.isAlbumArtOnLockScreen
@@ -83,7 +83,6 @@ import kotlinx.coroutines.Dispatchers.Default
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import org.koin.java.KoinJavaComponent.get
-import java.io.File // Added import
 import java.util.*
 
 
@@ -801,13 +800,7 @@ class MusicService : MediaBrowserServiceCompat(),
         if (currentSong == emptySong) return
         val songToUpdate = currentSong // Capture the current song before it changes
         serviceScope.launch(IO) {
-            val allMetaData = MetaDataManagerHelper.getSongMetaDataList()
-            val songKey = File(songToUpdate.data).nameWithoutExtension.lowercase()
-            val songMetaData = allMetaData.find { File(it.file).nameWithoutExtension.lowercase() == songKey }
-            songMetaData?.let { meta ->
-                meta.playTimestamps.add(System.currentTimeMillis())
-                MetaDataManagerHelper.saveSongMetaDataList(allMetaData)
-            }
+            MetaDataManagerHelper.updateSongInteraction(filePath = songToUpdate.data, recordPlay = true)
         }
     }
 
@@ -816,13 +809,7 @@ class MusicService : MediaBrowserServiceCompat(),
         if (currentSong == emptySong) return
         val songToUpdate = currentSong // Capture the current song before it changes
         serviceScope.launch(IO) {
-            val allMetaData = MetaDataManagerHelper.getSongMetaDataList()
-            val songKey = File(songToUpdate.data).nameWithoutExtension.lowercase()
-            val songMetaData = allMetaData.find { File(it.file).nameWithoutExtension.lowercase() == songKey }
-            songMetaData?.let { meta ->
-                meta.skipTimestamps.add(System.currentTimeMillis())
-                MetaDataManagerHelper.saveSongMetaDataList(allMetaData)
-            }
+            MetaDataManagerHelper.updateSongInteraction(filePath = songToUpdate.data, recordSkip = true)
         }
     }
 
@@ -865,7 +852,9 @@ class MusicService : MediaBrowserServiceCompat(),
 
     fun toggleFavorite() {
         serviceScope.launch {
-            toggleFavorite(currentSong)
+            if (currentSong != emptySong) {
+                MetaDataManagerHelper.updateSongInteraction(filePath = currentSong.data, toggleLike = true)
+            }
             LocalBroadcastManager.getInstance(this@MusicService)
                 .sendBroadcast(Intent(FAVORITE_STATE_CHANGED))
         }
