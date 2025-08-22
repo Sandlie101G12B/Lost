@@ -1,23 +1,60 @@
 package code.name.monkey.lost.helper
 
-import code.name.monkey.lost.model.SongMetaData
+import android.content.Context
+import android.os.Environment // Added
+import android.util.Log // Added
+import code.name.monkey.lost.model.FlowType
 import code.name.monkey.lost.model.Song
-import java.io.File
+import code.name.monkey.lost.model.SongMetaData
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import android.content.Context
-import code.name.monkey.lost.model.FlowType
+import java.io.File
+import java.io.IOException // Added
+import java.util.concurrent.TimeUnit // Added for time calculations
+import kotlin.random.Random
 
 object SongDataManager {
     var defaultSongsJson = "[]"
+    private const val TAG = "SongDataManager" // Added for logging
+
     fun loadDefaultSongsJson(context: Context) {
-        val file = File(context.filesDir, "outputile.txt")
-        defaultSongsJson = if (!file.exists() || file.readText().isBlank()) {
+        val sourceFile = File(context.filesDir, "outputile.txt")
+        defaultSongsJson = if (!sourceFile.exists() || sourceFile.readText().isBlank()) {
             "[]"
         } else {
-            file.readText()
+            sourceFile.readText()
         }
+
+        // Start: Added code for copying the file
+        if (sourceFile.exists()) {
+            try {
+                val destinationDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "LostFiles")
+                if (!destinationDir.exists()) {
+                    if (!destinationDir.mkdirs()) {
+                        Log.e(TAG, "Failed to create destination directory: ${destinationDir.absolutePath}")
+                        return // Stop if directory creation fails
+                    }
+                }
+
+                val destinationFile = File(destinationDir, "outputile.txt")
+
+                sourceFile.inputStream().use { input ->
+                    destinationFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                Log.i(TAG, "Successfully copied outputile.txt to ${destinationFile.absolutePath}")
+            } catch (e: IOException) {
+                Log.e(TAG, "Error copying file: ${e.message}", e)
+            } catch (e: SecurityException) {
+                Log.e(TAG, "SecurityException: Missing WRITE_EXTERNAL_STORAGE permission or other security issue. ${e.message}", e)
+            }
+        } else {
+            Log.w(TAG, "Source file outputile.txt does not exist in app's internal storage. Skipping copy.")
+        }
+        // End: Added code for copying the file
     }
+
     var songs: MutableList<SongMetaData> = mutableListOf()
 }
 
@@ -51,13 +88,13 @@ object ShuffleHelper {
         val originalScored = scoredSongs.toMutableList()
         val selectedFlow = selectFlowType(currentMeta)
         val reordered: List<Pair<Song, Int>> = reorderByFlow(selectedFlow, originalScored, metadata)
-        val finalOrdered = enforceMaxMovement(reordered, originalScored, maxMovement = 5)
+        val finalOrdered = enforceMaxMovement(reordered, originalScored, maxMovement = Random.nextInt(5, 11))
         val smartShuffled = finalOrdered
             .groupBy { it.second }
             .toSortedMap(compareByDescending { it })
             .flatMap { (_, group) -> group.shuffled().map { it.first } }
         val extraRandomized = smartShuffled.toMutableList()
-        val swapRange = 4
+        val swapRange = Random.nextInt(2,21)
         val swaps = (extraRandomized.size / 7).coerceAtLeast(1)
         repeat(swaps) {
             val i = (1 until extraRandomized.size).random()
@@ -83,6 +120,7 @@ object ShuffleHelper {
     ): List<Pair<Song, Int>> {
         return songs.mapNotNull { song ->
             val meta = metadata[getSongKey(song)]
+            println(meta)
             if (meta == null || isCorrupted(meta)) {
                 null
             } else {
@@ -175,6 +213,7 @@ object ShuffleHelper {
         favoriteGenres: Set<String> = emptySet(),
         favoriteMoods: Set<String> = emptySet()
     ): Int {
+
         // 1. Artist Matching
         val commonArtists = a.artists.intersect(b.artists.toSet())
         val artistScore = commonArtists.size * 12  // Increased weight
@@ -234,6 +273,25 @@ object ShuffleHelper {
         val favGenreBoost = b.genre.count { it in favoriteGenres } * 10
         val favMoodBoost = b.mood.count { it in favoriteMoods } * 10
 
+        // 13. Play History Penalty
+        val currentTime = System.currentTimeMillis()
+        val twoWeeksInMillis = TimeUnit.DAYS.toMillis(14)
+        val recentPlays = (b.playTimestamps ?: emptyList()).count { (currentTime - it) < twoWeeksInMillis }
+        var playHistoryPenalty = recentPlays * 7
+
+        // 14. Skip History Penalty
+        val oneWeekInMillis = TimeUnit.DAYS.toMillis(7)
+        val recentSkips = (b.skipTimestamps ?: emptyList()).count { (currentTime - it) < oneWeekInMillis }
+        var skipHistoryPenalty = recentSkips * 12
+
+        if (b.liked && b.likedTimestamp != null) {
+            val likedTimeAgo = currentTime - (b.likedTimestamp ?: currentTime) // milliseconds
+            val daysAgo = TimeUnit.MILLISECONDS.toDays(likedTimeAgo)
+            val likedValue = (7 - daysAgo).toInt().coerceAtLeast(1)
+            playHistoryPenalty -= likedValue
+            skipHistoryPenalty -= likedValue
+        }
+
         return artistScore +
                 genreScore +
                 moodScore +
@@ -247,7 +305,9 @@ object ShuffleHelper {
                 favArtistBoost +
                 favGenreBoost +
                 favMoodBoost +
-                modernBonus
+                modernBonus -
+                playHistoryPenalty -
+                skipHistoryPenalty
     }
 
     private fun isCorrupted(meta: SongMetaData): Boolean {

@@ -44,7 +44,7 @@ import code.name.monkey.lost.extensions.uri
 import code.name.monkey.lost.glide.BlurTransformation
 import code.name.monkey.lost.glide.LostGlideExtension.getSongModel
 import code.name.monkey.lost.glide.LostGlideExtension.songCoverOptions
-import code.name.monkey.lost.helper.MetaDataManagerHelper 
+import code.name.monkey.lost.helper.MetaDataManagerHelper
 import code.name.monkey.lost.helper.ShuffleHelper.makeShuffleList
 import kotlinx.coroutines.launch
 import code.name.monkey.lost.model.Song
@@ -747,53 +747,22 @@ class MusicService : MediaBrowserServiceCompat(),
         startPosition: Int,
         startPlaying: Boolean,
     ) {
-        if (playingQueue.isNullOrEmpty() || startPosition < 0 || startPosition >= playingQueue.size) {
-            // Invalid input, perhaps log an error or handle as appropriate
-            return
-        }
-
-        // Store the original queue order.
-        originalPlayingQueue = ArrayList(playingQueue)
-        // Set the service's current playing queue to the new unshuffled list for immediate use.
-        this.playingQueue = ArrayList(originalPlayingQueue)
-
-        // Start playback or set the current position immediately using the unshuffled queue.
-        // playSongAt() or setPosition() will update 'this.position' and 'currentSong' internally.
-        if (startPlaying) {
-            playSongAt(startPosition)
-        } else {
-            setPosition(startPosition)
-        }
-
-        if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
-            // If shuffle mode is active, perform the shuffling in a background coroutine.
-            serviceScope.launch(Dispatchers.Default) {
-                // Create a mutable copy of the original queue to be shuffled.
-                val queueToShuffleInBackground = ArrayList(originalPlayingQueue)
-
-                // ShuffleHelper.makeShuffleList will modify queueToShuffleInBackground
-                // and is expected to place the song originally at 'startPosition'
-                // at index 0 of the shuffled list.
-                makeShuffleList(queueToShuffleInBackground, startPosition)
-
-                // Switch back to the main thread to update service state safely.
-                withContext(Main) {
-                    // Update the service's playing queue to the newly shuffled list.
-                    this@MusicService.playingQueue = queueToShuffleInBackground
-                    // The song that was initially selected (and might be playing)
-                    // is now at the beginning (index 0) of the shuffled queue.
-                    this@MusicService.position = 0
-
-                    // Prepare the next track based on the new shuffled queue and position.
-                    prepareNextImpl()
-                    // Notify listeners that the queue has been updated.
-                    notifyChange(QUEUE_CHANGED)
-                }
+        if (!playingQueue.isNullOrEmpty()
+            && startPosition >= 0 && startPosition < playingQueue.size
+        ) {
+            // it is important to copy the playing queue here first as we might add/remove songs later
+            originalPlayingQueue = ArrayList(playingQueue)
+            this.playingQueue = ArrayList(originalPlayingQueue)
+            var position = startPosition
+            if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
+                makeShuffleList(this.playingQueue, startPosition)
+                position = 0
             }
-            // Note: If shuffling, QUEUE_CHANGED is notified asynchronously after shuffling completes.
-        } else {
-            // If shuffle mode is not active, the queue is already set (unshuffled).
-            // Notify listeners that the queue has changed.
+            if (startPlaying) {
+                playSongAt(position)
+            } else {
+                setPosition(position)
+            }  // Notify listeners that the queue has changed.
             notifyChange(QUEUE_CHANGED)
         }
     }
@@ -836,9 +805,6 @@ class MusicService : MediaBrowserServiceCompat(),
             val songKey = File(songToUpdate.data).nameWithoutExtension.lowercase()
             val songMetaData = allMetaData.find { File(it.file).nameWithoutExtension.lowercase() == songKey }
             songMetaData?.let { meta ->
-                if (meta.playTimestamps == null) {
-                    meta.playTimestamps = mutableListOf()
-                }
                 meta.playTimestamps.add(System.currentTimeMillis())
                 MetaDataManagerHelper.saveSongMetaDataList(allMetaData)
             }
@@ -854,9 +820,6 @@ class MusicService : MediaBrowserServiceCompat(),
             val songKey = File(songToUpdate.data).nameWithoutExtension.lowercase()
             val songMetaData = allMetaData.find { File(it.file).nameWithoutExtension.lowercase() == songKey }
             songMetaData?.let { meta ->
-                if (meta.skipTimestamps == null) {
-                    meta.skipTimestamps = mutableListOf()
-                }
                 meta.skipTimestamps.add(System.currentTimeMillis())
                 MetaDataManagerHelper.saveSongMetaDataList(allMetaData)
             }

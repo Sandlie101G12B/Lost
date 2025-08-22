@@ -6,7 +6,7 @@ import android.support.v4.media.session.MediaSessionCompat
 import code.name.monkey.lost.auto.AutoMediaIDHelper
 import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.helper.MusicPlayerRemote.cycleRepeatMode
-//import code.name.monkey.lost.helper.ShuffleHelper.makeShuffleList
+import code.name.monkey.lost.helper.ShuffleHelper.makeShuffleList
 import code.name.monkey.lost.model.Album
 import code.name.monkey.lost.model.Artist
 import code.name.monkey.lost.model.Playlist
@@ -70,8 +70,8 @@ class MediaSessionCallback(
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SHUFFLE -> {
                 val allSongs = songRepository.songs().toMutableList()
+                makeShuffleList(allSongs, -1)
                 musicService.openQueue(allSongs, 0, true)
-//                makeShuffleList(allSongs, -1)
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY,
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS,
