@@ -54,11 +54,40 @@ object MetaDataManagerHelper : KoinComponent {
     fun getSongMetaDataList(): List<SongMetaData> {
         val jsonString = readRawOutputFile()
         return try {
-            val listType = object : TypeToken<List<SongMetaData>>() {}.type
-            Gson().fromJson(jsonString, listType) ?: emptyList()
+            val mapListType = object : TypeToken<List<Map<String, Any?>>>() {}.type
+            val rawList: List<Map<String, Any?>>? = Gson().fromJson(jsonString, mapListType)
+
+            rawList?.mapNotNull { rawMap ->
+                try {
+                    SongMetaData(
+                        title = rawMap["title"] as? String ?: "",
+                        artists = (rawMap["artists"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                        file = rawMap["file"] as? String ?: "",
+                        mood = (rawMap["mood"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                        genre = (rawMap["genre"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                        playlist = (rawMap["playlist"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                        year = rawMap["year"] as? String ?: "", // Ensures "" if year is null or not a string
+                        liked = rawMap["liked"] as? Boolean ?: false,
+                        favorite = rawMap["favorite"] as? Boolean ?: false,
+                        rating = (rawMap["rating"] as? Number)?.toInt() ?: 0,
+                        danceability = (rawMap["danceability"] as? Number)?.toDouble(),
+                        tempo = (rawMap["tempo"] as? Number)?.toDouble(),
+                        energy = (rawMap["energy"] as? Number)?.toDouble(),
+                        valence = (rawMap["valence"] as? Number)?.toDouble(),
+                        market = (rawMap["market"] as? List<*>)?.mapNotNull { it as? String },
+                        skips = (rawMap["skips"] as? Number)?.toInt() ?: 0,
+                        bpm = (rawMap["bpm"] as? Number)?.toFloat(),
+                        playTimestamps = (rawMap["playTimestamps"] as? List<*>)?.mapNotNull { (it as? Number)?.toLong() }?.toMutableList() ?: mutableListOf(),
+                        skipTimestamps = (rawMap["skipTimestamps"] as? List<*>)?.mapNotNull { (it as? Number)?.toLong() }?.toMutableList() ?: mutableListOf(),
+                        likedTimestamp = (rawMap["likedTimestamp"] as? Number)?.toLong()
+                    )
+                } catch (e: Exception) {
+                    Log.e("MetaDataManagerHelper", "Error parsing individual SongMetaData object from map: $rawMap", e)
+                    null // Skip this problematic entry and log the error
+                }
+            } ?: emptyList()
         } catch (e: Exception) {
-            Log.e("MetaDataManagerHelper", "Error parsing SongMetaData list", e)
-            // Handle error (e.g., log it, return empty list)
+            Log.e("MetaDataManagerHelper", "Error parsing SongMetaData list from JSON", e)
             emptyList()
         }
     }
