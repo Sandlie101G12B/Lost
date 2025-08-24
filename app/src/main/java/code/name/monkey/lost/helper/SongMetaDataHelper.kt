@@ -37,6 +37,7 @@ import code.name.monkey.lost.helper.MetaDataManagerHelper.reconcileLikedStatusWi
 
 const val inputPath = "inputile.txt"
 const val outputPath = "outputile.txt"
+const val outputPathBackupConst = "outputile.txt.bak"
 
 private const val ENHANCEMENT_CHANNEL_ID = "song_enhancement_channel"
 const val ENHANCEMENT_NOTIFICATION_ID = 1001
@@ -98,6 +99,7 @@ Your tasks are strictly as follows:
     Add appropriate values that enhance the description of the song.
     You must select values strictly from the provided approved lists below.
     Do not use any mood or genre not present in the approved lists.
+    Every key or value is case sensitive
     Add a danceability field (if it does not exist) with a numeric value between 0.0 and 1.0.
     0.0 = Not danceable
     1.0 = Very danceable
@@ -113,6 +115,9 @@ Your tasks are strictly as follows:
     Add a valence field with a value between 0.0 and 1.0.
     This measures the musical positivity of the song.
     Higher values indicate more positive or cheerful moods.
+    Add a bpm (beats per minute) - CASE SENSITIVE field.
+    This should be an Integer value.
+    
 
 Important constraints:
     You must not change or remove any existing fields other than mood, genre, and market.
@@ -201,6 +206,7 @@ fun songToSongMetaData(song: SongTMPContainer): SongMetaData {
         energy = null,       // 0.0 - 1.0 (intensity/loudness)
         valence = null,
         market = null,
+        bpm = null,
         skips = 0
     )
 }
@@ -316,7 +322,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
         .setProgress(0, 0, true)
 
     scanAndAddNewDeviceSongs(context, inputPath, deviceSongs)
-    fixMissingSongMetaFields(context, outputPath)
+    fixMissingSongMetaFields(context, outputPath, outputPathBackupConst)
 
     withContext(Dispatchers.IO) {
         InternetConnection.waitForConnection(context, notificationBuilder, notificationManager)
@@ -373,7 +379,11 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                     try {
                         val enhancedSong = JsonParser.parseString(result).asJsonObject
                         enhancedSongs.add(enhancedSong)
-                        writeToInternalStorage(context, outputPath, gson.toJson(enhancedSongs))
+                        // Write to backup first, then to main output file
+                        val currentDataToWrite = gson.toJson(enhancedSongs)
+                        writeToInternalStorage(context, outputPathBackupConst, currentDataToWrite)
+                        writeToInternalStorage(context, outputPath, currentDataToWrite)
+
                         SongDataManager.loadDefaultSongsJson(context)
                         processedThisSong = true
                         songsProcessedCount++
@@ -381,19 +391,20 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                             .setContentText("Processing $songsProcessedCount of $totalSongsToProcess songs.")
                             .setProgress(totalSongsToProcess, songsProcessedCount, false)
                         notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
-                        Thread.sleep(3000)
                     } catch (_: Exception) {
                         if (!InternetConnection.hasInternetConnection(context)){
-                            processedThisSong
+                            processedThisSong // This likely needs to be 'false' or handled differently
                         }else{
                             modelIndex++
                         }
                     }
+                    Thread.sleep(700)
                 }
                 if (!processedThisSong) {
                     if (!InternetConnection.hasInternetConnection(context)){
-                        !true
+                         // Consider what happens if connection drops mid-process
                     }else{
+
                         apiKeyIndex++
                         modelIndex = 0
                     }
@@ -405,7 +416,8 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                         InternetConnection.waitForConnection(context, notificationBuilder, notificationManager)
                     }
                 }else{
-                    notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
+                    Thread.sleep(1000*60*3)
+                    initialiseMetaDataProcess(context)
                     return
                 }
             }
@@ -427,7 +439,7 @@ fun writeToInternalStorage(context: Context, filename: String, content: String) 
     }
 }
 
-fun readFileOrCreate(context: Context, filename: String, defaultContent: String = ""): String? {
+fun readFileOrCreate(context: Context, filename: String, defaultContent: String = "[]"): String {
     val file = File(context.filesDir, filename)
     return try {
         if (file.exists()) {
@@ -438,54 +450,74 @@ fun readFileOrCreate(context: Context, filename: String, defaultContent: String 
         }
     } catch (e: IOException) {
         e.printStackTrace()
-        "[]"
+        defaultContent // Return default content on error to avoid null
     }
 }
 
-fun fixMissingSongMetaFields(context: Context, outputPath: String) {
-    val gson = Gson()
-    val fileContent = readFileOrCreate(context, outputPath, "[]") ?: "[]"
-    if (fileContent !== "[]") {
-    try {
-        val arr = JsonParser.parseString(fileContent).asJsonArray
-        val filteredArr = arr.filter { element ->
-            if (!element.isJsonObject) return@filter false
-            val obj = element.asJsonObject
+private fun validateJsonContent(jsonString: String?): JsonArray {
+    if (jsonString.isNullOrEmpty()) return JsonArray()
+    return try {
+        val arr = JsonParser.parseString(jsonString).asJsonArray
+        val filteredArr = JsonArray()
+        arr.forEach { element ->
+            if (element.isJsonObject) {
+                val obj = element.asJsonObject
+                fun isPresentAndNotNullPrimitive(fieldName: String): Boolean {
+                    return obj.has(fieldName) && obj.get(fieldName).isJsonPrimitive && !obj.get(fieldName).isJsonNull
+                }
+                fun isPresentAndNotNullArray(fieldName: String): Boolean {
+                    return obj.has(fieldName) && obj.get(fieldName).isJsonArray
+                }
+                fun isPresentAndNonEmptyString(fieldName: String): Boolean {
+                    if (!obj.has(fieldName)) return false
+                    val jsonElement = obj.get(fieldName)
+                    return jsonElement.isJsonPrimitive && jsonElement.asJsonPrimitive.isString && jsonElement.asString.isNotEmpty()
+                }
 
-            fun isPresentAndNotNullPrimitive(fieldName: String): Boolean {
-                return obj.has(fieldName) && obj.get(fieldName).isJsonPrimitive && !obj.get(
-                    fieldName
-                ).isJsonNull
+                if (isPresentAndNonEmptyString("file") &&
+                    isPresentAndNonEmptyString("title") &&
+                    isPresentAndNotNullArray("artists") &&
+                    isPresentAndNotNullArray("genre") &&
+                    isPresentAndNotNullArray("mood") &&
+                    isPresentAndNotNullArray("market") &&
+                    isPresentAndNotNullPrimitive("danceability") &&
+                    isPresentAndNotNullPrimitive("tempo") &&
+                    isPresentAndNotNullPrimitive("energy") &&
+                    isPresentAndNotNullPrimitive("valence") &&
+                    isPresentAndNotNullPrimitive("bpm")) {
+                    filteredArr.add(obj)
+                }
             }
-
-            fun isPresentAndNotNullArray(fieldName: String): Boolean {
-                return obj.has(fieldName) && obj.get(fieldName).isJsonArray
-            }
-
-            fun isPresentAndNonEmptyString(fieldName: String): Boolean {
-                if (!obj.has(fieldName)) return false
-                val jsonElement = obj.get(fieldName)
-                return jsonElement.isJsonPrimitive && jsonElement.asJsonPrimitive.isString && jsonElement.asString.isNotEmpty()
-            }
-
-            if (!isPresentAndNonEmptyString("file")) return@filter false
-            if (!isPresentAndNonEmptyString("title")) return@filter false
-            if (!isPresentAndNotNullArray("artists")) return@filter false
-            if (!isPresentAndNotNullArray("genre")) return@filter false
-            if (!isPresentAndNotNullArray("mood")) return@filter false
-            if (!isPresentAndNotNullArray("market")) return@filter false
-            if (!isPresentAndNotNullPrimitive("danceability")) return@filter false
-            if (!isPresentAndNotNullPrimitive("tempo")) return@filter false
-            if (!isPresentAndNotNullPrimitive("energy")) return@filter false
-            if (!isPresentAndNotNullPrimitive("valence")) return@filter false
-            true
         }
-
-        if (filteredArr.size != arr.size()) {
-            writeToInternalStorage(context, outputPath, gson.toJson(filteredArr))
-        }
+        filteredArr
     } catch (_: Exception) {
-        writeToInternalStorage(context, outputPath, "[]")
+        JsonArray() // Return empty array if parsing or validation fails
     }
+}
+
+fun fixMissingSongMetaFields(context: Context, outputPath: String, outputPathBackup: String) {
+    val gson = Gson()
+
+    // 1. Read main output file
+    val mainFileContent = readFileOrCreate(context, outputPath, "[]")
+    var validatedData = validateJsonContent(mainFileContent)
+    val mainFileWasCorrupted = mainFileContent.isNotEmpty() && mainFileContent != "[]" && validatedData.isEmpty
+
+    // 2. If main file was corrupted, try to restore from backup
+    if (mainFileWasCorrupted) {
+        val backupFileContent = readFileOrCreate(context, outputPathBackup, "[]")
+        val validatedBackupData = validateJsonContent(backupFileContent)
+        if (validatedBackupData.size() > 0) {
+            validatedData = validatedBackupData // Use backup data
+        }
+        // If backup is also empty/corrupt, validatedData remains empty (from initial main file attempt or if backup also yields empty)
     }
+    
+    // 3. If validatedData is still empty (both original and backup were bad or empty), ensure it's "[]"
+    val finalJsonString = if (validatedData.size() > 0) gson.toJson(validatedData) else "[]"
+
+    // 4. Write the final (potentially restored or reset) data to backup first, then to main output file.
+    // This ensures backup is always the last known good state.
+    writeToInternalStorage(context, outputPathBackup, finalJsonString)
+    writeToInternalStorage(context, outputPath, finalJsonString)
 }

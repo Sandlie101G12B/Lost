@@ -746,7 +746,7 @@ class MusicService : MediaBrowserServiceCompat(),
         startPosition: Int,
         startPlaying: Boolean,
     ) {
-        if (!playingQueue.isNullOrEmpty()
+        if (playingQueue != null
             && startPosition >= 0 && startPosition < playingQueue.size
         ) {
             // it is important to copy the playing queue here first as we might add/remove songs later
@@ -763,6 +763,14 @@ class MusicService : MediaBrowserServiceCompat(),
                 setPosition(position)
             }  // Notify listeners that the queue has changed.
             notifyChange(QUEUE_CHANGED)
+        }else{
+            try{
+                if (startPlaying) {
+                    playSongAt(startPosition)
+                } else {
+                    setPosition(startPosition)
+                }
+            }catch(_: Exception){}
         }
     }
 
