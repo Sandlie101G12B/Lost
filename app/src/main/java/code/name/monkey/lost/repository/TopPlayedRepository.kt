@@ -68,7 +68,7 @@ class RealTopPlayedRepository(
     }
 
     override fun topArtists(): List<Artist> {
-        return artistRepository.splitIntoArtists(topAlbums())
+        return artistRepository.splitAlbumsIntoArtists(topAlbums())
     }
 
 

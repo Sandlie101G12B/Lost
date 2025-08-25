@@ -168,6 +168,14 @@ class RealSongRepository(private val context: Context) : SongRepository {
         )
     }
 
+    fun parseArtists(rawArtist: String?): List<String>? {
+        if (rawArtist.isNullOrBlank()) return emptyList()
+        return rawArtist
+            .split("/", ",", ";", "&")  // common separators
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+    }
+
     private fun getSongFromCursorImpl(
         cursor: Cursor
     ): Song {

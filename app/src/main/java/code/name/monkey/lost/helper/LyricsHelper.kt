@@ -151,10 +151,6 @@ object LyricsGetter {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
 
-        notificationBuilder.setContentText("Preparing to download lyrics...")
-            .setProgress(0, 0, true)
-        notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-
         var totalWaitTimeMillis = 0L
         val initialSleepTimeMillis = 2 * 60 * 1000L // 2 minutes
         val thirtyMinThresholdSleepTimeMillis = 11000L * 60L * 15L // 165 minutes
@@ -255,12 +251,12 @@ object LyricsGetter {
             Thread.sleep(1000)
         }
 
-        // After the loop, set the final completion notification
-        notificationBuilder
-            .setContentText("Lyrics download complete. Processed $songsProcessedCount songs.")
-            .setProgress(0, 0, false) // Or (totalSongsToProcess, totalSongsToProcess, false)
-            .setOngoing(false)
-        notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
+//        // After the loop, set the final completion notification
+//        notificationBuilder
+//            .setContentText("Lyrics download complete. Processed $songsProcessedCount songs.")
+//            .setProgress(0, 0, false) // Or (totalSongsToProcess, totalSongsToProcess, false)
+//            .setOngoing(false)
+//        notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
         notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
     }
 

@@ -105,7 +105,7 @@ private val dataModule = module {
     } bind SongRepository::class
 
     single {
-        RealGenreRepository(get(), get())
+        RealGenreRepository(get(),  get())
     } bind GenreRepository::class
 
     single {

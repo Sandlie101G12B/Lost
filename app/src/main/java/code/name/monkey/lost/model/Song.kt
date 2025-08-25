@@ -1,6 +1,7 @@
 package code.name.monkey.lost.model
 
 import android.os.Parcelable
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 // update equals and hashcode if fields changes
@@ -16,12 +17,34 @@ open class Song(
     open val albumId: Long,
     open val albumName: String,
     open val artistId: Long,
-    open val artistName: String,
+    open val artistName: String, // Main artist name string, used to derive artistNames
     open val composer: String?,
     open val albumArtist: String?,
+    // These constructor parameters might be for explicit overrides if needed,
+//    // but artistNames and artistIds below are the derived versions.
+//    open val artistNames: List<String>? = null,
+//    open val artistIds: List<Long>? = null,
     open val bpm: Float? = null // <-- Added BPM property
 ) : Parcelable {
 
+    @IgnoredOnParcel
+    open val artistNames: List<String> by lazy {
+        val names = artistName.split(Regex("\\s*[/,&;]\\s*"))
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        // If splitting results in an empty list but the original artistName was not blank,
+        // use the original artistName as a single entry.
+        if (names.isEmpty() && artistName.isNotBlank()) {
+            listOf(artistName)
+        } else {
+            names
+        }
+    }
+
+    @IgnoredOnParcel
+    open val artistIds: List<Long> by lazy {
+        artistNames.map { it.hashCode().toLong() }
+    }
 
     // need to override manually because is open and cannot be a data class
     override fun equals(other: Any?): Boolean {
@@ -40,10 +63,17 @@ open class Song(
         if (albumId != other.albumId) return false
         if (albumName != other.albumName) return false
         if (artistId != other.artistId) return false
-        if (artistName != other.artistName) return false
+        if (artistName != other.artistName) return false // Compare the original string
         if (composer != other.composer) return false
         if (albumArtist != other.albumArtist) return false
-        if (bpm != other.bpm) return false // <-- Compare BPM
+        if (bpm != other.bpm) return false
+        // Compare the derived lists
+        if (artistNames != other.artistNames) return false
+        if (artistIds != other.artistIds) return false
+
+        // Note: The constructor parameters artistNames and artistIds are not directly compared here,
+        // as we are focusing on the derived lists for equality.
+        // If they should also be part of equality, this logic would need adjustment.
 
         return true
     }
@@ -59,10 +89,15 @@ open class Song(
         result = 31 * result + albumId.hashCode()
         result = 31 * result + albumName.hashCode()
         result = 31 * result + artistId.hashCode()
-        result = 31 * result + artistName.hashCode()
+        result = 31 * result + artistName.hashCode() // Hash the original string
         result = 31 * result + (composer?.hashCode() ?: 0)
         result = 31 * result + (albumArtist?.hashCode() ?: 0)
-        result = 31 * result + (bpm?.hashCode() ?: 0) // <-- Add BPM to hashCode
+        result = 31 * result + (bpm?.hashCode() ?: 0)
+        // Hash the derived lists
+        result = 31 * result + artistNames.hashCode()
+        result = 31 * result + artistIds.hashCode()
+
+        // Note: The constructor parameters artistNames and artistIds are not directly included here.
         return result
     }
 
@@ -81,10 +116,10 @@ open class Song(
             albumId = -1,
             albumName = "",
             artistId = -1,
-            artistName = "",
+            artistName = "", // This will lead to empty artistNames and artistIds
             composer = "",
             albumArtist = "",
-            bpm = null // <-- Add BPM to emptySong
+            bpm = null  // Explicit constructor args for emptySong
         )
     }
 }

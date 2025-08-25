@@ -7,46 +7,45 @@ import java.text.Collator
 
 data class Artist(
     val id: Long,
-    val albums: List<Album>,
+    val name: String, // Name is now a direct constructor parameter
+    val songs: List<Song>,
     val isAlbumArtist: Boolean = false
 ) {
     constructor(
-        artistName: String,
-        albums: List<Album>,
+        name: String,
+        songs: List<Song>,
         isAlbumArtist: Boolean = false
-    ) : this(albums[0].artistId, albums, isAlbumArtist) {
-        name = artistName
-    }
+    ) : this(
+        // ID generation: song's artistId -> song's id -> hash of artist name
+        id = name.hashCode().toLong(),
+        name = name,
+        songs = songs,
+        isAlbumArtist = isAlbumArtist
+    )
 
-    var name: String = "-"
-        get() {
-            val name = if (isAlbumArtist) getAlbumArtistName()
-            else getArtistName()
-            return when {
-                MusicUtil.isVariousArtists(name) ->
-                    VARIOUS_ARTISTS_DISPLAY_NAME
-
-                MusicUtil.isArtistNameUnknown(name) ->
-                    UNKNOWN_ARTIST_DISPLAY_NAME
-
-                else -> name!!
-            }
-        }
+    // The 'name' property is now directly from the constructor, no complex getter needed here.
+    // The responsibility to determine the correct name (e.g., "Various Artists")
+    // is now on the code that creates Artist instances.
 
     val songCount: Int
+        get() = songs.size
+
+    val albums: List<Album>
         get() {
-            var songCount = 0
-            for (album in albums) {
-                songCount += album.songCount
-            }
-            return songCount
+            if (songs.isEmpty()) return emptyList()
+            return songs.groupBy { it.albumId }
+                .map { (albumId, songsInAlbum) ->
+                    // val representativeSong = songsInAlbum.first() // No longer needed for title, year etc here
+                    Album(
+                        id = albumId,
+                        songs = songsInAlbum
+                    )
+                }
         }
 
     val albumCount: Int
         get() = albums.size
 
-    val songs: List<Song>
-        get() = albums.flatMap { it.songs }
 
     val sortedSongs: List<Song>
         get() {
@@ -66,15 +65,11 @@ data class Artist(
                     }
 
                     SortOrder.ArtistSongSortOrder.SONG_YEAR -> { o1, o2 ->
-                        o2.year.compareTo(
-                            o1.year
-                        )
+                        o2.year.compareTo(o1.year)
                     }
 
                     SortOrder.ArtistSongSortOrder.SONG_DURATION -> { o1, o2 ->
-                        o1.duration.compareTo(
-                            o2.duration
-                        )
+                        o1.duration.compareTo(o2.duration)
                     }
 
                     else -> {
@@ -86,7 +81,7 @@ data class Artist(
     val sortedAlbums: List<Album>
         get() {
             val collator = Collator.getInstance()
-            return albums.sortedWith(
+            return albums.sortedWith( // Uses the derived albums property
                 when (PreferenceUtil.artistAlbumSortOrder) {
                     SortOrder.ArtistAlbumSortOrder.ALBUM_A_Z -> { o1, o2 ->
                         collator.compare(o1.title, o2.title)
@@ -111,22 +106,15 @@ data class Artist(
         }
 
     fun safeGetFirstAlbum(): Album {
-        return albums.firstOrNull() ?: Album.empty
-    }
-
-    private fun getArtistName(): String {
-        return safeGetFirstAlbum().safeGetFirstSong().artistName
-    }
-
-    private fun getAlbumArtistName(): String? {
-        return safeGetFirstAlbum().safeGetFirstSong().albumArtist
+        return albums.firstOrNull() ?: Album.empty // Uses the derived albums property
     }
 
     companion object {
         const val UNKNOWN_ARTIST_DISPLAY_NAME = "Unknown Artist"
         const val VARIOUS_ARTISTS_DISPLAY_NAME = "Various Artists"
+        // VARIOUS_ARTISTS_ID might still be useful for code that *creates* Artist instances,
+        // to assign a consistent ID to "Various Artists" Artist objects.
         const val VARIOUS_ARTISTS_ID: Long = -2
-        val empty = Artist(-1, emptyList())
-
+        val empty = Artist(id = -1L, name = UNKNOWN_ARTIST_DISPLAY_NAME, songs = emptyList(), isAlbumArtist = false)
     }
 }

@@ -64,12 +64,12 @@
                 android:layout_height="wrap_content"
                 android:padding="@dimen/normal_lyrics_padding"
                 android:textIsSelectable="true"
-                android:textSize="30sp"
+                android:textSize="50sp"
                 android:textColor="?android:attr/textColorPrimary"
                 android:paddingStart="45dp"
                 android:paddingEnd="45dp"
                 tools:text="@tools:sample/lorem[200]"
-                tools:gravity="left"/>
+                tools:gravity="center"/>
 
         </ScrollView>
 
