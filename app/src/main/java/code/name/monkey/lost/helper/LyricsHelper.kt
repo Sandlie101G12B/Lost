@@ -202,7 +202,7 @@ object LyricsGetter {
         notificationBuilder.setContentText("Starting lyrics download...")
             .setProgress(0,0,true) // Reset to indeterminate before song processing
         notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-
+        notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
         val songRepository = RealSongRepository(context)
         val deviceSongs = songRepository.songs().map {
             SongTMPContainer(
