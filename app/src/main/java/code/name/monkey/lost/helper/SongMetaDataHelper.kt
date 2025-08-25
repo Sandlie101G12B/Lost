@@ -371,19 +371,18 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                         .replace("```json", "")
                         .replace("```", "")
                         .replace("\n", "")
-                        .replace("\"artist\"", "artists")
-                        .replace("\"moods\"", "mood")
-                        .replace("\"genres\"", "genre")
-                        .replace("\"markets\"", "market")
+                        .replace("\"artist\"", "\"artists\"")
+                        .replace("\"moods\"", "\"mood\"")
+                        .replace("\"genres\"", "\"genre\"")
+                        .replace("\"markets\"", "\"market\"")
                         .trim()
                     try {
                         val enhancedSong = JsonParser.parseString(result).asJsonObject
                         enhancedSongs.add(enhancedSong)
                         // Write to backup first, then to main output file
                         val currentDataToWrite = gson.toJson(enhancedSongs)
-                        writeToInternalStorage(context, outputPathBackupConst, currentDataToWrite)
                         writeToInternalStorage(context, outputPath, currentDataToWrite)
-
+                        fixMissingSongMetaFields(context, outputPath, outputPathBackupConst)
                         SongDataManager.loadDefaultSongsJson(context)
                         processedThisSong = true
                         songsProcessedCount++
