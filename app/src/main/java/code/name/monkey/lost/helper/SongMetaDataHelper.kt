@@ -34,7 +34,6 @@ import kotlinx.coroutines.launch
 import androidx.core.content.edit
 import code.name.monkey.lost.helper.MetaDataManagerHelper.reconcileLikedStatusWithLibrary
 
-
 const val inputPath = "inputile.txt"
 const val outputPath = "outputile.txt"
 const val outputPathBackupConst = "outputile.txt.bak"
@@ -42,7 +41,7 @@ const val outputPathBackupConst = "outputile.txt.bak"
 private const val ENHANCEMENT_CHANNEL_ID = "song_enhancement_channel"
 const val ENHANCEMENT_NOTIFICATION_ID = 1001
 
-suspend fun initialiseMetaDataProcess(context: Context) {
+fun initialiseMetaDataProcess(context: Context) {
     val songRepository = RealSongRepository(context)
     val songs = songRepository.songs()
     val deviceSongs = songs.map {
@@ -59,6 +58,7 @@ suspend fun initialiseMetaDataProcess(context: Context) {
             rating = 0
         )
     }
+
     CoroutineScope(Dispatchers.IO).launch {
         enhanceSongsData(inputPath, outputPath, deviceSongs, context)
         reconcileLikedStatusWithLibrary(songs)
@@ -135,7 +135,7 @@ Approved values:
 Case-sensitive valid options:
 
 **Mood (select only from this list):**
-    ['Abstract', 'Adventurous', 'Affectionate', 'Aggressive', 'Amber', 'Ambient', 'Ambitious', 'Analytical', 'Angry', 'Angsty', 'Anguished', 'Anthemic', 'Anxious', 'Apologetic', 'Aspirational', 'Atmospheric', 'Authentic', 'Bass-heavy', 'Bittersweet', 'Boastful', 'Bold', 'Bossy', 'Bouncy', 'Braggy', 'Bright', 'Brooding', 'Calm', 'Calming', 'Carefree', 'Catchy', 'Celebratory', 'Ceremonial', 'Chant', 'Charismatic', 'Cheeky', 'Cheerful', 'Chill', 'Chilled', 'Chilling', 'Cinematic', 'Classic', 'Club', 'Clubby', 'Club‑ready', 'Collaborative', 'Colorful', 'Comforting', 'Competitive', 'Confidence', 'Conflict', 'Conflicted', 'Confrontational', 'Conscious', 'Cool', 'Cozy', 'Cultural', 'Dance', 'Danceable', 'Dancey', 'Dance‑floor', 'Dark', 'Deep', 'Defiant', 'Depressed', 'Detached', 'Determined', 'Devotional', 'Dramatic', 'Dreamy', 'Driven', 'Driving', 'Dynamic', 'Earnest', 'Edgy', 'Elegant', 'Empathetic', 'Empowered', 'Encouraging', 'Energizing', 'Epic', 'Escapist', 'Ethereal', 'Exciting', 'Existential', 'Exotic', 'Experimental', 'Faithful', 'Feel-Good', 'Fierce', 'Fiery', 'Flex', 'Focused', 'Free-Spirited', 'Fresh', 'Friendship', 'Frustrated', 'Fun', 'Funky', 'Funny', 'Futuristic', 'Gentle', 'Grateful', 'Groovy', 'Happy', 'Hard', 'Hard-Hitting', 'Healing', 'Heartbroken', 'Heavy', 'High Energy', 'Hopeful', 'Humorous', 'Hungry', "Hustler's anthem", 'Hyped', 'Innovative', 'Inspirational', 'Inspiring', 'Intense', 'Intimate', 'Isolation', 'Joyful', 'Late night groove', 'Late‑night', 'Legendary', 'Liberated', 'Liberating', 'Lighthearted', 'Live', 'Lively', 'Local Pride', 'Local Vibe', 'Lonely', 'Longing', 'Lounge', 'Love‑Struck', 'Loving', 'Loyalty', 'Lyrical', 'Melancholic', 'Melodic', 'Melodramatic', 'Minimalistic', 'Money-focused', 'Morning vibe', 'Motivated', 'Mysterious', 'Mystical', 'Narrative', 'Night Vibe', 'Nonchalant', 'Nostalgic', 'Party', 'Passionate', 'Patriotic', 'Peaceful', 'Pensive', 'Personal', 'Playful', 'Political', 'Positive', 'Powerful', 'Protective', 'Proud', 'Provocative', 'Pumped-up', 'Quirky', 'Raised', 'Raise‑the‑roof', 'Raw', 'Real', 'Rebellious', 'Refreshing', 'Regretful', 'Relaxed', 'Relaxing', 'Resilient', 'Respectful', 'Lost', 'Reverent', 'Rhythmic', 'Rowdy', 'Sad', 'Sarcastic', 'Sassy', 'Satirical', 'Seductive', 'Serene', 'Serious', 'Sexy', 'Sincere', 'Slow', 'Smooth', 'Soft', 'Somber', 'Sophisticated', 'South African pride', 'Southern vibe', 'Spicy', 'Spiritual', 'Storytelling', 'Strategic', 'Street', 'Street-wise', 'Street‑empower', 'Street‑vibe', 'Strong', 'Stylish', 'Sultry', 'Supportive', 'Swagger', 'Swaggy', 'Sweet', 'Tender', 'Thankful', 'Thoughtful', 'Togetherness', 'Tough', 'Traditional', 'Tragic', 'Tranquil', 'Trendy', 'Tribal', 'Tribute', 'Trippy', 'Triumphant', 'Turn up', 'Turnt', 'Underground', 'Upbeat', 'Up‑tempo', 'Urban', 'Vengeful', 'Vibe', 'Vibey', 'Vibrant', 'Victorious', 'Vulnerable', 'Warm', 'Wavy', 'Whimsical', 'Wild', 'Wistful', 'Witty', 'Worshipful', 'Yearning', 'Young', 'Youthful', 'assertive', 'braggadocious', 'confident', 'contemplative', 'emotional', 'empowering', 'energetic', 'euphoric', 'festive', 'flirty', 'gritty', 'haunting', 'heartbreak', 'heartfelt', 'hype', 'hypnotic', 'independent', 'introspective', 'ironic', 'laid-back', 'lush', 'luxurious', 'melancholy', 'mellow', 'moody', 'motivational', 'optimistic', 'reflective', 'relatable', 'romantic', 'sensual', 'sentimental', 'soothing', 'soulful', 'tense', 'thought-provoking', 'uplifting']
+    ['Abstract', 'Adventurous', 'Affectionate', 'Aggressive', 'Amber', 'Ambient', 'Ambitious', 'Analytical', 'Angry', 'Angsty', 'Anguished', 'Anthemic', 'Anxious', 'Apologetic', 'Aspirational', 'Atmospheric', 'Authentic', 'Bass-heavy', 'Bittersweet', 'Boastful', 'Bold', 'Bossy', 'Bouncy', 'Braggy', 'Bright', 'Brooding', 'Calm', 'Calming', 'Carefree', 'Catchy', 'Celebratory', 'Ceremonial', 'Chant', 'Charismatic', 'Cheeky', 'Cheerful', 'Chill', 'Chilled', 'Chilling', 'Cinematic', 'Classic', 'Club', 'Clubby', 'Club‑ready', 'Collaborative', 'Colorful', 'Comforting', 'Competitive', 'Confidence', 'Conflict', 'Conflicted', 'Confrontational', 'Conscious', 'Cool', 'Cozy', 'Cultural', 'Dance', 'Danceable', 'Dancey', 'Dance‑floor', 'Dark', 'Deep', 'Defiant', 'Depressed', 'Detached', 'Determined', 'Devotional', 'Dramatic', 'Dreamy', 'Driven', 'Driving', 'Dynamic', 'Earnest', 'Edgy', 'Elegant', 'Empathetic', 'Empowered', 'Encouraging', 'Energizing', 'Epic', 'Escapist', 'Ethereal', 'Exciting', 'Existential', 'Exotic', 'Experimental', 'Faithful', 'Feel-Good', 'Fierce', 'Fiery', 'Flex', 'Focused', 'Free-Spirited', 'Fresh', 'Friendship', 'Frustrated', 'Fun', 'Funky', 'Funny', 'Futuristic', 'Gentle', 'Grateful', 'Groovy', 'Happy', 'Hard', 'Hard-Hitting', 'Healing', 'Heartbroken', 'Heavy', 'High Energy', 'Hopeful', 'Humorous', 'Hungry', 'Hustler's anthem', 'Hyped', 'Innovative', 'Inspirational', 'Inspiring', 'Intense', 'Intimate', 'Isolation', 'Joyful', 'Late night groove', 'Late‑night', 'Legendary', 'Liberated', 'Liberating', 'Lighthearted', 'Live', 'Lively', 'Local Pride', 'Local Vibe', 'Lonely', 'Longing', 'Lounge', 'Love‑Struck', 'Loving', 'Loyalty', 'Lyrical', 'Melancholic', 'Melodic', 'Melodramatic', 'Minimalistic', 'Money-focused', 'Morning vibe', 'Motivated', 'Mysterious', 'Mystical', 'Narrative', 'Night Vibe', 'Nonchalant', 'Nostalgic', 'Party', 'Passionate', 'Patriotic', 'Peaceful', 'Pensive', 'Personal', 'Playful', 'Political', 'Positive', 'Powerful', 'Protective', 'Proud', 'Provocative', 'Pumped-up', 'Quirky', 'Raised', 'Raise‑the‑roof', 'Raw', 'Real', 'Rebellious', 'Refreshing', 'Regretful', 'Relaxed', 'Relaxing', 'Resilient', 'Respectful', 'Lost', 'Reverent', 'Rhythmic', 'Rowdy', 'Sad', 'Sarcastic', 'Sassy', 'Satirical', 'Seductive', 'Serene', 'Serious', 'Sexy', 'Sincere', 'Slow', 'Smooth', 'Soft', 'Somber', 'Sophisticated', 'South African pride', 'Southern vibe', 'Spicy', 'Spiritual', 'Storytelling', 'Strategic', 'Street', 'Street-wise', 'Street‑empower', 'Street‑vibe', 'Strong', 'Stylish', 'Sultry', 'Supportive', 'Swagger', 'Swaggy', 'Sweet', 'Tender', 'Thankful', 'Thoughtful', 'Togetherness', 'Tough', 'Traditional', 'Tragic', 'Tranquil', 'Trendy', 'Tribal', 'Tribute', 'Trippy', 'Triumphant', 'Turn up', 'Turnt', 'Underground', 'Upbeat', 'Up‑tempo', 'Urban', 'Vengeful', 'Vibe', 'Vibey', 'Vibrant', 'Victorious', 'Vulnerable', 'Warm', 'Wavy', 'Whimsical', 'Wild', 'Wistful', 'Witty', 'Worshipful', 'Yearning', 'Young', 'Youthful', 'assertive', 'braggadocious', 'confident', 'contemplative', 'emotional', 'empowering', 'energetic', 'euphoric', 'festive', 'flirty', 'gritty', 'haunting', 'heartbreak', 'heartfelt', 'hype', 'hypnotic', 'independent', 'introspective', 'ironic', 'laid-back', 'lush', 'luxurious', 'melancholy', 'mellow', 'moody', 'motivational', 'optimistic', 'reflective', 'relatable', 'romantic', 'sensual', 'sentimental', 'soothing', 'soulful', 'tense', 'thought-provoking', 'uplifting']
 
 **Genre (select only from this list):**
     ['Acapella', 'Acoustic', 'Adult contemporary', 'African', 'Afro Fusion', 'Afro Hip-Hop', 'Afro Rap', 'Afro Tech', 'Afro pop', 'Afro-House', 'Afro-jazz', 'Afrobeat', 'Afrobeats', 'Alternative', 'Alternative Hip Hop', 'Alternative Pop', 'Alternative R&B', 'Alternative Rap', 'Alternative Rock', 'Ambient', 'Ambient Pop', 'Ambient Rock', 'Anime-inspired', 'Bacardi', 'Bacardi House', 'Ballad', 'Barcadi', 'Baroque Pop', 'Battle Rap', 'Blues', 'Blues Rock', 'Bongo Flava', 'Boom Bap', 'Britpop', 'Broken Beat', 'Chill Rap', 'Chillout', 'Choir', 'Choral', 'Christian', 'Christian Hip‑Hop', 'Christian Pop', 'Christian Rap', 'Christian Worship', 'Christmas', 'Cinematic', 'Classic', 'Classic Rock', 'Classical', 'Cloud Rap', 'Club', 'Coleader', 'Comedy Rap', 'Comedy hip hop', 'Conscious Hip-Hop', 'Conscious Rap', 'Contemporary Christian', 'Contemporary R&B', 'Country', 'Crunk', 'Cypher', 'Dance', 'Dance Rock', 'Dance-Pop', 'Dancehall', 'Deep House', 'Detroit House', 'Disco', 'Disney', 'Diss Track', 'Doowop', 'Downtempo', 'Dream Pop', 'Drum & Bass', 'Drum and Bass', 'Dubstep', 'EDM', 'East Coast Hip‑Hop', 'Electro', 'Electro House', 'Electronic', 'Electronica', 'Electropop', 'Emo', 'Emo Rap', 'Euro Pop', 'Eurodance', 'Experimental', 'Experimental Hip‑Hop', 'Folk', 'Folk House', 'Freestyle', 'French Chanson', 'French Pop', 'Funk', 'Funk Brasileiro', 'Future Bass', 'G-Funk', 'Gangsta Rap', 'Gospel', 'Gospel House', 'Gqom', 'Grime', 'Highlife', 'Indie', 'Indie Dance', 'Indie Folk', 'Indie Pop', 'Indie rock', 'Inspirational', 'Instrumental', 'Intro', 'Jam Band', 'Jazz', 'Jazz Fusion', 'Jazz House', 'Kwaito Fusion', 'Kwaito Rap', 'Kwaito-Influenced', 'Latin', 'Latin House', 'Latin Pop', 'Latin Trap', 'Live', 'Lo-fi Hip Hop', 'Lounge', 'Lo‑fi', 'Lyricism', 'Maskandi', 'Maskandi Fusion', 'Melodic Rap', 'Minimalism', 'Motswako', 'Neo Soul', 'Novelty', 'Nu Disco', 'Nu Jazz', 'Old School Hip Hop', 'Opera', 'Orchestral', 'Orchestral Pop', 'Orchestral Rap', 'Party', 'Party Rap', 'Pop Ballad', 'Pop Rock', 'Pop Soul', 'Pop-Rap', 'Progressive House', 'R&B', 'R&B Fusion', 'Rap', 'Reggae', 'Reggaeton', 'Remix', 'Lost', 'RnB', 'Rock', 'Rock and Roll', 'Romantic', 'SA Hip-Hop', 'Singer‑Songwriter', 'Slow jam', 'Smooth Jazz', 'Soft Rock', 'Sotho Rap', 'Soul', 'Soulful', 'Soulful Amapiano', 'Soulful House', 'Soulful Piano', 'Soundtrack', 'South African', 'South African Dance', 'South African Hip Hop', 'South African Music', 'South African Rap', 'South African Street', 'South African house', 'Spiritual', 'Spiritual House', 'Spoken Word', 'Street Rap', 'Swing', 'Synthpop', 'Tech House', 'Techno', 'Traditional', 'Traditional Crossover', 'Traditional Zulu', 'Trap Metal', 'Trap Soul', 'Trip‑Hop', 'Tsonga Rap', 'UK Hip‑Hop', 'Underground Rap', 'Urban', 'West Coast Hip‑Hop', 'World', 'World Music', 'Worldbeat', 'Worship', 'Zulu Rap', 'Zulu Traditional', 'afrosoul', 'afrotrap', 'amapiano', 'arena rock', 'art rock', 'drill', 'hip hop', 'house', 'kwaito', 'pop', 'post-Britpop', 'private school', 'soul-pop', 'south african pop', 'southern rap', 'trap', 'trap-pop']
@@ -398,7 +398,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                             modelIndex++
                         }
                     }
-                    Thread.sleep(700)
+                    Thread.sleep(2000)
                 }
                 if (!processedThisSong) {
                     if (!InternetConnection.hasInternetConnection(context)){
@@ -483,8 +483,7 @@ private fun validateJsonContent(jsonString: String?): JsonArray {
                     isPresentAndNotNullPrimitive("danceability") &&
                     isPresentAndNotNullPrimitive("tempo") &&
                     isPresentAndNotNullPrimitive("energy") &&
-                    isPresentAndNotNullPrimitive("valence") &&
-                    isPresentAndNotNullPrimitive("bpm")) {
+                    isPresentAndNotNullPrimitive("valence")) {
                     filteredArr.add(obj)
                 }
             }
@@ -514,10 +513,14 @@ fun fixMissingSongMetaFields(context: Context, outputPath: String, outputPathBac
     }
     
     // 3. If validatedData is still empty (both original and backup were bad or empty), ensure it's "[]"
-    val finalJsonString = if (validatedData.size() > 0) gson.toJson(validatedData) else "[]"
+    val finalJsonString = if (validatedData.size() > 0) {
+        val validatedDataString = gson.toJson(validatedData)
+        writeToInternalStorage(context, outputPathBackup, validatedDataString)
+        validatedDataString
+    } else {
+        readFileOrCreate(context, outputPathBackup, "[]")
+    }
 
     // 4. Write the final (potentially restored or reset) data to backup first, then to main output file.
-    // This ensures backup is always the last known good state.
-    writeToInternalStorage(context, outputPathBackup, finalJsonString)
     writeToInternalStorage(context, outputPath, finalJsonString)
 }

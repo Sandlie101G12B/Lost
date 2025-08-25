@@ -15,7 +15,7 @@ import kotlin.random.Random
 
 object SongDataManager {
     var defaultSongsJson = "[]"
-    private const val TAG = "SongDataManager" // Added for logging
+    const val TAG = "SongDataManager" // Added for logging
 
     fun loadDefaultSongsJson(context: Context) {
         val sourceFile = File(context.filesDir, "outputile.txt")
