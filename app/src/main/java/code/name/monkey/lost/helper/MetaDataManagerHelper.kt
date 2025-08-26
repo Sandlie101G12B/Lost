@@ -7,7 +7,10 @@ import code.name.monkey.lost.model.Song // Added import for Song model
 import code.name.monkey.lost.repository.RealPlaylistRepository
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -18,6 +21,14 @@ object MetaDataManagerHelper : KoinComponent {
 
     private const val OUTPUT_FILE_NAME = "outputile.txt"
     private var appContext: Context? = null
+
+    // Cache for SongMetaData list
+    @Volatile
+    private var cachedSongMetaDataList: List<SongMetaData>? = null
+    private val cacheLock = Any()
+
+    // Coroutine scope for background tasks
+    private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     fun saveContext(context: Context) {
         appContext = context.applicationContext
@@ -34,25 +45,44 @@ object MetaDataManagerHelper : KoinComponent {
     fun readRawOutputFile(): String {
         val file = getOutputFile()
         return if (file.exists() && file.canRead()) {
-            file.readText()
+            try {
+                file.readText()
+            } catch (e: IOException) {
+                Log.e("MetaDataManagerHelper", "Error reading output file", e)
+                "[]" // Default to empty JSON array on read error
+            }
         } else {
             "[]" // Default to empty JSON array if file doesn't exist or cannot be read
         }
     }
 
-    fun writeRawOutputFile(content: String) {
+    // Internal function to write to file, to be called from background or when immediate write is fine
+    private fun internalWriteRawOutputFile(content: String) {
         try {
             val file = getOutputFile()
             file.writeText(content)
-            SongDataManager.loadDefaultSongsJson(getContext()) // Added call
+            // Assuming SongDataManager.loadDefaultSongsJson should be updated based on new file content
+            // Consider if this needs to run on a specific thread or if it's safe here
+            SongDataManager.loadDefaultSongsJson(getContext())
         } catch (e: IOException) {
             Log.e("MetaDataManagerHelper", "Error writing output file", e)
-            // Handle error (e.g., log it, show a toast)
+            // Handle error (e.g., log it, show a toast if on main thread, though this is background)
         }
     }
+    
+    // Public function to write raw output, updates cache and writes to file (can be immediate)
+    fun writeRawOutputFile(content: String) {
+        // Update cache first
+        val newMetaDataList = parseSongMetaDataJson(content)
+        synchronized(cacheLock) {
+            cachedSongMetaDataList = newMetaDataList
+        }
+        // Then write to file (immediately in this case, or could be background)
+        internalWriteRawOutputFile(content)
+    }
 
-    fun getSongMetaDataList(): List<SongMetaData> {
-        val jsonString = readRawOutputFile()
+
+    private fun parseSongMetaDataJson(jsonString: String): List<SongMetaData> {
         return try {
             val mapListType = object : TypeToken<List<Map<String, Any?>>>() {}.type
             val rawList: List<Map<String, Any?>>? = Gson().fromJson(jsonString, mapListType)
@@ -66,7 +96,7 @@ object MetaDataManagerHelper : KoinComponent {
                         mood = (rawMap["mood"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         genre = (rawMap["genre"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         playlist = (rawMap["playlist"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-                        year = rawMap["year"] as? String ?: "", // Ensures "" if year is null or not a string
+                        year = rawMap["year"] as? String ?: "",
                         liked = rawMap["liked"] as? Boolean ?: false,
                         favorite = rawMap["favorite"] as? Boolean ?: false,
                         rating = (rawMap["rating"] as? Number)?.toInt() ?: 0,
@@ -83,50 +113,63 @@ object MetaDataManagerHelper : KoinComponent {
                     )
                 } catch (e: Exception) {
                     Log.e("MetaDataManagerHelper", "Error parsing individual SongMetaData object from map: $rawMap", e)
-                    null // Skip this problematic entry and log the error
+                    null
                 }
             } ?: emptyList()
         } catch (e: Exception) {
-            Log.e("MetaDataManagerHelper", "Error parsing SongMetaData list from JSON", e)
+            Log.e("MetaDataManagerHelper", "Error parsing SongMetaData list from JSON: $jsonString", e)
             emptyList()
         }
     }
 
+    fun getSongMetaDataList(): List<SongMetaData> {
+        synchronized(cacheLock) {
+            cachedSongMetaDataList?.let {
+                return it
+            }
+        }
+        // Cache is null, read from file, parse, and populate cache
+        val jsonString = readRawOutputFile()
+        val listFromFile = parseSongMetaDataJson(jsonString)
+        synchronized(cacheLock) {
+            cachedSongMetaDataList = listFromFile
+        }
+        return listFromFile
+    }
+
     fun saveSongMetaDataList(dataList: List<SongMetaData>) {
-        try {
-            val jsonString = Gson().toJson(dataList)
-            writeRawOutputFile(jsonString)
-        } catch (e: Exception) {
-            Log.e("MetaDataManagerHelper", "Error saving SongMetaData list", e)
-            // Handle error
+        // Update cache immediately
+        synchronized(cacheLock) {
+            cachedSongMetaDataList = dataList
+        }
+        // Launch a coroutine to save to file in the background
+        coroutineScope.launch {
+            try {
+                val jsonString = Gson().toJson(dataList)
+                internalWriteRawOutputFile(jsonString) // Use the internal write function
+            } catch (e: Exception) {
+                Log.e("MetaDataManagerHelper", "Error saving SongMetaData list in background", e)
+                // Handle error (e.g., retry logic, notify user through other means)
+            }
         }
     }
 
-    // Defines the canonical string key for a Song object.
-    // Assumes Song has a unique 'id: Long' property.
-    fun getSongKey(song: Song): String { // Changed to use the imported Song type directly
+    fun getSongKey(song: Song): String {
         return song.id.toString()
     }
 
-    /**
-     * Updates interaction details for a song identified by its file path.
-     *
-     * @param filePath The absolute path of the song file.
-     * @param toggleLike If true, the liked status will be inverted.
-     * @param recordPlay If true, a play event (timestamp) will be recorded.
-     * @param recordSkip If true, a skip event (timestamp and count) will be recorded.
-     */
     fun updateSongInteraction(
         filePath: String,
         toggleLike: Boolean = false,
         recordPlay: Boolean = false,
         recordSkip: Boolean = false
     ) {
-        val metaDataList = getSongMetaDataList().toMutableList()
-        val songIndex = metaDataList.indexOfFirst { it.file == filePath }
+        // Get the list (potentially from cache)
+        val currentList = getSongMetaDataList()
+        val songIndex = currentList.indexOfFirst { it.file == filePath }
 
         if (songIndex != -1) {
-            val songMetaData = metaDataList[songIndex]
+            val songMetaData = currentList[songIndex]
             var updatedMetaData = songMetaData
 
             if (toggleLike) {
@@ -153,63 +196,62 @@ object MetaDataManagerHelper : KoinComponent {
                     skipTimestamps = updatedSkipTimestamps
                 )
             }
-            metaDataList[songIndex] = updatedMetaData
-            saveSongMetaDataList(metaDataList)
+            
+            if (updatedMetaData !== songMetaData) {
+                val mutableList = currentList.toMutableList()
+                mutableList[songIndex] = updatedMetaData
+                saveSongMetaDataList(mutableList.toList()) // Save the modified list (triggers cache update and background write)
+            }
         } else {
-            Log.w("MetaDataManagerHelper", "No metadata found for song with file path: $filePath")
-            // Optionally, create new metadata if it doesn't exist,
-            // but this requires more information about the song (title, artist, etc.)
-            // For now, we'll just log a warning.
+            Log.w("MetaDataManagerHelper", "No metadata found for song with file path: $filePath to update interaction.")
         }
     }
 
     suspend fun reconcileLikedStatusWithLibrary(allSongsFromLibrary: List<Song>) = withContext(Dispatchers.IO) {
-        val playlistRepository: RealPlaylistRepository = get()
-        val metaDataList = getSongMetaDataList().toMutableList()
+        val playlistRepository: RealPlaylistRepository = get() // Assuming get() is fine in withContext(Dispatchers.IO)
+        
+        // Get the list (potentially from cache, but work on a mutable copy)
+        val currentMetaDataList = getSongMetaDataList() 
+        val mutableMetaDataList = currentMetaDataList.toMutableList()
         var changesMade = false
 
-        // Get songs from the "Favorites" playlist
-        val favoritePlaylists = playlistRepository.searchPlaylist("Favorites")
+        val favoritePlaylists = playlistRepository.searchPlaylist("Favorites") // This might involve DB/IO
         val favoriteSongFilePaths = if (favoritePlaylists.isNotEmpty()) {
-            // Assuming the first playlist found is the "Favorites" playlist
-            // The getSongs() method is on the Playlist object, not the repository
-            favoritePlaylists.first().getSongs().map { it.data }.toSet()
+            favoritePlaylists.first().getSongs().map { it.data }.toSet() // getSongs() might involve DB/IO
         } else {
             emptySet()
         }
 
         val librarySongFilePaths = allSongsFromLibrary.map { it.data }.toSet()
 
-        metaDataList.forEachIndexed { index, songMetaData ->
-            var updatedMetaData = songMetaData
+        currentMetaDataList.forEachIndexed { index, songMetaData ->
+            var needsUpdate = false
+            var tempLikedStatus = songMetaData.liked
+            var tempLikedTimestamp = songMetaData.likedTimestamp
+
             val songExistsInLibrary = songMetaData.file in librarySongFilePaths
             val isLikedAccordingToPlaylist = songMetaData.file in favoriteSongFilePaths
-
+            
             val newLikedStatus = songExistsInLibrary && isLikedAccordingToPlaylist
 
             if (songMetaData.liked != newLikedStatus) {
-                updatedMetaData = updatedMetaData.copy(
-                    liked = newLikedStatus,
-                    likedTimestamp = if (newLikedStatus) System.currentTimeMillis() else null
+                tempLikedStatus = newLikedStatus
+                tempLikedTimestamp = if (newLikedStatus) System.currentTimeMillis() else null
+                needsUpdate = true
+            }
+
+            if (needsUpdate) {
+                 mutableMetaDataList[index] = songMetaData.copy(
+                    liked = tempLikedStatus,
+                    likedTimestamp = tempLikedTimestamp
                 )
                 changesMade = true
-            }
-            
-            // If song doesn't exist in library but metadata says it's liked (edge case if not covered by above)
-            // This is mostly covered by newLikedStatus logic, but an explicit check might be clearer
-            // if (!songExistsInLibrary && songMetaData.liked) {
-            //    updatedMetaData = updatedMetaData.copy(liked = false, likedTimestamp = null)
-            //    changesMade = true
-            // }
-
-
-            if (updatedMetaData !== songMetaData) { // Check if a new object was created by copy()
-                 metaDataList[index] = updatedMetaData
             }
         }
 
         if (changesMade) {
-            saveSongMetaDataList(metaDataList)
+            // Save the modified list (this will update cache and trigger background write)
+            saveSongMetaDataList(mutableMetaDataList.toList()) 
             Log.i("MetaDataManagerHelper", "Reconciled liked status with Favorites playlist. Changes saved.")
         } else {
             Log.i("MetaDataManagerHelper", "Reconciled liked status with Favorites playlist. No changes needed.")

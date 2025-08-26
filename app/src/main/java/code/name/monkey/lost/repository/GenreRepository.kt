@@ -26,7 +26,6 @@ interface GenreRepository {
 class RealGenreRepository(
     private val contentResolver: ContentResolver,
     private val songRepository: RealSongRepository
-
 ) : GenreRepository {
     private val metaDataManagerHelper = MetaDataManagerHelper // Added
     private val derivedIdToOriginalNameCache: MutableMap<Long, String> = mutableMapOf()
