@@ -16,30 +16,30 @@ package code.name.monkey.lost.lyrics;
 
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.util.Log;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+// import kotlin.text.Regex; // Removed as it's unused in Java context for this operation
 
 /** 工具类 */
 class LrcUtils {
   private static final Pattern PATTERN_LINE =
-      Pattern.compile("((\\[\\d\\d:\\d\\d\\.\\d{2,3}\\])+)(.+)");
+      Pattern.compile("((\\[\\d\\d:\\d\\d\\.\\d{2,3}])+)(.+)");
   private static final Pattern PATTERN_TIME =
-      Pattern.compile("\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\]");
+      Pattern.compile("\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})]");
 
   /** 从文件解析双语歌词 */
   static List<LrcEntry> parseLrc(File[] lrcFiles) {
@@ -84,7 +84,7 @@ class LrcUtils {
       }
       br.close();
     } catch (IOException e) {
-      e.printStackTrace();
+      Log.e("LrcUtils", "parseLrc: " + e.getMessage());
     }
 
     Collections.sort(entryList);
@@ -125,7 +125,7 @@ class LrcUtils {
     }
 
     List<LrcEntry> entryList = new ArrayList<>();
-    String[] array = lrcText.split("\\n");
+    String[] array = lrcText.replaceAll("<[^>]+>", "").replaceAll("v1:", "").split("\\n");
     for (String line : array) {
       List<LrcEntry> list = parseLine(line);
       if (list != null && !list.isEmpty()) {
@@ -135,33 +135,6 @@ class LrcUtils {
 
     Collections.sort(entryList);
     return entryList;
-  }
-
-  /** 获取网络文本，需要在工作线程中执行 */
-  static String getContentFromNetwork(String url, String charset) {
-    String lrcText = null;
-    try {
-      URL _url = new URL(url);
-      HttpURLConnection conn = (HttpURLConnection) _url.openConnection();
-      conn.setRequestMethod("GET");
-      conn.setConnectTimeout(10000);
-      conn.setReadTimeout(10000);
-      if (conn.getResponseCode() == 200) {
-        InputStream is = conn.getInputStream();
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = is.read(buffer)) != -1) {
-          bos.write(buffer, 0, len);
-        }
-        is.close();
-        bos.close();
-        lrcText = bos.toString(charset);
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    return lrcText;
   }
 
   /** 解析一行歌词 */
@@ -182,12 +155,14 @@ class LrcUtils {
     List<LrcEntry> entryList = new ArrayList<>();
 
     // [00:17.65]
-    Matcher timeMatcher = PATTERN_TIME.matcher(times);
+      assert times != null;
+      Matcher timeMatcher = PATTERN_TIME.matcher(times);
     while (timeMatcher.find()) {
-      long min = Long.parseLong(timeMatcher.group(1));
-      long sec = Long.parseLong(timeMatcher.group(2));
+      long min = Long.parseLong(Objects.requireNonNull(timeMatcher.group(1)));
+      long sec = Long.parseLong(Objects.requireNonNull(timeMatcher.group(2)));
       String milString = timeMatcher.group(3);
-      long mil = Long.parseLong(milString);
+        assert milString != null;
+        long mil = Long.parseLong(milString);
       // 如果毫秒是两位数，需要乘以10
       if (milString.length() == 2) {
         mil = mil * 10;

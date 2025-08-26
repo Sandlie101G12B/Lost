@@ -50,13 +50,11 @@ import code.name.monkey.lost.R;
  */
 @SuppressLint("StaticFieldLeak")
 public class LrcView extends View {
-    private static final long ADJUST_DURATION = 0;
     private static final long TIMELINE_KEEP_TIME = 4 * DateUtils.SECOND_IN_MILLIS;
 
     private final List<LrcEntry> mLrcEntryList = new ArrayList<>();
     private final TextPaint mLrcPaint = new TextPaint();
     private final TextPaint mTimePaint = new TextPaint();
-    private Paint.FontMetrics mTimeFontMetrics;
     private Drawable mPlayDrawable;
     private float mDividerHeight;
     private long mAnimationDuration;
@@ -262,7 +260,7 @@ public class LrcView extends View {
         mTimePaint.setTextAlign(Paint.Align.CENTER);
         mTimePaint.setStrokeWidth(timelineHeight);
         mTimePaint.setStrokeCap(Paint.Cap.ROUND);
-        mTimeFontMetrics = mTimePaint.getFontMetrics();
+        Paint.FontMetrics mTimeFontMetrics = mTimePaint.getFontMetrics();
 
         mGestureDetector = new GestureDetector(getContext(), mSimpleOnGestureListener);
         mGestureDetector.setIsLongpressEnabled(false);

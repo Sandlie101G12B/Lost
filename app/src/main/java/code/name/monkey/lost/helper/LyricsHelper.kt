@@ -1,11 +1,7 @@
 package code.name.monkey.lost.helper
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import androidx.core.app.NotificationCompat
-import code.name.monkey.lost.R
 import com.google.gson.JsonParser
 import okhttp3.*
 import java.io.File
@@ -20,24 +16,6 @@ import androidx.core.net.toUri
 import code.name.monkey.lost.network.InternetConnection
 
 object LyricsGetter {
-
-    private const val LYRICS_CHANNEL_ID = "lyrics_channel"
-    private const val LYRICS_NOTIFICATION_ID = 2 // Different from metadata helper
-
-    private fun createLyricsNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Lyrics Downloader"
-            val descriptionText = "Notifications for lyrics download status"
-            val importance = NotificationManager.IMPORTANCE_LOW
-            val channel = NotificationChannel(LYRICS_CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager: NotificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
     fun writeLyricsToFile(
         file: File?,
         lrcContent: String,
@@ -143,13 +121,6 @@ object LyricsGetter {
         return "$baseUrl?artist_name=$artistParam&track_name=$titleParam"
     }
     fun downloadLyrics(context: Context) {
-        createLyricsNotificationChannel(context)
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notificationBuilder = NotificationCompat.Builder(context, LYRICS_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Lyrics Download")
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
 
         var totalWaitTimeMillis = 0L
         val initialSleepTimeMillis = 2 * 60 * 1000L // 2 minutes
@@ -175,30 +146,15 @@ object LyricsGetter {
             } else {
                 "Still no internet. Retrying in $nextCheckInMinutes min. Total wait: $totalWaitTimeSoFarMinutes min."
             }
-            notificationBuilder
-                .setContentText(waitMsg)
-                .setProgress(0, 0, true)
-            notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-            notificationManager.cancel(LYRICS_NOTIFICATION_ID)
             try {
                 Thread.sleep(sleepDurationForThisIterationMillis)
             } catch (_: InterruptedException) {
                 Thread.currentThread().interrupt()
-                notificationBuilder
-                    .setContentText("Lyrics download interrupted while waiting for internet.")
-                    .setProgress(0, 0, false)
-                    .setOngoing(false)
-                notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-                notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
                 return
             }
             totalWaitTimeMillis += sleepDurationForThisIterationMillis
         }
 
-        notificationBuilder.setContentText("Starting lyrics download...")
-            .setProgress(0,0,true) // Reset to indeterminate before song processing
-        notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-        notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
         val songRepository = RealSongRepository(context)
         val deviceSongs = songRepository.songs().map {
             SongTMPContainer(
@@ -216,22 +172,10 @@ object LyricsGetter {
         }
 
         if (deviceSongs.isEmpty()) {
-            notificationBuilder
-                .setContentText("No songs found on device to download lyrics for.")
-                .setProgress(0, 0, false)
-                .setOngoing(false)
-            notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-            notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
             return
         }
 
         var songsProcessedCount = 0
-        val totalSongsToProcess = deviceSongs.size
-
-        // Set initial progress
-        notificationBuilder.setProgress(totalSongsToProcess, 0, false)
-        notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-
         for (song in deviceSongs) {
             songsProcessedCount++
 
@@ -250,14 +194,6 @@ object LyricsGetter {
             // Small delay between API calls, if necessary
             Thread.sleep(1000)
         }
-
-//        // After the loop, set the final completion notification
-//        notificationBuilder
-//            .setContentText("Lyrics download complete. Processed $songsProcessedCount songs.")
-//            .setProgress(0, 0, false) // Or (totalSongsToProcess, totalSongsToProcess, false)
-//            .setOngoing(false)
-//        notificationManager.notify(LYRICS_NOTIFICATION_ID, notificationBuilder.build())
-        notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
     }
 
     fun doesFileExist(file: File?): Boolean {

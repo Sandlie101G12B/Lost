@@ -5,22 +5,22 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import android.media.PlaybackParams
 import android.net.Uri
 import android.os.PowerManager
+import android.util.Log
 import androidx.core.net.toUri
-import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.appthemehelper.util.VersionUtils.hasMarshmallow
 import code.name.monkey.lost.R
 import code.name.monkey.lost.extensions.showToast
 import code.name.monkey.lost.extensions.uri
 import code.name.monkey.lost.helper.MusicPlayerRemote
+import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.service.AudioFader.Companion.createFadeAnimator
 import code.name.monkey.lost.service.playback.Playback.PlaybackCallbacks
 import code.name.monkey.lost.util.PreferenceUtil
-import code.name.monkey.lost.util.PreferenceUtil.playbackPitch
-import code.name.monkey.lost.util.PreferenceUtil.playbackSpeed
+import code.name.monkey.lost.util.PreferenceUtil.playbackPitch // Direct import
+import code.name.monkey.lost.util.PreferenceUtil.playbackSpeed // Direct import
 import code.name.monkey.lost.util.logE
 import kotlinx.coroutines.*
 
@@ -36,6 +36,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     private var currentPlayer: CurrentPlayer = CurrentPlayer.NOT_SET
     private var player1 = MediaPlayer()
     private var player2 = MediaPlayer()
+    private val crossFadeScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) // Defined crossFadeScope
     private var durationListener = DurationListener()
     private var mIsInitialized = false
     private var hasDataSource: Boolean = false /* Whether first player has DataSource */
@@ -49,6 +50,19 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         player1.setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK)
         player2.setWakeMode(context, PowerManager.PARTIAL_WAKE_LOCK)
         currentPlayer = CurrentPlayer.PLAYER_ONE
+    }
+
+    private fun getBpmFromMetaData(song: Song?): Float? {
+        if (song == null) return null
+        // Assuming song.uri.toString() is the key used in metadata's 'file' field.
+        // If Song.kt has a 'data' field that is the canonical path, use song.data instead.
+        val songFilePath = song.uri.toString()
+        if (songFilePath.isEmpty()) return null
+
+        val metaDataList = MetaDataManagerHelper.getSongMetaDataList()
+        val songMetaData = metaDataList.find { it.file == songFilePath }
+        // Ensure BPM is finite and positive, otherwise it can cause issues.
+        return songMetaData?.bpm?.takeIf { it.isFinite() && it > 0 }
     }
 
     override fun start(): Boolean {
@@ -70,9 +84,10 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     override fun release() {
         stop()
         cancelFade()
+        crossFadeScope.cancel() // Cancel the scope
         getCurrentPlayer()?.release()
         getNextPlayer()?.release()
-        durationListener.cancel()
+        durationListener.cancel() // DurationListener also needs its own job cancelled if it maintains one separately
     }
 
     override fun stop() {
@@ -152,9 +167,6 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     }
 
     override fun setNextDataSource(path: Uri?) {
-        // Store the next song path in nextDataSource, we'll need this just in case
-        // if the user closes the app, then we can't get the nextSong from musicService
-        // As MusicPlayerRemote won't have access to the musicService
         nextDataSource = path.toString()
     }
 
@@ -174,11 +186,6 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     override val audioSessionId: Int
         get() = getCurrentPlayer()?.audioSessionId!!
 
-    /**
-     * Gets the duration of the file.
-     *
-     * @return The duration in milliseconds
-     */
     override fun duration(): Int {
         return if (!mIsInitialized) {
             -1
@@ -190,10 +197,6 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         }
     }
 
-    /**
-     * Gets the current position in audio.
-     * @return The position in milliseconds
-     */
     override fun position(): Int {
         return if (!mIsInitialized) {
             -1
@@ -213,29 +216,17 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
 
     private fun getCurrentPlayer(): MediaPlayer? {
         return when (currentPlayer) {
-            CurrentPlayer.PLAYER_ONE -> {
-                player1
-            }
-            CurrentPlayer.PLAYER_TWO -> {
-                player2
-            }
-            CurrentPlayer.NOT_SET -> {
-                null
-            }
+            CurrentPlayer.PLAYER_ONE -> player1
+            CurrentPlayer.PLAYER_TWO -> player2
+            CurrentPlayer.NOT_SET -> null
         }
     }
 
     private fun getNextPlayer(): MediaPlayer? {
         return when (currentPlayer) {
-            CurrentPlayer.PLAYER_ONE -> {
-                player2
-            }
-            CurrentPlayer.PLAYER_TWO -> {
-                player1
-            }
-            CurrentPlayer.NOT_SET -> {
-                null
-            }
+            CurrentPlayer.PLAYER_ONE -> player2
+            CurrentPlayer.PLAYER_TWO -> player1
+            CurrentPlayer.NOT_SET -> null
         }
     }
 
@@ -243,7 +234,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         isCrossFading = true
         crossFadeAnimator = createFadeAnimator(context, fadeInMp, fadeOutMp) {
             crossFadeAnimator = null
-            durationListener.start()
+            durationListener.start() // Restart duration listener on the main scope after fade
             isCrossFading = false
         }
         crossFadeAnimator?.start()
@@ -287,12 +278,10 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         NOT_SET
     }
 
-    inner class DurationListener : CoroutineScope by crossFadeScope() {
-
+    inner class DurationListener : CoroutineScope by crossFadeScope { // Corrected delegation
         private var job: Job? = null
-
         fun start() {
-            job?.cancel()
+            job?.cancel() // Cancel previous job if any
             job = launch {
                 while (isActive) {
                     delay(250)
@@ -300,53 +289,64 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                 }
             }
         }
-
-        fun stop() {
+        fun stop() { 
+            job?.cancel() 
+        }
+        // Added cancel to be called from CrossFadePlayer.release
+        fun cancel() {
             job?.cancel()
+            // No need to cancel the crossFadeScope here, it's done by the outer class
         }
     }
 
     fun onDurationUpdated(progress: Int, total: Int) {
         if (total > 0 && (total - progress).div(1000) == crossFadeDuration) {
             getNextPlayer()?.let { player ->
-                val nextSong = MusicPlayerRemote.nextSong
-                // Switch to other player (Crossfade) only if next song exists
-                // If we get an empty song it's can be because the app was cleared from background
-                // And MusicPlayerRemote don't have access to MusicService
-                if (nextSong != null && nextSong != Song.emptySong) {
-                    nextDataSource = null
-                    setDataSourceImpl(player, nextSong.uri.toString()) { success ->
+                val songFadingOut = MusicPlayerRemote.currentSong // Song that will fade out
+                val songFadingIn = MusicPlayerRemote.nextSong // Song that will fade in
+
+                val fadingOutBpm = getBpmFromMetaData(songFadingOut) ?: 0f
+                val fadingInBpm = getBpmFromMetaData(songFadingIn) ?: 0f
+                
+                val userSpeedPref = playbackSpeed // User's global speed preference
+                var initialSpeedForFadingInSong = userSpeedPref
+
+                if (fadingOutBpm > 0f && fadingInBpm > 0f && fadingOutBpm != fadingInBpm) {
+                    initialSpeedForFadingInSong = (fadingOutBpm * userSpeedPref) / fadingInBpm
+                }
+                // Ensure initial speed is positive
+                initialSpeedForFadingInSong = initialSpeedForFadingInSong.takeIf { it.isFinite() && it > 0 } ?: userSpeedPref
+
+
+                if (songFadingIn != null && songFadingIn != Song.emptySong) {
+                    nextDataSource = null // Clear as we are using MusicPlayerRemote.nextSong
+                    setDataSourceImpl(player, songFadingIn.uri.toString()) { success ->
                         if (success) {
-                            // --- BPM matching logic start ---
-                            val currentSong = MusicPlayerRemote.currentSong
-                            val currentBpm = currentSong.bpm ?: 0f
-                            val nextBpm = nextSong.bpm ?: 0f
-                            if (currentBpm > 0f && nextBpm > 0f && currentBpm != nextBpm) {
-                                val speed = currentBpm / nextBpm
-                                player.setPlaybackSpeedPitch(speed, playbackPitch)
-                            }
-                            // --- BPM matching logic end ---
+                            player.setPlaybackSpeedPitch(initialSpeedForFadingInSong, playbackPitch)
                             switchPlayer()
                         }
                     }
+                } else if (!nextDataSource.isNullOrEmpty()) {
+                    val pathForNextSong = nextDataSource!!
+                    // Try to get Song object for pathForNextSong to get its BPM
+                    // This is a placeholder: You might need a way to get Song from path if MusicPlayerRemote.nextSong was null
+                    // songFadingIn = MusicPlayerRemote.findSongByPath(pathForNextSong) 
+                    // if (songFadingIn != null) { fadingInBpm = getBpmFromMetaData(songFadingIn) ?: 0f }
+                    // Recalculate initialSpeedForFadingInSong if songFadingIn was found and BPM is valid
+                    // For simplicity, if songFadingIn is null here, fadingInBpm remains 0f or its previous value,
+                    // and initialSpeedForFadingInSong might default to userSpeedPref if BPMs don't allow sync.
 
-                }
-                // So we have to use the previously stored nextDataSource value
-                else if (!nextDataSource.isNullOrEmpty()) {
-                    setDataSourceImpl(player, nextDataSource!!) { success ->
+                    if (fadingOutBpm > 0f && fadingInBpm > 0f && fadingOutBpm != fadingInBpm) { // Re-check with potentially updated fadingInBpm
+                         initialSpeedForFadingInSong = (fadingOutBpm * userSpeedPref) / fadingInBpm
+                    }
+                    initialSpeedForFadingInSong = initialSpeedForFadingInSong.takeIf { it.isFinite() && it > 0 } ?: userSpeedPref
+
+                    setDataSourceImpl(player, pathForNextSong) { success ->
                         if (success) {
-                            // --- BPM matching logic start ---
-                            val currentSong = MusicPlayerRemote.currentSong
-                            val nextSong = MusicPlayerRemote.nextSong
-                            val currentBpm = currentSong.bpm ?: 0f
-                            val nextBpm = nextSong?.bpm ?: 0f
-                            if (currentBpm > 0f && nextBpm > 0f && currentBpm != nextBpm) {
-                                player.setPlaybackSpeedPitch(currentBpm / nextBpm, playbackPitch)
-                            }
-                            // --- BPM matching logic end ---
+                            player.setPlaybackSpeedPitch(initialSpeedForFadingInSong, playbackPitch)
                             switchPlayer()
                         }
-                        nextDataSource = null
+                        // nextDataSource = null // Clear it after use - moved to switchPlayer or if loading fails
                     }
                 }
             }
@@ -354,32 +354,60 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     }
 
     private fun switchPlayer() {
-        getNextPlayer()?.start()
-        crossFade(getNextPlayer()!!, getCurrentPlayer()!!)
-        // --- Gradually restore BPM after crossfade ---
-        val nextSong = MusicPlayerRemote.nextSong
-        val currentSong = MusicPlayerRemote.currentSong
-        val currentBpm = currentSong.bpm ?: 0f
-        val nextBpm = nextSong?.bpm ?: 0f
-        if (currentBpm > 0f && nextBpm > 0f && currentBpm != nextBpm) {
-            val initialSpeed = currentBpm / nextBpm
-            // Animate speed from initialSpeed to 1.0 over 3 seconds
-            ValueAnimator.ofFloat(initialSpeed, 1.0f).apply {
-                duration = 3000
+        val fadingInMediaPlayer = getNextPlayer() ?: return
+        val fadingOutMediaPlayer = getCurrentPlayer() ?: return
+
+        fadingInMediaPlayer.start()
+        crossFade(fadingInMediaPlayer, fadingOutMediaPlayer)
+        nextDataSource = null // Clear nextDataSource as we've switched
+
+        val songThatFadedOut = MusicPlayerRemote.currentSong // This is the one that just started fading out
+        val songThatIsFadingIn = MusicPlayerRemote.nextSong // This is the new primary song
+
+        val userTargetSpeed = playbackSpeed // User's global speed preference
+        val userPitch = playbackPitch
+
+        val fadingOutBpm = getBpmFromMetaData(songThatFadedOut) ?: 0f
+        val fadingInBpm = getBpmFromMetaData(songThatIsFadingIn) ?: 0f
+
+        var speedToAnimateFrom = userTargetSpeed // Default start for animation is user's preference
+        
+        if (fadingOutBpm > 0f && fadingInBpm > 0f && fadingOutBpm != fadingInBpm) {
+            // This was the target speed for the incoming player to match the outgoing one
+            val calculatedInitialSpeed = (fadingOutBpm * userTargetSpeed) / fadingInBpm
+            speedToAnimateFrom = calculatedInitialSpeed.takeIf { it.isFinite() && it > 0 } ?: userTargetSpeed
+        }
+        
+        // Try to get the *actual* current speed of the player that just started fading in
+        if (hasMarshmallow()) {
+            fadingInMediaPlayer.playbackParams.speed.let { currentActualSpeed ->
+                if (currentActualSpeed.isFinite() && currentActualSpeed > 0) {
+                    speedToAnimateFrom = currentActualSpeed
+                }
+            }
+        }
+        // Ensure speedToAnimateFrom is positive before animating
+        speedToAnimateFrom = speedToAnimateFrom.takeIf { it.isFinite() && it > 0 } ?: userTargetSpeed
+
+        if (speedToAnimateFrom != userTargetSpeed) {
+            ValueAnimator.ofFloat(speedToAnimateFrom, userTargetSpeed).apply {
+                duration = 3000 // Consider making this duration configurable
                 addUpdateListener { anim ->
-                    val speed = anim.animatedValue as Float
-                    getNextPlayer()?.setPlaybackSpeedPitch(speed, playbackPitch)
+                    val animatedSpeedValue = anim.animatedValue as Float
+                    fadingInMediaPlayer.setPlaybackSpeedPitch(animatedSpeedValue, userPitch)
                 }
                 start()
             }
+        } else {
+            // If speeds are already the same, or no BPM sync was done, ensure it's at userTargetSpeed
+            fadingInMediaPlayer.setPlaybackSpeedPitch(userTargetSpeed, userPitch)
         }
-        // --- End BPM restore ---
-        currentPlayer =
-            if (currentPlayer == CurrentPlayer.PLAYER_ONE || currentPlayer == CurrentPlayer.NOT_SET) {
-                CurrentPlayer.PLAYER_TWO
-            } else {
-                CurrentPlayer.PLAYER_ONE
-            }
+        
+        currentPlayer = if (currentPlayer == CurrentPlayer.PLAYER_ONE || currentPlayer == CurrentPlayer.NOT_SET) {
+            CurrentPlayer.PLAYER_TWO
+        } else {
+            CurrentPlayer.PLAYER_ONE
+        }
         callbacks?.onTrackEndedWithCrossfade()
     }
 
@@ -388,9 +416,13 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     }
 
     override fun setPlaybackSpeedPitch(speed: Float, pitch: Float) {
-        getCurrentPlayer()?.setPlaybackSpeedPitch(speed, pitch)
-        if (getNextPlayer()?.isPlaying == true) {
-            getNextPlayer()?.setPlaybackSpeedPitch(speed, pitch)
+        val safeSpeed = speed.takeIf { it.isFinite() && it > 0f } ?: 1.0f
+        val safePitch = pitch.takeIf { it.isFinite() && it > 0f } ?: 1.0f
+        
+        getCurrentPlayer()?.setPlaybackSpeedPitch(safeSpeed, safePitch)
+        // Only set on next player if it's currently also playing (i.e. during crossfade)
+        if (isCrossFading) {
+             getNextPlayer()?.setPlaybackSpeedPitch(safeSpeed, safePitch)
         }
     }
 
@@ -412,36 +444,39 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
             )
-            if (hasMarshmallow())
-                player.playbackParams =
-                    PlaybackParams().setSpeed(playbackSpeed).setPitch(playbackPitch)
+            // Initial speed/pitch is set in onDurationUpdated before switchPlayer,
+            // or by global setPlaybackSpeedPitch. No need to set default here
+            // as it might override BPM-specific logic.
 
             player.setOnPreparedListener {
-                player.setOnPreparedListener(null)
+                player.setOnPreparedListener(null) // Avoid multiple calls
                 completion(true)
             }
-            player.prepare()
+            player.setOnErrorListener { _, _, _ ->
+                logE("MediaPlayer error during prepare for path: $path")
+                completion(false)
+                true // Indicate error has been handled
+            }
+            player.prepareAsync()
         } catch (e: Exception) {
+            logE("Exception setting data source for path: $path, error: $e")
             completion(false)
-            e.printStackTrace()
         }
-        player.setOnCompletionListener(this)
-        player.setOnErrorListener(this)
-    }
-
-    companion object {
-        val TAG: String = CrossFadePlayer::class.java.simpleName
     }
 }
 
-internal fun crossFadeScope(): CoroutineScope = CoroutineScope(Job() + Dispatchers.Default)
-
+// Extension for MediaPlayer to safely set playback speed and pitch
 fun MediaPlayer.setPlaybackSpeedPitch(speed: Float, pitch: Float) {
     if (hasMarshmallow()) {
-        val wasPlaying = isPlaying
-        playbackParams = PlaybackParams().setSpeed(speed).setPitch(pitch)
-        if (!wasPlaying) {
-            pause()
+        try {
+            // Ensure speed and pitch are positive and finite.
+            val safeSpeed = speed.takeIf { it.isFinite() && it > 0.0f } ?: 1.0f
+            val safePitch = pitch.takeIf { it.isFinite() && it > 0.0f } ?: 1.0f
+
+            val params = this.playbackParams // Get existing or new
+            this.playbackParams = params.setSpeed(safeSpeed).setPitch(safePitch)
+        } catch (e: Exception) {
+            Log.e("setPlaybackSpeedPitch", "Error setting playback speed and pitch", e)
         }
     }
 }

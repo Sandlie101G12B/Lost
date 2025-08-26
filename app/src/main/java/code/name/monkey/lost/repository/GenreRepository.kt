@@ -367,9 +367,6 @@ class RealGenreRepository(
 
         if (changesMade) {
             metaDataManagerHelper.saveSongMetaDataList(updatedMetaDataList)
-            // Log.i("RealGenreRepository", "Normalized genre names in metadata.")
-        } else {
-            // Log.i("RealGenreRepository", "Genre names in metadata are already normalized.")
         }
     }
 }
