@@ -79,20 +79,76 @@ object ShuffleHelper {
         val currentSong = listToShuffle.removeAt(current)
         val currentMeta = metadata[getSongKey(currentSong)]
         val hasAnyMetadata = listToShuffle.any { metadata[getSongKey(it)] != null }
+
         if (currentMeta == null || !hasAnyMetadata) {
             listToShuffle.shuffle()
             listToShuffle.add(0, currentSong)
             return
         }
+        // currentMeta is confirmed to be non-null here
+        val currentArtistsSet = currentMeta.artists.toSet()
+
         val scoredSongs = scoreSongs(listToShuffle, metadata, currentMeta)
         val originalScored = scoredSongs.toMutableList()
+
+        // Smooth scores to ensure no song is less than 5 points than the previous one
+        if (originalScored.size > 1) { // Need at least two songs to compare
+            for (i in 1 until originalScored.size) {
+                val previousScore = originalScored[i-1].second
+                // Get current score after potential adjustments from previous iterations
+                val currentActualScore = originalScored[i].second
+                val difference = previousScore - currentActualScore
+
+                if (difference > 5) {
+                    // Calculate how much to add to the current song's score
+                    // to make the gap exactly 5
+                    val adjustmentNeeded = difference - 5
+
+                    // Apply adjustment to the current song and all subsequent songs
+                    for (j in i until originalScored.size) {
+                        originalScored[j] = originalScored[j].copy(second = originalScored[j].second + adjustmentNeeded)
+                    }
+                }
+            }
+        }
+
+        // Artist De-concentration Logic
+        if (originalScored.isNotEmpty()) {
+            val topSongsForArtistCheck = originalScored.take(6)
+            var songsByCurrentArtistInTop = 0
+            for ((song, _) in topSongsForArtistCheck) {
+                val songMeta = metadata[getSongKey(song)]
+                // Check if songMeta is not null and shares any artist with currentArtistsSet
+                if (songMeta != null && songMeta.artists.any { it in currentArtistsSet }) {
+                    songsByCurrentArtistInTop++
+                }
+            }
+
+            if (songsByCurrentArtistInTop >= 3) {
+                for (i in originalScored.indices) {
+                    val (song, score) = originalScored[i]
+                    val songMeta = metadata[getSongKey(song)]
+                    // Check if songMeta is not null and shares any artist with currentArtistsSet
+                    if (songMeta != null && songMeta.artists.any { it in currentArtistsSet }) {
+                        val basePenalty = Random.nextInt(5, 16) // Base penalty: 5 to 15 points
+                        // Adjust penalty based on the number of artists on the track being penalized
+                        val numArtistsOnTrack = songMeta.artists.size.coerceAtLeast(1)
+                        val adjustedPenalty = basePenalty / numArtistsOnTrack
+                        originalScored[i] = song to (score - adjustedPenalty)
+                    }
+                }
+            }
+        }
+
         val selectedFlow = selectFlowType(currentMeta)
+        // Ensure reorderByFlow uses the smoothed scores from originalScored
         val reordered: List<Pair<Song, Int>> = reorderByFlow(selectedFlow, originalScored, metadata)
+        // Also ensure enforceMaxMovement uses the smoothed originalScored for its original positions
         val finalOrdered = enforceMaxMovement(reordered, originalScored, maxMovement = Random.nextInt(5, 11))
         val smartShuffled = finalOrdered
-            .groupBy { it.second }
-            .toSortedMap(compareByDescending { it })
-            .flatMap { (_, group) -> group.shuffled().map { it.first } }
+            .groupBy { it.second } // Group by the (potentially smoothed) score
+            .toSortedMap(compareByDescending { it }) // Sort groups by score descending
+            .flatMap { (_, group) -> group.shuffled().map { it.first } } // Shuffle within score groups
         val extraRandomized = smartShuffled.toMutableList()
         val swapRange = Random.nextInt(2,5)
         val swaps = (extraRandomized.size / 7).coerceAtLeast(1)
@@ -146,10 +202,13 @@ object ShuffleHelper {
 
     private fun reorderByFlow(
         flow: FlowType,
-        scored: List<Pair<Song, Int>>,
+        scored: List<Pair<Song, Int>>, // This now receives the potentially smoothed scores
         metadata: Map<String, SongMetaData>
     ): List<Pair<Song, Int>> {
         fun Song.getMeta(): SongMetaData? = metadata[getSongKey(this)]
+        // The `scored` list here contains pairs of (Song, potentially smoothed Int score)
+        // The sorting logic inside might use these scores or other metadata like energy, valence etc.
+        // If it uses `.second` from the pair, it will use the smoothed score.
         return when (flow) {
             FlowType.RollerCoaster -> {
                 val sorted = scored.sortedByDescending { it.first.getMeta()?.energy ?: 0.0 }
@@ -186,13 +245,21 @@ object ShuffleHelper {
     }
 
     private fun enforceMaxMovement(
-        reordered: List<Pair<Song, Int>>,
-        originalScored: List<Pair<Song, Int>>,
+        reordered: List<Pair<Song, Int>>, // This list is from reorderByFlow
+        originalScored: List<Pair<Song, Int>>, // This is the smoothed list
         maxMovement: Int
     ): MutableList<Pair<Song, Int>> {
         val finalOrdered = MutableList(reordered.size) { reordered[it] }
+        // The originalScored list is used here to find the original index of an item
+        // based on the Song object and its (smoothed) score.
+        // If an item was (SongA, 100) and smoothed to (SongA, 105), originalScored reflects this.
         for ((originalIdx, pair) in reordered.withIndex()) {
-            val origPos = originalScored.indexOf(pair)
+            val origPos = originalScored.indexOf(pair) // This should correctly find the item if pair matches an entry in originalScored
+            if (origPos == -1) {
+                 // This case should ideally not happen if reordered contains items from originalScored.
+                 // Handle defensively or log if necessary.
+                 continue
+            }
             val minPos = (origPos - maxMovement).coerceAtLeast(0)
             val maxPos = (origPos + maxMovement).coerceAtMost(reordered.size - 1)
             val targetPos = originalIdx.coerceIn(minPos, maxPos)
@@ -216,7 +283,7 @@ object ShuffleHelper {
 
         // 1. Artist Matching
         val commonArtists = a.artists.intersect(b.artists.toSet())
-        val artistScore = commonArtists.size * Random.nextInt(9, 12)
+        val artistScore = commonArtists.size * Random.nextInt(1, 10)
 
         // 2. Genre Matching
         val commonGenres = a.genre.intersect(b.genre.toSet())
@@ -276,82 +343,65 @@ object ShuffleHelper {
         // 13. Play History Penalty
         val currentTime = System.currentTimeMillis()
         val twoWeeksInMillis = TimeUnit.DAYS.toMillis(14)
-        val recentPlays = (b.playTimestamps ?: emptyList()).count { (currentTime - it) < twoWeeksInMillis }
-        var playHistoryPenalty = recentPlays * 7
+        val recentPlays = b.playTimestamps.count { (currentTime - it) < twoWeeksInMillis }
+        val playHistoryPenalty = recentPlays * 7
 
         // 14. Skip History Penalty
         val oneWeekInMillis = TimeUnit.DAYS.toMillis(7)
-        val recentSkips = (b.skipTimestamps ?: emptyList()).count { (currentTime - it) < oneWeekInMillis }
-        var skipHistoryPenalty = recentSkips * Random.nextInt(9, 12)
+        val recentSkips = b.skipTimestamps.count { (currentTime - it) < oneWeekInMillis }
+        val skipHistoryPenalty = recentSkips * 10 // Heavier penalty for recent skips
 
-        if (b.liked && b.likedTimestamp != null) {
-            val likedTimeAgo = currentTime - (b.likedTimestamp ?: currentTime) // milliseconds
-            val daysAgo = TimeUnit.MILLISECONDS.toDays(likedTimeAgo)
-            val likedValue = (7 - daysAgo).toInt().coerceAtLeast(1)
-            playHistoryPenalty -= likedValue
-            skipHistoryPenalty -= likedValue
+        // 15. Liked Song Bonus
+        val likedBonus = if (b.liked) Random.nextInt(5, 12) else 0
+
+        // 16. Favorited Song Bonus (stronger than liked)
+        val favoritedBonus = if (b.favorite) Random.nextInt(10, 20) else 0
+        
+        // 17. Rating-Based Adjustment
+        val ratingAdjustment = when {
+            b.rating >= 4 -> Random.nextInt(5,15)
+            b.rating == 3 -> Random.nextInt(0,5)
+            b.rating <= 1 && b.rating > 0 -> -Random.nextInt(5,15) // Penalty for low rated songs
+            else -> 0
         }
 
-        return artistScore +
-                genreScore +
-                moodScore +
-                danceabilityScore +
-                marketScore +
-                yearScore +
-                energyScore +
-                valenceScore +
-                tempoScore +
-                genreArtistSimilarity +
-                favArtistBoost +
-                favGenreBoost +
-                favMoodBoost +
-                modernBonus -
-                playHistoryPenalty -
-                skipHistoryPenalty
+        val totalScore = artistScore + genreScore + moodScore + danceabilityScore + marketScore +
+                yearScore + modernBonus + energyScore + valenceScore + tempoScore +
+                genreArtistSimilarity + favArtistBoost + favGenreBoost + favMoodBoost +
+                likedBonus + favoritedBonus + ratingAdjustment - playHistoryPenalty - skipHistoryPenalty
+        
+        return totalScore.coerceIn(0, 200) // Ensure score is within a reasonable range
     }
+
+    private fun getGenreBasedArtistSimilarity(metaA: SongMetaData, metaB: SongMetaData): Int {
+        if (metaA.genre.isEmpty() || metaB.genre.isEmpty() || metaA.artists.isEmpty() || metaB.artists.isEmpty()) {
+            return 0
+        }
+        val commonGenres = metaA.genre.intersect(metaB.genre.toSet())
+        if (commonGenres.isEmpty()) {
+            return 0
+        }
+        // If they share genres, give a small boost if artists are different,
+        // to encourage variety within a genre session.
+        // No penalty if artists are the same, as other factors handle direct artist repetition.
+        return if (metaA.artists.intersect(metaB.artists.toSet()).isEmpty()) {
+            Random.nextInt(1, 8) // Small boost for different artists in shared genres
+        } else {
+            0 // Neutral if same artist or if artists already matched by direct artist similarity
+        }
+    }
+
 
     private fun isCorrupted(meta: SongMetaData): Boolean {
-        return meta.file.isBlank()
-                || meta.artists.isEmpty()
-                || meta.danceability?.isNaN() == true
-    }
-
-    private val similarArtistGroups = listOf(
-        listOf("Drake", "Lil Wayne", "Future", "Kanye West", "21 Savage", "Travis Scott", "Young Thug", "Gunna", "DaBaby", "Pop Smoke", "ASAP Rocky", "Meek Mill", "Lil Baby", "Lil Durk", "Tyga","2 Chains"),
-        listOf("Kendrick Lamar", "J. Cole", "Big Sean", "Joey BadaSS", "Logic", "Mac Miller", "Wale", "Denzel Curry", "NF", "Cordae", "Mick Jenkins", "IDK", "Isaiah Rashad", "Russ", "Bas"),
-        listOf("Cardi B", "Nicki Minaj", "Megan Thee Stallion", "Doja Cat", "Latto", "Iggy Azalea", "Saweetie", "Remy Ma", "City Girls", "Coi Leray", "BIA", "Rico Nasty", "Chika", "Kash Doll", "CupcakKe"),
-        listOf("Taylor Swift", "Selena Gomez", "Demi Lovato", "Olivia Rodrigo", "Katy Perry", "Billie Eilish", "Ava Max", "Sabrina Carpenter", "Tate McRae", "Charli XCX", "Hailee Steinfeld", "Halsey", "Bea Miller", "Bebe Rexha", "Anne-Marie"),
-        listOf("Ariana Grande", "Dua Lipa", "Camila Cabello", "Rita Ora", "Zara Larsson", "Tinashe", "Alessia Cara", "Tove Lo", "Madison Beer", "Ellie Goulding", "Jessie J", "Sia", "Lady Gaga", "Lorde", "Britney Spears"),
-        listOf("Justin Bieber", "Shawn Mendes", "Charlie Puth", "Troye Sivan", "Lauv", "Conan Gray", "Niall Horan", "ZAYN", "Jonas Brothers", "Ed Sheeran", "James Arthur", "Dean Lewis", "Lewis Capaldi", "Jason Derulo", "AJ Mitchell"),
-        listOf("Metallica", "Slayer", "Megadeth", "Anthrax", "Pantera", "Iron Maiden", "Judas Priest", "Lamb of God", "Slipknot", "Korn", "Disturbed", "System of a Down", "Tool", "Avenged Sevenfold", "Ghost"),
-        listOf("Nirvana", "Pearl Jam", "Soundgarden", "Alice in Chains", "Stone Temple Pilots", "Smashing Pumpkins", "Bush", "Temple of the Dog", "Silverchair", "Radiohead", "The Offspring", "Green Day", "Blink-182", "My Chemical Romance", "Fall Out Boy"),
-        listOf("Imagine Dragons", "OneRepublic", "Coldplay", "Bastille", "X Ambassadors", "The Script", "Walk the Moon", "American Authors", "Foster the People", "AWOLNATION", "Arctic Monkeys", "The Killers", "Muse", "Thirty Seconds to Mars", "Kings of Leon"),
-        listOf("The Weeknd", "Frank Ocean", "Miguel", "Chris Brown", "Trey Songz", "Bryson Tiller", "Giveon", "6LACK", "Khalid", "Daniel Caesar", "Tory Lanez", "PARTYNEXTDOOR", "Brent Faiyaz", "Ty Dolla Sign", "Eric Bellinger"),
-        listOf("Bruno Mars", "Anderson .Paak", "Ne-Yo", "John Legend", "Usher", "Tank", "Robin Thicke", "Mario", "Ginuwine", "Maxwell", "Babyface", "Charlie Wilson", "Raheem DeVaughn", "Joe", "Lloyd"),
-        listOf("Burna Boy", "Wizkid", "Davido", "Rema", "Tems", "Omah Lay", "Ayra Starr", "Fireboy DML", "Joeboy", "Tiwa Savage", "Yemi Alade", "Mr Eazi", "CKay", "Patoranking", "Tekno"),
-        listOf("Bad Bunny", "J Balvin", "Ozuna", "Anuel AA", "Maluma", "Karol G", "Nicky Jam", "Daddy Yankee", "Farruko", "Becky G", "Myke Towers", "Sech", "Rauw Alejandro", "Manuel Turizo", "Feid"),
-        listOf("Calvin Harris", "David Guetta", "Zedd", "Martin Garrix", "Kygo", "Avicii", "Alesso", "Steve Aoki", "Marshmello", "The Chainsmokers", "Alan Walker", "Tiesto", "Dillon Francis", "Illenium", "Don Diablo"),
-        listOf("Luke Bryan", "Blake Shelton", "Jason Aldean", "Thomas Rhett", "Morgan Wallen", "Kane Brown", "Dierks Bentley", "Chris Stapleton", "Zac Brown Band", "Florida Georgia Line", "Tim McGraw", "Keith Urban", "Eric Church", "Sam Hunt", "Jake Owen"),
-        listOf("Kabza De Small", "DJ Maphorisa", "Young Stunna", "Daliwonga", "Focalistic", "Sha Sha", "Mr JazziQ", "DBN Gogo", "Busta 929", "Mellow & Sleazy", "Uncle Waffles", "Boohle", "Zuma", "Reece Madlisa", "Tyler ICU", "Scotts Maphuma", "CowBoii", "Aymos"),
-        listOf("Nasty C", "AKA", "Cassper Nyovest", "A-Reece", "Blxckie", "Emtee", "Kwesta", "Shane Eagle", "Big Zulu", "K.O", "Maglera Doe Boy", "Boity", "Nadia Nakai", "Priddy Ugly", "Reason"),
-        listOf("Mandoza", "Arthur Mafokate", "Trompies", "Zola", "Chicco Twala", "Brickz", "Mzekezeke", "Mapaputsi", "Professor", "Spikiri", "DJ Cleo", "Oskido", "Big Nuz", "Thebe", "Boom Shaka"),
-        listOf("Babes Wodumo", "Distuction Boyz", "DJ Tira", "Mampintsha", "RudeBoyz", "Dlala Thukzin", "Busiswa", "Tipcee", "Heavy-K", "Moonchild Sanelly", "Patoranking", "Zodwa Wabantu", "Goldmax", "Que", "Mr Thela"),
-        listOf("Black Coffee", "Culoe De Song", "DJ Zinhle", "Heavy-K", "Prince Kaybee", "Sun-El Musician", "Master KG", "Samthing Soweto", "Msaki", "Da Capo", "DJ Kent", "DJ Sbu", "Lady Zamar", "Holly Rey", "DJ Merlon", "Nomcebo"),
-        listOf("Shekhinah", "Elaine", "Ami Faku", "Simmy", "Lloyiso", "Manana", "Brenda Fassie", "Zonke", "Judith Sephuma", "Sjava", "Berita", "Nathi", "Amanda Black", "Azana", "Ntando"),
-        listOf("Mi Casa", "Tresor", "Mafikizolo", "Jeremy Loops", "GoodLuck", "Danny K", "Majozi", "Locnville", "Matthew Mole", "Mellisa Allison", "Dr Victor", "Lira", "TKZee", "Bongo Maffin", "Micasa"),
-        listOf("Joyous Celebration", "Rebecca Malope", "Winnie Mashaba", "Dr Tumi", "Sfiso Ncwane", "Solly Mahlangu", "Dumi Mkokstad", "Ntokozo Mbambo", "Benjamin Dube", "Lebo Sekgobela", "Sipho Makhabane", "Zaza", "Lundi Tyamara", "Kholeka", "Sechaba"),
-        listOf("Lucky Dube", "Johnny Clegg", "Miriam Makeba", "Yvonne Chaka Chaka", "Brenda Fassie", "Busi Mhlongo", "Soweto Gospel Choir", "Thandiswa Mazwai", "Simphiwe Dana", "Oliver Mtukudzi", "Ringo Madlingozi", "Caiphus Semenya", "Letta Mbulu", "Judith Sephuma", "Sipho Hotstix Mabuse")
-    )
-
-    private fun getGenreBasedArtistSimilarity(a: SongMetaData, b: SongMetaData): Int {
-        for (group in similarArtistGroups) {
-            val groupSet = group.toSet()
-            val aMatch = a.artists.any { it in groupSet }
-            val bMatch = b.artists.any { it in groupSet }
-            if (aMatch && bMatch) {
-                return 20
-            }
-        }
-        return 0
+        // Example check: A song might be considered corrupted if it has no title AND no artists
+        // AND the file path seems unusually short or nonsensical (though file path check is harder here).
+        // For now, let's base it on essential textual metadata.
+        val hasNoTitle = meta.title.isBlank()
+        val hasNoArtists = meta.artists.isEmpty() || meta.artists.all { it.isBlank() }
+        
+        // If critical fields like title or artist are missing, consider it potentially problematic.
+        // Add more checks as needed, e.g., for file existence if `meta.file` was validated elsewhere
+        // or if you have a reliable way to check it here.
+        return hasNoTitle && hasNoArtists
     }
 }
