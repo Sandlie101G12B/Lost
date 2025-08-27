@@ -91,27 +91,6 @@ object ShuffleHelper {
         val scoredSongs = scoreSongs(listToShuffle, metadata, currentMeta)
         val originalScored = scoredSongs.toMutableList()
 
-        // Smooth scores to ensure no song is less than 5 points than the previous one
-        if (originalScored.size > 1) { // Need at least two songs to compare
-            for (i in 1 until originalScored.size) {
-                val previousScore = originalScored[i-1].second
-                // Get current score after potential adjustments from previous iterations
-                val currentActualScore = originalScored[i].second
-                val difference = previousScore - currentActualScore
-
-                if (difference > 5) {
-                    // Calculate how much to add to the current song's score
-                    // to make the gap exactly 5
-                    val adjustmentNeeded = difference - 5
-
-                    // Apply adjustment to the current song and all subsequent songs
-                    for (j in i until originalScored.size) {
-                        originalScored[j] = originalScored[j].copy(second = originalScored[j].second + adjustmentNeeded)
-                    }
-                }
-            }
-        }
-
         // Artist De-concentration Logic
         if (originalScored.isNotEmpty()) {
             val topSongsForArtistCheck = originalScored.take(6)
@@ -130,7 +109,7 @@ object ShuffleHelper {
                     val songMeta = metadata[getSongKey(song)]
                     // Check if songMeta is not null and shares any artist with currentArtistsSet
                     if (songMeta != null && songMeta.artists.any { it in currentArtistsSet }) {
-                        val basePenalty = Random.nextInt(5, 16) // Base penalty: 5 to 15 points
+                        val basePenalty = Random.nextInt(10, 35) // Base penalty: 5 to 15 points
                         // Adjust penalty based on the number of artists on the track being penalized
                         val numArtistsOnTrack = songMeta.artists.size.coerceAtLeast(1)
                         val adjustedPenalty = basePenalty / numArtistsOnTrack
