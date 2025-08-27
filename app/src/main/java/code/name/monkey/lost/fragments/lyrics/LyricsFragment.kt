@@ -237,6 +237,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
 
+    @OptIn(DelicateCoroutinesApi::class)
     @SuppressLint("CheckResult")
     private fun editSyncedLyrics(lyrics: String? = null) {
         val content = lyrics ?: LyricUtil.getStringFromLrc(LyricUtil.getSyncedLyricsFile(song))

@@ -1,5 +1,5 @@
 plugins {
-    id "com.gradle.develocity" version "3.19.2"
+    id "com.gradle.develocity" version "4.1.1"
 }
 
 develocity {
@@ -15,7 +15,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url "https://jitpack.io" }
+        maven { url = "https://jitpack.io" }
         maven { // TarsosDSP repository
             name = "TarsosDSP repository"
             url = uri("https://mvn.0110.be/releases")

@@ -39,6 +39,7 @@ import com.google.android.material.transition.MaterialContainerTransform
 import com.google.android.material.transition.MaterialSharedAxis
 import com.h6ah4i.android.widget.advrecyclerview.animator.DraggableItemAnimator
 import com.h6ah4i.android.widget.advrecyclerview.draggable.RecyclerViewDragDropManager
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
@@ -123,6 +124,7 @@ class PlaylistDetailsFragment : AbsMainActivityFragment(R.layout.fragment_playli
         }
     }
 
+    @OptIn(FlowPreview::class)
     private fun setUpSearch() {
         if (!PreferenceUtil.enableSearchPlaylist) {
             binding.playlistSearchView.visibility = View.GONE
