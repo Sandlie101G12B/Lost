@@ -57,7 +57,7 @@ class RealGenreRepository(
         // If collisions are an issue, a more robust unique string ID generator would be needed.
         return processedName.hashCode().toLong()
     }
-    
+
     // Splits a genre string (e.g., from MediaStore) by common delimiters
     private fun splitGenreString(genreString: String?): List<String> {
         return genreString?.split("[,/]".toRegex())?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
@@ -117,13 +117,13 @@ class RealGenreRepository(
             if (songsSet.isNotEmpty()) {
                 val processedNameForId = processGenreNameForId(displayableNameFromMap)
                 val derivedId = generateIdFromProcessedName(processedNameForId)
-                
+
                 // Store mapping from new ID to the *displayable* name
                 derivedIdToOriginalNameCache[derivedId] = displayableNameFromMap
                 resultGenres.add(Genre(derivedId, displayableNameFromMap, songsSet.size))
             }
         }
-        
+
         // 4. Add "Unknown Genre" category
         // These are songs not categorized by MediaStore OR by any specific metadata genre
         val songsWithExplicitGenres = genreNameToCombinedSongsMap.values.flatten().toSet()
@@ -133,14 +133,14 @@ class RealGenreRepository(
             val unknownGenreName = "Unknown Genre" // Not formatted
             // Ensure "Unknown Genre" is added only once with its dedicated ID
             if (resultGenres.none { it.id == unknownGenreId || it.name.equals(unknownGenreName, ignoreCase = false) }) {
-                 resultGenres.add(Genre(unknownGenreId, unknownGenreName, songsWithNoExplicitGenre.size))
-                 derivedIdToOriginalNameCache[unknownGenreId] = unknownGenreName // Also cache it
+                resultGenres.add(Genre(unknownGenreId, unknownGenreName, songsWithNoExplicitGenre.size))
+                derivedIdToOriginalNameCache[unknownGenreId] = unknownGenreName // Also cache it
             }
         }
 
         return resultGenres.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
     }
-    
+
 
     override fun genres(query: String): List<Genre> {
         val allGenres = genres() // Get the fully processed list
@@ -148,11 +148,11 @@ class RealGenreRepository(
 
         // Format the query string in the same way genre names are displayed for a better direct match
         val formattedQuery = formatGenreNameForDisplay(query)
-        
-        return allGenres.filter { 
+
+        return allGenres.filter {
             // Check against the displayable name
             it.name.contains(query, ignoreCase = true) || // User might type "afro pop"
-            it.name.contains(formattedQuery, ignoreCase = true) // or "Afro-Pop"
+                    it.name.contains(formattedQuery, ignoreCase = true) // or "Afro-Pop"
         }
     }
 
@@ -181,7 +181,7 @@ class RealGenreRepository(
             allSongs.forEach { song ->
                 songDataToMetaMap[song.data]?.genre?.forEach { metaGenreName ->
                     if (metaGenreName.isNotBlank()) { // A non-blank genre in metadata means it's categorized
-                        explicitlyCategorizedSongs.add(song) 
+                        explicitlyCategorizedSongs.add(song)
                     }
                 }
             }
@@ -191,7 +191,7 @@ class RealGenreRepository(
         } else {
             // For specific genres (ID derived from formatted name)
             val displayableOriginalGenreName = derivedIdToOriginalNameCache[genreId]
-            
+
             if (displayableOriginalGenreName != null) {
                 val allSongs = getAllSongsFromRepository()
                 val songMetaDataList = metaDataManagerHelper.getSongMetaDataList()
@@ -210,7 +210,7 @@ class RealGenreRepository(
                                     val formattedMediaStoreName = formatGenreNameForDisplay(rawName)
                                     // Compare displayable names
                                     if (formattedMediaStoreName.equals(displayableOriginalGenreName, ignoreCase = false)) { // Case sensitive match after formatting
-                                        songRepository.songs(makeGenreSongCursor(mediaStoreId))?.let { resultingSongs.addAll(it) }
+                                        songRepository.songs(makeGenreSongCursor(mediaStoreId)).let { resultingSongs.addAll(it) }
                                     }
                                 }
                             }
@@ -244,8 +244,8 @@ class RealGenreRepository(
         // This is a helper, ensure it's used appropriately or integrated if needed
         contentResolver.query(
             Genres.Members.getContentUri("external", mediaStoreGenreId),
-            arrayOf(BaseColumns._ID), 
-            IS_MUSIC, 
+            arrayOf(BaseColumns._ID),
+            IS_MUSIC,
             null,
             null
         )?.use {
@@ -253,26 +253,26 @@ class RealGenreRepository(
         }
         return 0
     }
-    
+
     // This method's direct utility might be reduced given the new ID scheme.
     // It's kept for potential direct MediaStore queries if ever needed.
     private fun getGenreFromCursor(cursor: Cursor): Genre {
         val originalMediaStoreId = cursor.getLong(Genres._ID) // Still the MediaStore ID
         val nameString = cursor.getStringOrNull(Genres.NAME)
-        
+
         // For a representative name, take the first split part and format it
         val representativeName = splitGenreString(nameString).firstOrNull() ?: "Unknown Genre"
         val displayFormattedName = formatGenreNameForDisplay(representativeName)
-        
+
         // Generate ID based on this representative display name
         val processedNameForId = processGenreNameForId(displayFormattedName)
         val derivedId = generateIdFromProcessedName(processedNameForId)
 
         val songCount = getSongCount(originalMediaStoreId) // Count is for the original MediaStore entry
-        
+
         return Genre(derivedId, displayFormattedName, songCount)
     }
-    
+
     // Kept for clarity on its specific purpose.
     // The main "Unknown Genre" logic in genres() and songs() is more comprehensive.
     private fun getSongsWithNoMediaStoreGenre(): List<Song> {
@@ -298,7 +298,7 @@ class RealGenreRepository(
             null
         }
     }
-    
+
     private fun makeGenreCursor(): Cursor? {
         val projection = arrayOf(Genres._ID, Genres.NAME)
         return try {
@@ -358,7 +358,7 @@ class RealGenreRepository(
                 .sorted()
 
             if (originalFormattedAndDeduplicated != formattedAndDeduplicatedGenres) {
-                 updatedMetaDataList.add(songMeta.copy(genre = formattedAndDeduplicatedGenres))
+                updatedMetaDataList.add(songMeta.copy(genre = formattedAndDeduplicatedGenres))
                 changesMade = true
             } else {
                 updatedMetaDataList.add(songMeta) // No change, add original

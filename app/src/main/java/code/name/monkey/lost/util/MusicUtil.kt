@@ -39,7 +39,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Pattern
 import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
-import code.name.monkey.lost.model.SongMetaData
 
 
 object MusicUtil : KoinComponent {
@@ -53,7 +52,7 @@ object MusicUtil : KoinComponent {
                         context.applicationContext.packageName,
                         File(song.data)
                     )
-                } catch (e: IllegalArgumentException) {
+                } catch (_: IllegalArgumentException) {
                     getSongFileUri(song.id)
                 }
             )
@@ -77,7 +76,7 @@ object MusicUtil : KoinComponent {
                             context.applicationContext.packageName,
                             File(song_item.data)
                         )
-                    } catch (e: IllegalArgumentException) {
+                    } catch (_: IllegalArgumentException) {
                         getSongFileUri(song_item.id)
                     }
                 )
@@ -90,7 +89,7 @@ object MusicUtil : KoinComponent {
         if (string1.isNullOrEmpty()) {
             return if (string2.isNullOrEmpty()) "" else string2
         }
-        return if (string2.isNullOrEmpty()) if (string1.isNullOrEmpty()) "" else string1 else "$string1  •  $string2"
+        return if (string2.isNullOrEmpty()) if (string1.isEmpty()) "" else string1 else "$string1  •  $string2"
     }
 
     fun createAlbumArtFile(context: Context): File {
@@ -285,7 +284,7 @@ object MusicUtil : KoinComponent {
             if (musicMediaTitle.isEmpty()) {
                 ""
             } else musicMediaTitle.substring(0, 1).uppercase()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ""
         }
     }
@@ -406,7 +405,7 @@ object MusicUtil : KoinComponent {
     }
     
     private suspend fun updateSongMetaDataWithLikedStatus(song: Song, isLiked: Boolean) { // Removed context parameter
-        withContext(Dispatchers.IO) { // Perform file operations on IO dispatcher
+        withContext(IO) { // Perform file operations on IO dispatcher
             val metaDataList = MetaDataManagerHelper.getSongMetaDataList().toMutableList() // No context needed
             val songKey = getSongKeyForMetaData(song)
             val songMetaIndex = metaDataList.indexOfFirst { 
@@ -506,7 +505,7 @@ object MusicUtil : KoinComponent {
                     }
                     cursor.close()
                 }
-            } catch (ignored: SecurityException) {
+            } catch (_: SecurityException) {
 
             }
             activity.contentResolver.notifyChange("content://media".toUri(), null)
@@ -559,9 +558,9 @@ object MusicUtil : KoinComponent {
                             Log.e("MusicUtils", "Failed to delete file $name")
                         }
                         cursor.moveToNext()
-                    } catch (ex: SecurityException) {
+                    } catch (_: SecurityException) {
                         cursor.moveToNext()
-                    } catch (e: NullPointerException) {
+                    } catch (_: NullPointerException) {
                         Log.e("MusicUtils", "Failed to find file $name")
                     }
                 }
@@ -571,11 +570,13 @@ object MusicUtil : KoinComponent {
                 context.showToast(context.getString(R.string.deleted_x_songs, deletedCount))
             }
 
-        } catch (ignored: SecurityException) {
+        } catch (_: SecurityException) {
         }
     }
 
-    fun songByGenre(genreId: Long): Song {
-        return repository.getSongByGenre(genreId)
+    suspend fun songByGenre(genreId: Long): Song {
+        return withContext(IO) {
+            repository.getSongByGenre(genreId)
+        }
     }
 }

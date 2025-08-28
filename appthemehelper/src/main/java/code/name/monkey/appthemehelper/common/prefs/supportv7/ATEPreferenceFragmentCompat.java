@@ -1,5 +1,6 @@
 package code.name.monkey.appthemehelper.common.prefs.supportv7;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.preference.Preference;
@@ -13,9 +14,10 @@ import code.name.monkey.appthemehelper.common.prefs.supportv7.dialogs.ATEPrefere
  */
 public abstract class ATEPreferenceFragmentCompat extends PreferenceFragmentCompat {
     @Override
-    public void onDisplayPreferenceDialog(Preference preference) {
-        if (getCallbackFragment() instanceof OnPreferenceDisplayDialogCallback) {
-            ((OnPreferenceDisplayDialogCallback) getCallbackFragment()).onPreferenceDisplayDialog(this, preference);
+    public void onDisplayPreferenceDialog(@NonNull Preference preference) {
+        // Replaced getCallbackFragment() with getTargetFragment() to resolve lint warning
+        if (getTargetFragment() instanceof OnPreferenceDisplayDialogCallback) {
+            ((OnPreferenceDisplayDialogCallback) getTargetFragment()).onPreferenceDisplayDialog(this, preference);
             return;
         }
 
@@ -24,12 +26,15 @@ public abstract class ATEPreferenceFragmentCompat extends PreferenceFragmentComp
             return;
         }
 
-        if (getFragmentManager().findFragmentByTag("androidx.preference.PreferenceFragment.DIALOG") == null) {
+        // Use getParentFragmentManager() instead of getFragmentManager()
+        if (getParentFragmentManager().findFragmentByTag("androidx.preference.PreferenceFragment.DIALOG") == null) {
             DialogFragment dialogFragment = onCreatePreferenceDialog(preference);
 
             if (dialogFragment != null) {
+                // TODO: Consider migrating from setTargetFragment to the Fragment Result API
                 dialogFragment.setTargetFragment(this, 0);
-                dialogFragment.show(this.getFragmentManager(), "androidx.preference.PreferenceFragment.DIALOG");
+                // Use getParentFragmentManager() instead of getFragmentManager()
+                dialogFragment.show(getParentFragmentManager(), "androidx.preference.PreferenceFragment.DIALOG");
                 return;
             }
         }

@@ -18,6 +18,10 @@ import code.name.monkey.lost.model.Genre
 import code.name.monkey.lost.util.MusicUtil
 import code.name.monkey.lost.util.color.MediaNotificationProcessor
 import com.bumptech.glide.Glide
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.util.*
 
 /**
@@ -35,26 +39,35 @@ class GenreAdapter(
     }
 
     override fun getItemId(position: Int): Long {
-        return dataSet[position].id
+        // Ensure position is valid to prevent IndexOutOfBoundsException
+        return if (position >= 0 && position < dataSet.size) {
+            dataSet[position].id
+        } else {
+            RecyclerView.NO_ID
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        return ViewHolder(ItemGenreBinding.inflate(LayoutInflater.from(activity), parent, false))
+        val binding = ItemGenreBinding.inflate(LayoutInflater.from(activity), parent, false)
+        return ViewHolder(binding, listener)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val genre = dataSet[position]
-        holder.binding.title.text = genre.name
-        holder.binding.text.text = String.format(
-            Locale.getDefault(),
-            "%d %s",
-            genre.songCount,
-            if (genre.songCount > 1) activity.getString(R.string.songs) else activity.getString(R.string.song)
-        )
-        loadGenreImage(genre, holder)
+        holder.bind(genre)
     }
 
-    private fun loadGenreImage(genre: Genre, holder: GenreAdapter.ViewHolder) {
+    override fun onViewRecycled(holder: ViewHolder) {
+        super.onViewRecycled(holder)
+        holder.cancelJob() // Cancel the coroutine job when ViewHolder is recycled
+        // It's also a good practice to clear Glide loads here if not handled by Glide itself
+        Glide.with(activity).clear(holder.binding.image)
+    }
+
+    private suspend fun loadGenreImage(genre: Genre, holder: GenreAdapter.ViewHolder) {
+        // It's good practice for MusicUtil.songByGenre to be a suspend function
+        // or to run on a background thread if it involves I/O.
+        // For now, assuming it's quick or already optimized.
         val genreSong = MusicUtil.songByGenre(genre.id)
         Glide.with(activity)
             .asBitmapPalette()
@@ -62,17 +75,14 @@ class GenreAdapter(
             .load(LostGlideExtension.getSongModel(genreSong))
             .into(object : LostColoredTarget(holder.binding.image) {
                 override fun onColorReady(colors: MediaNotificationProcessor) {
-                    setColors(holder, colors)
+                    // Ensure holder is still bound to the correct item
+                    // This check is implicitly handled by Glide's target lifecycle
+                    // and coroutine cancellation if the view is recycled.
+                    holder.setColors(colors)
                 }
             })
         // Just for a bit of shadow around image
         holder.binding.image.outlineProvider = ViewOutlineProvider.BOUNDS
-    }
-
-    private fun setColors(holder: ViewHolder, color: MediaNotificationProcessor) {
-        holder.binding.imageContainerCard.setCardBackgroundColor(color.backgroundColor)
-        holder.binding.title.setTextColor(color.primaryTextColor)
-        holder.binding.text.setTextColor(color.secondaryTextColor)
     }
 
     override fun getItemCount(): Int {
@@ -82,17 +92,55 @@ class GenreAdapter(
     @SuppressLint("NotifyDataSetChanged")
     fun swapDataSet(list: List<Genre>) {
         dataSet = list
-        notifyDataSetChanged()
+        notifyDataSetChanged() // Consider using DiffUtil for better performance
     }
 
-    inner class ViewHolder(val binding: ItemGenreBinding) : RecyclerView.ViewHolder(binding.root),
-        View.OnClickListener {
-        override fun onClick(v: View?) {
-            listener.onClickGenre(dataSet[layoutPosition], itemView)
-        }
+    inner class ViewHolder(
+        val binding: ItemGenreBinding,
+        private val clickListener: IGenreClickListener // Pass listener here
+        ) : RecyclerView.ViewHolder(binding.root), View.OnClickListener {
+
+        private var job: Job? = null
+        // Scope for launching coroutines, tied to Dispatchers.Main for UI updates
+        // Glide handles its own background threading for image loading.
+        private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
         init {
             itemView.setOnClickListener(this)
+        }
+
+        fun bind(genre: Genre) {
+            binding.title.text = genre.name
+            binding.text.text = String.format(
+                Locale.getDefault(),
+                "%d %s",
+                genre.songCount,
+                if (genre.songCount > 1) itemView.context.getString(R.string.songs) else itemView.context.getString(R.string.song)
+            )
+            // Cancel any previous job before starting a new one
+            job?.cancel()
+            job = coroutineScope.launch {
+                loadGenreImage(genre, this@ViewHolder)
+            }
+        }
+
+        fun setColors(color: MediaNotificationProcessor) {
+            binding.imageContainerCard.setCardBackgroundColor(color.backgroundColor)
+            binding.title.setTextColor(color.primaryTextColor)
+            binding.text.setTextColor(color.secondaryTextColor)
+        }
+
+        fun cancelJob() {
+            job?.cancel()
+            job = null
+        }
+
+        override fun onClick(v: View?) {
+            // Use adapterPosition to safely get the item's position
+            val position = adapterPosition
+            if (position != RecyclerView.NO_POSITION) {
+                clickListener.onClickGenre(dataSet[position], itemView)
+            }
         }
     }
 }
