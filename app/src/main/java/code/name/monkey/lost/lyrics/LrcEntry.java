@@ -14,6 +14,7 @@
 
 package code.name.monkey.lost.lyrics;
 
+import android.os.Build; // Added import
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -45,22 +46,23 @@ class LrcEntry implements Comparable<LrcEntry> {
   }
 
   void init(TextPaint paint, int width, int gravity) {
-    Layout.Alignment align;
-    switch (gravity) {
-      case GRAVITY_LEFT:
-        align = Layout.Alignment.ALIGN_NORMAL;
-        break;
+    Layout.Alignment align = switch (gravity) {
+        case GRAVITY_LEFT -> Layout.Alignment.ALIGN_NORMAL;
+        case GRAVITY_RIGHT -> Layout.Alignment.ALIGN_OPPOSITE;
+        default -> Layout.Alignment.ALIGN_CENTER;
+    };
 
-      default:
-      case GRAVITY_CENTER:
-        align = Layout.Alignment.ALIGN_CENTER;
-        break;
-
-      case GRAVITY_RIGHT:
-        align = Layout.Alignment.ALIGN_OPPOSITE;
-        break;
+      String currentText = getShowText();
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        staticLayout = StaticLayout.Builder.obtain(currentText, 0, currentText.length(), paint, width)
+                .setAlignment(align)
+                .setLineSpacing(0f, 1f) // spacingadd, spacingmult
+                .setIncludePad(false)
+                .build();
+    } else {
+        //noinspection deprecation
+        staticLayout = new StaticLayout(currentText, paint, width, align, 1f, 0f, false);
     }
-    staticLayout = new StaticLayout(getShowText(), paint, width, align, 1f, 0f, false);
 
     offset = Float.MIN_VALUE;
   }

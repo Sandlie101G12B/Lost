@@ -58,7 +58,7 @@ GenresFragment : AbsRecyclerViewFragment<GenreAdapter, LinearLayoutManager>(),
 
     override fun onResume() {
         super.onResume()
-        libraryViewModel.forceReload(ReloadType.Genres)
+        libraryViewModel.forceReload(ReloadType.Genres) // Data will be loaded on initial observation
     }
 
 

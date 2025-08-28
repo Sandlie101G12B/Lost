@@ -16,6 +16,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import java.io.File
 import java.io.IOException
+import java.util.Locale // Added for genre normalization
 
 object MetaDataManagerHelper : KoinComponent {
 
@@ -69,16 +70,36 @@ object MetaDataManagerHelper : KoinComponent {
             // Handle error (e.g., log it, show a toast if on main thread, though this is background)
         }
     }
-    
-    // Public function to write raw output, updates cache and writes to file (can be immediate)
+
+    private fun normalizeGenreName(genre: String): String {
+        return genre
+            .replace("&", "and")
+            .replace(Regex("-"), " ") // Hyphen to space
+            .split(Regex("\\s+")) // Split by one or more spaces
+            .filter { it.isNotBlank() } // Remove empty strings if any
+            .map { word ->
+                word.lowercase(Locale.ROOT)
+                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+            }
+            .joinToString("-") // Join title-cased words with a hyphen
+    }
+
+    // Public function to write raw output, updates cache and writes to file
     fun writeRawOutputFile(content: String) {
-        // Update cache first
         val newMetaDataList = parseSongMetaDataJson(content)
-        synchronized(cacheLock) {
-            cachedSongMetaDataList = newMetaDataList
+        // Normalize genres after parsing
+        val normalizedMetaDataList = newMetaDataList.map { songMetaData ->
+            val normalizedGenres = songMetaData.genre.map { genreName ->
+                normalizeGenreName(genreName)
+            }.distinct()
+            songMetaData.copy(genre = normalizedGenres)
         }
-        // Then write to file (immediately in this case, or could be background)
-        internalWriteRawOutputFile(content)
+        synchronized(cacheLock) {
+            cachedSongMetaDataList = normalizedMetaDataList // Update cache with normalized data
+        }
+        // Write the *normalized* content back to the file
+        val normalizedJsonString = Gson().toJson(normalizedMetaDataList)
+        internalWriteRawOutputFile(normalizedJsonString)
     }
 
 
@@ -94,7 +115,7 @@ object MetaDataManagerHelper : KoinComponent {
                         artists = (rawMap["artists"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         file = rawMap["file"] as? String ?: "",
                         mood = (rawMap["mood"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-                        genre = (rawMap["genre"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                        genre = (rawMap["genre"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(), // Read as is
                         playlist = (rawMap["playlist"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                         year = rawMap["year"] as? String ?: "",
                         liked = rawMap["liked"] as? Boolean ?: false,
@@ -125,31 +146,46 @@ object MetaDataManagerHelper : KoinComponent {
     fun getSongMetaDataList(): List<SongMetaData> {
         synchronized(cacheLock) {
             cachedSongMetaDataList?.let {
-                return it
+                return it // Already normalized if it came from writeRawOutputFile or saveSongMetaDataList
             }
         }
         // Cache is null, read from file, parse, and populate cache
         val jsonString = readRawOutputFile()
-        val listFromFile = parseSongMetaDataJson(jsonString)
-        synchronized(cacheLock) {
-            cachedSongMetaDataList = listFromFile
+        val listFromFile = parseSongMetaDataJson(jsonString) // parseSongMetaDataJson itself doesn't normalize
+
+        // Normalize after reading if the cache was empty
+        val normalizedListFromFile = listFromFile.map { songMetaData ->
+            val normalizedGenres = songMetaData.genre.map { genreName ->
+                normalizeGenreName(genreName)
+            }.distinct()
+            songMetaData.copy(genre = normalizedGenres)
         }
-        return listFromFile
+
+        synchronized(cacheLock) {
+            cachedSongMetaDataList = normalizedListFromFile
+        }
+        return normalizedListFromFile
     }
 
     fun saveSongMetaDataList(dataList: List<SongMetaData>) {
-        // Update cache immediately
+        // Normalize genres before caching and saving
+        val normalizedDataList = dataList.map { songMetaData ->
+            val normalizedGenres = songMetaData.genre.map { genreName ->
+                normalizeGenreName(genreName)
+            }.distinct()
+            songMetaData.copy(genre = normalizedGenres)
+        }
+
         synchronized(cacheLock) {
-            cachedSongMetaDataList = dataList
+            cachedSongMetaDataList = normalizedDataList // Update cache with normalized data
         }
         // Launch a coroutine to save to file in the background
         coroutineScope.launch {
             try {
-                val jsonString = Gson().toJson(dataList)
-                internalWriteRawOutputFile(jsonString) // Use the internal write function
+                val jsonString = Gson().toJson(normalizedDataList) // Serialize normalized data
+                internalWriteRawOutputFile(jsonString)
             } catch (e: Exception) {
                 Log.e("MetaDataManagerHelper", "Error saving SongMetaData list in background", e)
-                // Handle error (e.g., retry logic, notify user through other means)
             }
         }
     }
@@ -164,8 +200,7 @@ object MetaDataManagerHelper : KoinComponent {
         recordPlay: Boolean = false,
         recordSkip: Boolean = false
     ) {
-        // Get the list (potentially from cache)
-        val currentList = getSongMetaDataList()
+        val currentList = getSongMetaDataList() // This will return a list with normalized genres
         val songIndex = currentList.indexOfFirst { it.file == filePath }
 
         if (songIndex != -1) {
@@ -200,7 +235,7 @@ object MetaDataManagerHelper : KoinComponent {
             if (updatedMetaData !== songMetaData) {
                 val mutableList = currentList.toMutableList()
                 mutableList[songIndex] = updatedMetaData
-                saveSongMetaDataList(mutableList.toList()) // Save the modified list (triggers cache update and background write)
+                saveSongMetaDataList(mutableList.toList()) // Save the modified list (triggers cache update, normalization, and background write)
             }
         } else {
             Log.w("MetaDataManagerHelper", "No metadata found for song with file path: $filePath to update interaction.")
@@ -208,16 +243,15 @@ object MetaDataManagerHelper : KoinComponent {
     }
 
     suspend fun reconcileLikedStatusWithLibrary(allSongsFromLibrary: List<Song>) = withContext(Dispatchers.IO) {
-        val playlistRepository: RealPlaylistRepository = get() // Assuming get() is fine in withContext(Dispatchers.IO)
+        val playlistRepository: RealPlaylistRepository = get()
         
-        // Get the list (potentially from cache, but work on a mutable copy)
-        val currentMetaDataList = getSongMetaDataList() 
+        val currentMetaDataList = getSongMetaDataList() // Already normalized genres
         val mutableMetaDataList = currentMetaDataList.toMutableList()
         var changesMade = false
 
-        val favoritePlaylists = playlistRepository.searchPlaylist("Favorites") // This might involve DB/IO
+        val favoritePlaylists = playlistRepository.searchPlaylist("Favorites")
         val favoriteSongFilePaths = if (favoritePlaylists.isNotEmpty()) {
-            favoritePlaylists.first().getSongs().map { it.data }.toSet() // getSongs() might involve DB/IO
+            favoritePlaylists.first().getSongs().map { it.data }.toSet()
         } else {
             emptySet()
         }
@@ -244,14 +278,14 @@ object MetaDataManagerHelper : KoinComponent {
                  mutableMetaDataList[index] = songMetaData.copy(
                     liked = tempLikedStatus,
                     likedTimestamp = tempLikedTimestamp
+                    // Genres are already normalized from getSongMetaDataList and in songMetaData
                 )
                 changesMade = true
             }
         }
 
         if (changesMade) {
-            // Save the modified list (this will update cache and trigger background write)
-            saveSongMetaDataList(mutableMetaDataList.toList()) 
+            saveSongMetaDataList(mutableMetaDataList.toList()) // This will handle re-normalization just in case, cache, and write
             Log.i("MetaDataManagerHelper", "Reconciled liked status with Favorites playlist. Changes saved.")
         } else {
             Log.i("MetaDataManagerHelper", "Reconciled liked status with Favorites playlist. No changes needed.")
