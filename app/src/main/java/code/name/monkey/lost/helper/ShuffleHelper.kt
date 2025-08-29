@@ -62,7 +62,6 @@ object ShuffleHelper {
     private var metadataMap: Map<String, SongMetaData>? = null
     private fun loadMetadataMap(): Map<String, SongMetaData> {
         if (metadataMap != null) return metadataMap!!
-
         val defaultSongsJson = SongDataManager.defaultSongsJson
         val listType = object : TypeToken<List<SongMetaData>>() {}.type
         val metadataList: List<SongMetaData> = Gson().fromJson(defaultSongsJson, listType)
@@ -77,6 +76,12 @@ object ShuffleHelper {
 
         val metadata = loadMetadataMap()
         val currentSong = listToShuffle.removeAt(current)
+        // After removing currentSong, listToShuffle might become empty.
+        // If it's empty, we can just add currentSong back and return.
+        if (listToShuffle.isEmpty()) {
+            listToShuffle.add(0, currentSong)
+            return
+        }
         val currentMeta = metadata[getSongKey(currentSong)]
         val hasAnyMetadata = listToShuffle.any { metadata[getSongKey(it)] != null }
 
@@ -128,21 +133,36 @@ object ShuffleHelper {
             .groupBy { it.second } // Group by the (potentially smoothed) score
             .toSortedMap(compareByDescending { it }) // Sort groups by score descending
             .flatMap { (_, group) -> group.shuffled().map { it.first } } // Shuffle within score groups
+        
         val extraRandomized = smartShuffled.toMutableList()
-        val swapRange = Random.nextInt(2,5)
-        val swaps = (extraRandomized.size / 7).coerceAtLeast(1)
-        repeat(swaps) {
-            val i = (1 until extraRandomized.size).random()
-            // Only swap with a song within 3 positions away
-            val minJ = (i - swapRange).coerceAtLeast(1)
-            val maxJ = (i + swapRange).coerceAtMost(extraRandomized.size - 1)
-            if (maxJ > minJ) {
-                val j = (minJ..maxJ).filter { it != i }.random()
-                val tmp = extraRandomized[i]
-                extraRandomized[i] = extraRandomized[j]
-                extraRandomized[j] = tmp
+        // Ensure extraRandomized has enough elements for swapping logic
+        if (extraRandomized.size > 1) {
+            val swapRange = Random.nextInt(2,5)
+            // Ensure swaps is at least 1 only if there are enough elements to perform a meaningful swap.
+            val swaps = if (extraRandomized.size > 1) (extraRandomized.size / 7).coerceAtLeast(1) else 0
+
+            if (swaps > 0) { // Only proceed if swaps > 0
+                repeat(swaps) {
+                    // Check if extraRandomized.size is > 1 before calling random()
+                    if (extraRandomized.size <= 1) return@repeat // Not enough elements to pick 'i' from (1 until size)
+
+                    val i = (1 until extraRandomized.size).random()
+                    val minJ = (i - swapRange).coerceAtLeast(1)
+                    val maxJ = (i + swapRange).coerceAtMost(extraRandomized.size - 1)
+
+                    if (maxJ > minJ) {
+                        val possibleJs = (minJ..maxJ).filter { it != i }
+                        if (possibleJs.isNotEmpty()) { // Check if filter results in non-empty list
+                            val j = possibleJs.random()
+                            val tmp = extraRandomized[i]
+                            extraRandomized[i] = extraRandomized[j]
+                            extraRandomized[j] = tmp
+                        }
+                    }
+                }
             }
         }
+
         listToShuffle.clear()
         listToShuffle.add(currentSong)
         listToShuffle.addAll(extraRandomized)

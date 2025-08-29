@@ -41,16 +41,17 @@ class RealGenreRepository(
         val trimmedName = genreName.trim()
         if (trimmedName.isEmpty()) return "" // Return empty if input is blank after trim
         return trimmedName
-            .replace("afrohouse", "afro-house")
-            .replace("afropop", "afro-pop")
-            .replace("afroswing", "afro-swing")
-            .replace("afrosoul", "afro-soul")
-            .replace("afrofunk", "afro-funk")
-            .replace("afrosinger", "afro-singer")
-            .replace("afrofusion", "afro-fusion")
-            .replace("afrobeat", "afro-beat")
-            .replace("afrobeats", "afro-beats")
-            .replace("afrotrap", "afro-trap")
+            .lowercase()
+            .replace("afrohouse", "Afro-house")
+            .replace("afropop", "Afro-pop")
+            .replace("afroswing", "Afro-swing")
+            .replace("afrosoul", "Afro-soul")
+            .replace("afrofunk", "Afro-funk")
+            .replace("afrosinger", "Afro-singer")
+            .replace("afrofusion", "Afro-fusion")
+            .replace("afrobeat", "Afro-beat")
+            .replace("afrobeats", "Afro-beats")
+            .replace("afrotrap", "Afro-trap")
             .replace("&", "and") // Replace & with 'and'
             .replace(Regex("-"), " ")
             .split(Regex("\\s+")) // Split by one or more spaces
