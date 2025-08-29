@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
+import androidx.collection.LruCache
 import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.RecyclerView
 import code.name.monkey.lost.R
@@ -15,6 +16,7 @@ import code.name.monkey.lost.glide.LostGlideExtension.songCoverOptions
 import code.name.monkey.lost.glide.LostColoredTarget
 import code.name.monkey.lost.interfaces.IGenreClickListener
 import code.name.monkey.lost.model.Genre
+import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.util.MusicUtil
 import code.name.monkey.lost.util.color.MediaNotificationProcessor
 import com.bumptech.glide.Glide
@@ -33,6 +35,8 @@ class GenreAdapter(
     var dataSet: List<Genre>,
     private val listener: IGenreClickListener
 ) : RecyclerView.Adapter<GenreAdapter.ViewHolder>() {
+
+    private val colorCache = LruCache<Long, MediaNotificationProcessor>(CACHE_SIZE)
 
     init {
         this.setHasStableIds(true)
@@ -60,27 +64,38 @@ class GenreAdapter(
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
         holder.cancelJob() // Cancel the coroutine job when ViewHolder is recycled
-        // It's also a good practice to clear Glide loads here if not handled by Glide itself
         Glide.with(activity).clear(holder.binding.image)
     }
 
-    private suspend fun loadGenreImage(genre: Genre, holder: GenreAdapter.ViewHolder) {
-        // It's good practice for MusicUtil.songByGenre to be a suspend function
-        // or to run on a background thread if it involves I/O.
-        // For now, assuming it's quick or already optimized.
-        val genreSong = MusicUtil.songByGenre(genre.id)
-        Glide.with(activity)
-            .asBitmapPalette()
-            .songCoverOptions(genreSong)
-            .load(LostGlideExtension.getSongModel(genreSong))
-            .into(object : LostColoredTarget(holder.binding.image) {
-                override fun onColorReady(colors: MediaNotificationProcessor) {
-                    // Ensure holder is still bound to the correct item
-                    // This check is implicitly handled by Glide's target lifecycle
-                    // and coroutine cancellation if the view is recycled.
-                    holder.setColors(colors)
-                }
-            })
+    private suspend fun loadGenreImage(genre: Genre, holder: ViewHolder) {
+        val genreSong: Song = MusicUtil.songByGenre(genre.id) // Assuming this can return a dummy/empty Song if not found
+        val cachedColors = colorCache[genre.id]
+
+        if (cachedColors != null) {
+            holder.setColors(cachedColors)
+            Glide.with(activity)
+                .asBitmap() // Explicitly request Bitmap
+                .songCoverOptions(genreSong)
+                .load(LostGlideExtension.getSongModel(genreSong))
+                .into(holder.binding.image)
+        } else {
+            Glide.with(activity)
+                .asBitmapPalette()
+                .songCoverOptions(genreSong)
+                .load(LostGlideExtension.getSongModel(genreSong))
+                .into(object : LostColoredTarget(holder.binding.image) {
+                    override fun onColorReady(colors: MediaNotificationProcessor) {
+                        val currentPosition = holder.bindingAdapterPosition
+                        if (currentPosition != RecyclerView.NO_POSITION && currentPosition < dataSet.size) {
+                            val currentGenreId = dataSet[currentPosition].id
+                            if (currentGenreId == genre.id) {
+                                colorCache.put(genre.id, colors)
+                                holder.setColors(colors)
+                            }
+                        }
+                    }
+                })
+        }
         // Just for a bit of shadow around image
         holder.binding.image.outlineProvider = ViewOutlineProvider.BOUNDS
     }
@@ -92,17 +107,16 @@ class GenreAdapter(
     @SuppressLint("NotifyDataSetChanged")
     fun swapDataSet(list: List<Genre>) {
         dataSet = list
+        colorCache.evictAll() // Clear color cache when data set changes
         notifyDataSetChanged() // Consider using DiffUtil for better performance
     }
 
     inner class ViewHolder(
         val binding: ItemGenreBinding,
         private val clickListener: IGenreClickListener // Pass listener here
-        ) : RecyclerView.ViewHolder(binding.root), View.OnClickListener {
+    ) : RecyclerView.ViewHolder(binding.root), View.OnClickListener {
 
         private var job: Job? = null
-        // Scope for launching coroutines, tied to Dispatchers.Main for UI updates
-        // Glide handles its own background threading for image loading.
         private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
         init {
@@ -117,7 +131,6 @@ class GenreAdapter(
                 genre.songCount,
                 if (genre.songCount > 1) itemView.context.getString(R.string.songs) else itemView.context.getString(R.string.song)
             )
-            // Cancel any previous job before starting a new one
             job?.cancel()
             job = coroutineScope.launch {
                 loadGenreImage(genre, this@ViewHolder)
@@ -136,11 +149,14 @@ class GenreAdapter(
         }
 
         override fun onClick(v: View?) {
-            // Use adapterPosition to safely get the item's position
-            val position = adapterPosition
+            val position = bindingAdapterPosition
             if (position != RecyclerView.NO_POSITION) {
                 clickListener.onClickGenre(dataSet[position], itemView)
             }
         }
+    }
+
+    companion object {
+        private const val CACHE_SIZE = 50 // Define a reasonable cache size
     }
 }

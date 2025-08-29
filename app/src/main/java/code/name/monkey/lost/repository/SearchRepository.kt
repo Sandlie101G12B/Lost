@@ -68,15 +68,15 @@ class RealSearchRepository(
             }
 
             /** Genres **/
-//            val genres: List<Genre> = if (filter == Filter.GENRES || filter == Filter.NO_FILTER) {
-//                genreRepository.genres(query)
-//            } else {
-//                emptyList()
-//            }
-//            if (genres.isNotEmpty()) {
-//                results.add(context.resources.getString(R.string.genres))
-//                results.addAll(genres)
-//            }
+            val genres: List<Genre> = if (filter == Filter.GENRES || filter == Filter.NO_FILTER) {
+                genreRepository.genres(query)
+            } else {
+                emptyList()
+            }
+            if (genres.isNotEmpty()) {
+                results.add(context.resources.getString(R.string.genres))
+                results.addAll(genres)
+            }
 
             /** Playlists **/
             val playlist: List<PlaylistWithSongs> =

@@ -17,6 +17,7 @@ import org.koin.core.component.get
 import java.io.File
 import java.io.IOException
 import java.util.Locale // Added for genre normalization
+import code.name.monkey.lost.repository.RealGenreRepository
 
 object MetaDataManagerHelper : KoinComponent {
 
