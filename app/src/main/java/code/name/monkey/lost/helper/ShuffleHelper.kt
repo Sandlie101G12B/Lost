@@ -286,7 +286,7 @@ object ShuffleHelper {
 
         // 2. Genre Matching
         val commonGenres = a.genre.intersect(b.genre.toSet())
-        val genreScore = commonGenres.size * Random.nextInt(8, 20)
+        val genreScore = commonGenres.size * Random.nextInt(10, 20)
 
         // 3. Mood Matching
         val commonMoods = a.mood.intersect(b.mood.toSet())
