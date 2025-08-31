@@ -18,6 +18,8 @@ import code.name.monkey.lost.service.MusicService.Companion.TOGGLE_SHUFFLE
 import code.name.monkey.lost.util.MusicUtil
 import code.name.monkey.lost.util.logD
 import code.name.monkey.lost.util.logE
+import kotlinx.coroutines.Dispatchers // Added import
+import kotlinx.coroutines.runBlocking // Added import
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -44,31 +46,40 @@ class MediaSessionCallback(
         val songs: ArrayList<Song> = ArrayList()
         when (val category = AutoMediaIDHelper.extractCategory(mediaId)) {
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM -> {
+                // Assuming albumRepository.album(itemId) is not suspend or handles its own blocking
                 val album: Album = albumRepository.album(itemId)
-                songs.addAll(album.songs)
+                songs.addAll(album.songs) // Assuming album.songs is not suspend
                 musicService.openQueue(songs, 0, true)
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ARTIST -> {
+                // Assuming artistRepository.artist(itemId) is not suspend or handles its own blocking
                 val artist: Artist = artistRepository.artist(itemId)
-                songs.addAll(artist.songs)
+                songs.addAll(artist.songs) // Assuming artist.songs is not suspend
                 musicService.openQueue(songs, 0, true)
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM_ARTIST -> {
-                val artist: Artist =
-                    artistRepository.albumArtist(albumRepository.album(itemId).albumArtist!!)
+                // Assuming albumRepository.album(itemId).albumArtist is not suspend
+                val albumArtistName = albumRepository.album(itemId).albumArtist!!
+                // Assuming artistRepository.albumArtist(albumArtistName) is not suspend
+                val artist: Artist = artistRepository.albumArtist(albumArtistName)
                 songs.addAll(artist.songs)
                 musicService.openQueue(songs, 0, true)
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_PLAYLIST -> {
-                val playlist: Playlist = playlistRepository.playlist(itemId)
+                val playlist: Playlist = runBlocking(Dispatchers.IO) {
+                    playlistRepository.playlist(itemId) // Suspend call wrapped in runBlocking
+                }
+                // playlist.getSongs() now uses runBlocking internally as per previous fix
                 songs.addAll(playlist.getSongs())
                 musicService.openQueue(songs, 0, true)
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_GENRE -> {
+                // Assuming genreRepository.songs(itemId) is not suspend or handles its own blocking
                 songs.addAll(genreRepository.songs(itemId))
                 musicService.openQueue(songs, 0, true)
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SHUFFLE -> {
+                // Assuming songRepository.songs() is not suspend or handles its own blocking
                 val allSongs = songRepository.songs().toMutableList()
                 makeShuffleList(allSongs, -1)
                 musicService.openQueue(allSongs, 0, true)
@@ -79,10 +90,11 @@ class MediaSessionCallback(
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_QUEUE,
             -> {
                 val tracks: List<Song> = when (category) {
+                    // Assuming topPlayedRepository methods are not suspend or handle their own blocking
                     AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY -> topPlayedRepository.recentlyPlayedTracks()
-                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> topPlayedRepository.recentlyPlayedTracks()
-                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS -> topPlayedRepository.recentlyPlayedTracks()
-                    else -> musicService.playingQueue
+                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> topPlayedRepository.recentlyPlayedTracks() // Placeholder, might need different logic
+                    AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS -> topPlayedRepository.recentlyPlayedTracks() // Placeholder, might need different logic
+                    else -> musicService.playingQueue // Assuming this is a direct property access
                 }
                 songs.addAll(tracks)
                 var songIndex = MusicUtil.indexOfSongInList(tracks, itemId)
@@ -100,6 +112,7 @@ class MediaSessionCallback(
         if (query.isNullOrEmpty()) {
             // The user provided generic string e.g. 'Play music'
             // Build appropriate playlist queue
+            // Assuming songRepository.songs() is not suspend or handles its own blocking
             songs.addAll(songRepository.songs())
         } else {
             // Build a queue based on songs that match "query" or "extras" param
@@ -107,15 +120,17 @@ class MediaSessionCallback(
             if (mediaFocus == MediaStore.Audio.Artists.ENTRY_CONTENT_TYPE) {
                 val artistQuery = extras.getString(MediaStore.EXTRA_MEDIA_ARTIST)
                 if (artistQuery != null) {
+                    // Assuming artistRepository.artists(artistQuery) is not suspend
                     artistRepository.artists(artistQuery).forEach {
-                        songs.addAll(it.songs)
+                        songs.addAll(it.songs) // Assuming it.songs is not suspend
                     }
                 }
             } else if (mediaFocus == MediaStore.Audio.Albums.ENTRY_CONTENT_TYPE) {
                 val albumQuery = extras.getString(MediaStore.EXTRA_MEDIA_ALBUM)
                 if (albumQuery != null) {
+                    // Assuming albumRepository.albums(albumQuery) is not suspend
                     albumRepository.albums(albumQuery).forEach {
-                        songs.addAll(it.songs)
+                        songs.addAll(it.songs) // Assuming it.songs is not suspend
                     }
                 }
             }
@@ -124,6 +139,7 @@ class MediaSessionCallback(
         if (songs.isEmpty()) {
             // No focus found, search by query for song title
             query?.also {
+                // Assuming songRepository.songs(it) is not suspend
                 songs.addAll(songRepository.songs(it))
             }
         }

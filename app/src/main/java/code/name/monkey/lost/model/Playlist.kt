@@ -2,11 +2,14 @@ package code.name.monkey.lost.model
 
 import android.content.Context
 import android.os.Parcelable
-import code.name.monkey.lost.repository.RealPlaylistRepository
+import code.name.monkey.lost.repository.PlaylistRepository // Changed from RealPlaylistRepository
 import code.name.monkey.lost.util.MusicUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
+import org.koin.core.component.inject // Added for DI
 
 @Parcelize
 open class Playlist(
@@ -14,16 +17,24 @@ open class Playlist(
     val name: String
 ) : Parcelable, KoinComponent {
 
+    // Inject PlaylistRepository instead of creating RealPlaylistRepository manually
+    @IgnoredOnParcel
+    private val playlistRepository: PlaylistRepository by inject()
+
     companion object {
         val empty = Playlist(-1, "")
     }
 
     // this default implementation covers static playlists
-    fun getSongs(): List<Song> {
-        return RealPlaylistRepository(get()).playlistSongs(id)
+    open fun getSongs(): List<Song> {
+        // Use runBlocking to call the suspend function from a non-suspend context
+        return runBlocking(Dispatchers.IO) {
+            playlistRepository.playlistSongs(id)
+        }
     }
 
     open fun getInfoString(context: Context): String {
+        // If getSongs() is called here, it will now correctly use runBlocking
         val songCount = getSongs().size
         val songCountString = MusicUtil.getSongCountString(context, songCount)
         return MusicUtil.buildInfoString(

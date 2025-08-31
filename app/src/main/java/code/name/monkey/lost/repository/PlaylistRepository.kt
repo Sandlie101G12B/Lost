@@ -4,197 +4,427 @@ package code.name.monkey.lost.repository
 
 import android.content.ContentResolver
 import android.database.Cursor
-import android.provider.MediaStore.Audio.AudioColumns
 import android.provider.MediaStore.Audio.Playlists.*
+import android.provider.MediaStore.Audio.AudioColumns
+import androidx.core.database.getStringOrNull
 import code.name.monkey.lost.Constants
-import code.name.monkey.lost.extensions.getInt
-import code.name.monkey.lost.extensions.getLong
-import code.name.monkey.lost.extensions.getString
-import code.name.monkey.lost.extensions.getStringOrNull
+import code.name.monkey.lost.db.PlaylistDao
+import code.name.monkey.lost.db.PlaylistEntity
+import code.name.monkey.lost.db.SongEntity
+import code.name.monkey.lost.helper.AutomaticPlaylistGenerator
+import code.name.monkey.lost.helper.MetaDataManagerHelper
 import code.name.monkey.lost.model.Playlist
-import code.name.monkey.lost.model.PlaylistSong
 import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.model.SongMetaData
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
+// Interface remains the same
 interface PlaylistRepository {
     fun playlist(cursor: Cursor?): Playlist
-
-    fun searchPlaylist(query: String): List<Playlist>
-
-    fun playlist(playlistName: String): Playlist
-
-    fun playlists(): List<Playlist>
-
-    fun playlists(cursor: Cursor?): List<Playlist>
-
-    fun favoritePlaylist(playlistName: String): List<Playlist>
-
-    fun deletePlaylist(playlistId: Long)
-
-    fun playlist(playlistId: Long): Playlist
-
-    fun playlistSongs(playlistId: Long): List<Song>
+    suspend fun searchPlaylist(query: String): List<Playlist>
+    suspend fun playlist(playlistName: String): Playlist
+    suspend fun playlists(): List<Playlist>
+    fun playlists(cursor: Cursor?): List<Playlist> // MediaStore specific
+    suspend fun favoritePlaylist(playlistName: String): List<Playlist>
+    suspend fun deletePlaylist(playlistId: Long, playlistName: String?)
+    suspend fun playlist(playlistId: Long): Playlist
+    suspend fun playlistSongs(playlistId: Long, playlistNameHint: String? = null): List<Song>
 }
-@Suppress("Deprecation")
+
+// Configuration for an automatic playlist type
+private data class AutomaticPlaylistDefinition(
+    val baseName: String,
+    val generator: suspend (meta: List<SongMetaData>, songs: List<Song>) -> AutomaticPlaylistGenerator.PlaylistBlueprint?
+)
+
+@Suppress("Deprecation") // For MediaStore.Audio.Playlists usage
 class RealPlaylistRepository(
-    private val contentResolver: ContentResolver
-) : PlaylistRepository {
+    private val contentResolver: ContentResolver // ContentResolver is typically context-dependent
+) : PlaylistRepository, KoinComponent { // Added KoinComponent
+
+    // Injected dependencies
+    private val playlistDao: PlaylistDao by inject()
+    private val songRepository: SongRepository by inject()
+    private val metaDataManagerHelper: MetaDataManagerHelper by inject()
+
+    private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val autoPlaylistUpdateMutex = Mutex()
+    private var lastAutoDbCheckMs: Long = 0
+    private val autoDbCheckCooldownMs = TimeUnit.MINUTES.toMillis(60)
+
+    companion object {
+        private const val AUTO_PREFIX = "[AUTO] "
+        private val DATE_FORMATTER = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        private const val MEDIA_STORE_PLAYLIST_ID_THRESHOLD: Long = 0
+    }
+
+    private val automaticPlaylistDefinitions: List<AutomaticPlaylistDefinition> by lazy {
+        listOf(
+            AutomaticPlaylistDefinition("Throwback 2000") { meta, songs -> AutomaticPlaylistGenerator.generateThrowbackPlaylist(meta, songs, 2000) },
+            AutomaticPlaylistDefinition("Throwback 1990") { meta, songs -> AutomaticPlaylistGenerator.generateThrowbackPlaylist(meta, songs, 1990) },
+            AutomaticPlaylistDefinition("Decade Rewind 80s") { meta, songs -> AutomaticPlaylistGenerator.generateDecadeRewindPlaylist(meta, songs, 1980, 1989) },
+            AutomaticPlaylistDefinition("High Energy") { meta, songs -> AutomaticPlaylistGenerator.generateHighEnergyPlaylist(meta, songs) },
+            AutomaticPlaylistDefinition("Liked Songs Radio") { meta, songs -> AutomaticPlaylistGenerator.generateLikedSongsRadio(meta, songs) }
+            // Add more definitions as needed
+        )
+    }
+
+    init {
+        println("[PlaylistRepo] Initialized RealPlaylistRepository instance.")
+        // repositoryScope.launch { ensureDailyAutomaticPlaylistsInDb() } // Consider calling this strategically
+    }
+
+    private fun getCurrentDateString(): String = DATE_FORMATTER.format(Date())
+
+    private fun songToSongEntity(song: Song, playlistDbId: Long): SongEntity {
+        return SongEntity(
+            playlistCreatorId = playlistDbId,
+            id = song.id,
+            title = song.title,
+            trackNumber = song.trackNumber,
+            year = song.year,
+            duration = song.duration,
+            data = song.data,
+            dateModified = song.dateModified,
+            albumId = song.albumId,
+            albumName = song.albumName,
+            artistId = song.artistId,
+            artistName = song.artistName,
+            composer = song.composer,
+            albumArtist = song.albumArtist // Assuming Song model has albumArtistName
+        )
+    }
+
+    private fun songEntityToSong(entity: SongEntity): Song {
+        return Song(
+            id = entity.id,
+            title = entity.title,
+            trackNumber = entity.trackNumber,
+            year = entity.year,
+            duration = entity.duration,
+            data = entity.data,
+            dateModified = entity.dateModified,
+            albumId = entity.albumId,
+            albumName = entity.albumName,
+            artistId = entity.artistId,
+            artistName = entity.artistName,
+            composer = entity.composer ?: "",
+            albumArtist = entity.albumArtist ?: ""
+        )
+    }
+
+    private suspend fun playlistEntityToPlaylist(entity: PlaylistEntity): Playlist {
+        return Playlist(id = entity.playListId, name = entity.playlistName)
+    }
+
+    private suspend fun resolveSongPathsToSongs(
+        songFilePaths: List<String>,
+        allLibrarySongs: List<Song>
+    ): List<Song> {
+        if (songFilePaths.isEmpty() || allLibrarySongs.isEmpty()) {
+            return emptyList()
+        }
+        val librarySongMap = allLibrarySongs.associateBy { it.data }
+        return songFilePaths.mapNotNull { path -> librarySongMap[path] }
+    }
+
+    private suspend fun ensureDailyAutomaticPlaylistsInDb(forceUpdate: Boolean = false) = withContext(Dispatchers.IO) {
+        val currentTime = System.currentTimeMillis()
+        if (!forceUpdate && (currentTime - lastAutoDbCheckMs < autoDbCheckCooldownMs)) {
+            println("[PlaylistRepo] Throttling automatic playlist DB check.")
+            return@withContext
+        }
+
+        autoPlaylistUpdateMutex.withLock {
+            if (!forceUpdate && (System.currentTimeMillis() - lastAutoDbCheckMs < autoDbCheckCooldownMs)) {
+                println("[PlaylistRepo] Throttling automatic playlist DB check (post-lock).")
+                return@withLock
+            }
+            println("[PlaylistRepo] >> ensureDailyAutomaticPlaylistsInDb: Starting DB check/update.")
+            lastAutoDbCheckMs = System.currentTimeMillis()
+
+            val currentDateString = getCurrentDateString()
+            // Fetch these only once if multiple definitions need them
+            val allLibrarySongs by lazy { songRepository.songs() }
+            val allSongMetaData by lazy { metaDataManagerHelper.getSongMetaDataList() }
+
+            for (definition in automaticPlaylistDefinitions) {
+                val todaysPlaylistName = "$AUTO_PREFIX${definition.baseName} ($currentDateString)"
+                val existingTodayPlaylist = playlistDao.getPlaylistByName(todaysPlaylistName)
+
+                if (existingTodayPlaylist == null || forceUpdate) {
+                    if (forceUpdate && existingTodayPlaylist != null) {
+                        println("[PlaylistRepo] Force updating playlist: '${existingTodayPlaylist.playlistName}'")
+                        playlistDao.deletePlaylistSongs(existingTodayPlaylist.playListId)
+                        // Note: We don't delete the playlist entity itself, just its songs, then re-add.
+                        // If we deleted the entity, we'd need to re-create it.
+                    }
+                    println("[PlaylistRepo] Generating playlist for '${definition.baseName}' for today ($currentDateString).")
+                    val blueprint = definition.generator(allSongMetaData, allLibrarySongs)
+                    if (blueprint != null && blueprint.songFilePaths.isNotEmpty()) {
+                        val songsForPlaylist = resolveSongPathsToSongs(blueprint.songFilePaths, allLibrarySongs)
+                        if (songsForPlaylist.isNotEmpty()) {
+                            val playlistIdToUse = if (existingTodayPlaylist != null) {
+                                existingTodayPlaylist.playListId
+                            } else {
+                                val newPlaylistEntity = PlaylistEntity(playlistName = todaysPlaylistName)
+                                playlistDao.createPlaylist(newPlaylistEntity)
+                            }
+                            val songEntities = songsForPlaylist.map { songToSongEntity(it, playlistIdToUse) }
+                            playlistDao.insertSongsToPlaylist(songEntities) // Assumes this handles conflicts or is preceded by delete
+                            println("[PlaylistRepo] Created/Updated daily playlist: '$todaysPlaylistName' with ${songEntities.size} songs.")
+                        } else {
+                            println("[PlaylistRepo] Blueprint for '${definition.baseName}' resolved to 0 songs. Skipping.")
+                        }
+                    } else {
+                        println("[PlaylistRepo] Blueprint for '${definition.baseName}' is null or has no songs. Skipping.")
+                    }
+                } else {
+                    println("[PlaylistRepo] Daily playlist '$todaysPlaylistName' already exists and no force update.")
+                }
+
+                // Clean up old versions for this baseName
+                val likePattern = "$AUTO_PREFIX${definition.baseName} (%"
+                val oldPlaylists = playlistDao.getPlaylistsWithNameLikeAndNotName(likePattern, todaysPlaylistName)
+                for (oldPlaylist in oldPlaylists) {
+                    println("[PlaylistRepo] Deleting old daily playlist: '${oldPlaylist.playlistName}' (ID: ${oldPlaylist.playListId})")
+                    playlistDao.deletePlaylistSongs(oldPlaylist.playListId)
+                    playlistDao.deletePlaylist(oldPlaylist)
+                }
+            }
+            println("[PlaylistRepo] << ensureDailyAutomaticPlaylistsInDb: Finished.")
+        }
+    }
 
     override fun playlist(cursor: Cursor?): Playlist {
+        // MediaStore specific
         return cursor.use {
-            if (cursor?.moveToFirst() == true) {
-                getPlaylistFromCursorImpl(cursor)
-            } else {
-                Playlist.empty
+            if (it?.moveToFirst() == true) getPlaylistFromMediaStoreCursorImpl(it) else Playlist.empty
+        }
+    }
+
+    override fun playlists(cursor: Cursor?): List<Playlist> {
+        // MediaStore specific
+        val playlists = mutableListOf<Playlist>()
+        cursor.use { c ->
+            if (c != null && c.moveToFirst()) {
+                do {
+                    playlists.add(getPlaylistFromMediaStoreCursorImpl(c))
+                } while (c.moveToNext())
+            }
+        }
+        return playlists
+    }
+
+    override suspend fun searchPlaylist(query: String): List<Playlist> = withContext(Dispatchers.IO) {
+        ensureDailyAutomaticPlaylistsInDb()
+        val daoPlaylists = playlistDao.playlists()
+            .filter { it.playlistName.contains(query, ignoreCase = true) }
+            .map { playlistEntityToPlaylist(it) }
+
+        val mediaStorePlaylists = mutableListOf<Playlist>()
+        makePlaylistCursor("$NAME LIKE ?", arrayOf("%$query%")).use { cursor ->
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    val msPlaylist = getPlaylistFromMediaStoreCursorImpl(cursor)
+                    if (daoPlaylists.none { it.name == msPlaylist.name }) {
+                        mediaStorePlaylists.add(msPlaylist)
+                    }
+                } while (cursor.moveToNext())
+            }
+        }
+        return@withContext (daoPlaylists + mediaStorePlaylists).distinctBy { it.name }
+    }
+
+    override suspend fun playlist(playlistName: String): Playlist = withContext(Dispatchers.IO) {
+        ensureDailyAutomaticPlaylistsInDb()
+        playlistDao.getPlaylistByName(playlistName)?.let { return@withContext playlistEntityToPlaylist(it) }
+
+        makePlaylistCursor("$NAME=?", arrayOf(playlistName)).use { cursor ->
+            if (cursor?.moveToFirst() == true) return@withContext getPlaylistFromMediaStoreCursorImpl(cursor)
+        }
+        return@withContext Playlist.empty
+    }
+
+    override suspend fun playlists(): List<Playlist> = withContext(Dispatchers.IO) {
+        ensureDailyAutomaticPlaylistsInDb()
+        val daoPlaylists = playlistDao.playlists().map { playlistEntityToPlaylist(it) }
+
+        val mediaStorePlaylists = mutableListOf<Playlist>()
+        makePlaylistCursor(null, null).use { cursor ->
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    val msPlaylist = getPlaylistFromMediaStoreCursorImpl(cursor)
+                    if (daoPlaylists.none { it.name == msPlaylist.name }) {
+                        mediaStorePlaylists.add(msPlaylist)
+                    }
+                } while (cursor.moveToNext())
+            }
+        }
+        return@withContext (daoPlaylists + mediaStorePlaylists).distinctBy { it.name }
+    }
+
+    override suspend fun favoritePlaylist(playlistName: String): List<Playlist> = withContext(Dispatchers.IO) {
+        // This is ambiguous, "Favorites" could be in DAO or MediaStore.
+        // For simplicity, let's assume it primarily refers to MediaStore "Favorites" if it exists,
+        // or a user-created one in DAO.
+        val results = mutableListOf<Playlist>()
+        playlistDao.getPlaylistByName(playlistName)?.let { results.add(playlistEntityToPlaylist(it)) }
+
+        makePlaylistCursor("$NAME=?", arrayOf(playlistName)).use { cursor ->
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    val msPlaylist = getPlaylistFromMediaStoreCursorImpl(cursor)
+                    if (results.none { it.id == msPlaylist.id }) { results.add(msPlaylist) }
+                } while (cursor.moveToNext())
+            }
+        }
+        return@withContext results.distinctBy { it.id }
+    }
+
+    override suspend fun deletePlaylist(playlistId: Long, playlistName: String?) = withContext(Dispatchers.IO) {
+        if (playlistName != null && playlistName.startsWith(AUTO_PREFIX)) {
+            println("[PlaylistRepo] Deletion of automatic playlist ('$playlistName') by user is generally not allowed/needed.")
+            return@withContext // Or handle differently if specific old auto playlists can be user-deleted.
+        }
+
+        // Try DAO delete first
+        val playlistEntity = playlistDao.getPlaylistByName(playlistName ?: "###INVALID_NAME_FOR_DAO_LOOKUP_BY_ID_ALONE###") // Imperfect for ID only
+        // Ideally, DAO would have getPlaylistById(Long) and deleteById(Long)
+        var deletedFromDao = false
+        if (playlistEntity != null && playlistEntity.playListId == playlistId) {
+            playlistDao.deletePlaylistSongs(playlistEntity.playListId)
+            playlistDao.deletePlaylist(playlistEntity)
+            deletedFromDao = true
+            println("[PlaylistRepo] Deleted playlist from DAO: ID $playlistId, Name '${playlistEntity.playlistName}'")
+        }
+
+
+        // Try MediaStore delete if ID is positive (heuristic) and not already handled by DAO
+        if (playlistId > MEDIA_STORE_PLAYLIST_ID_THRESHOLD) {
+            try {
+                val rowsDeleted = contentResolver.delete(EXTERNAL_CONTENT_URI, "$_ID=?", arrayOf(playlistId.toString()))
+                if (rowsDeleted > 0) {
+                    println("[PlaylistRepo] MediaStore delete: $rowsDeleted rows deleted for ID $playlistId.")
+                } else if (!deletedFromDao) {
+                    println("[PlaylistRepo] Playlist ID $playlistId not found in MediaStore for deletion or already deleted.")
+                }
+            } catch (e: SecurityException) {
+                println("[PlaylistRepo] Error deleting MediaStore playlist ID $playlistId: ${e.message}")
             }
         }
     }
 
-    override fun playlist(playlistName: String): Playlist {
-        return playlist(makePlaylistCursor("$NAME=?", arrayOf(playlistName)))
+    override suspend fun playlist(playlistId: Long): Playlist = withContext(Dispatchers.IO) {
+        ensureDailyAutomaticPlaylistsInDb()
+        // TODO: Add getPlaylistById(id: Long): PlaylistEntity? to PlaylistDao for efficiency
+        val daoEntity = playlistDao.playlists().find { it.playListId == playlistId }
+        if (daoEntity != null) {
+            return@withContext playlistEntityToPlaylist(daoEntity)
+        }
+
+        if (playlistId > MEDIA_STORE_PLAYLIST_ID_THRESHOLD) {
+            makePlaylistCursor("$_ID=?", arrayOf(playlistId.toString())).use { cursor ->
+                if (cursor?.moveToFirst() == true) return@withContext getPlaylistFromMediaStoreCursorImpl(cursor)
+            }
+        }
+        return@withContext Playlist.empty
     }
 
-    override fun playlist(playlistId: Long): Playlist {
-        return playlist(
-            makePlaylistCursor(
-                "$_ID=?",
-                arrayOf(playlistId.toString())
+    override suspend fun playlistSongs(playlistId: Long, playlistNameHint: String?): List<Song> = withContext(Dispatchers.IO) {
+        ensureDailyAutomaticPlaylistsInDb()
+        val daoSongs = playlistDao.getSongsByPlaylistIdSync(playlistId)
+        if (daoSongs.isNotEmpty()) {
+            return@withContext daoSongs.map { songEntityToSong(it) }
+        }
+
+        if (playlistId > MEDIA_STORE_PLAYLIST_ID_THRESHOLD) {
+            val songs = mutableListOf<Song>()
+            makePlaylistSongCursor(playlistId).use { cursor ->
+                if (cursor != null && cursor.moveToFirst()) {
+                    do {
+                        songs.add(getPlaylistSongFromMediaStoreCursorImpl(cursor, playlistId))
+                    } while (cursor.moveToNext())
+                    return@withContext songs
+                }
+            }
+        }
+        return@withContext emptyList()
+    }
+
+    private fun getPlaylistFromMediaStoreCursorImpl(cursor: Cursor): Playlist {
+        val id = cursor.getLong(cursor.getColumnIndexOrThrow(_ID))
+        val name = cursor.getStringOrNull(cursor.getColumnIndexOrThrow(NAME))
+        return Playlist(id, name ?: "Unknown MediaStore Playlist")
+    }
+
+    private fun getPlaylistSongFromMediaStoreCursorImpl(cursor: Cursor, playlistIdForContext: Long): Song {
+        val id = cursor.getLong(cursor.getColumnIndexOrThrow(Members.AUDIO_ID))
+        val title = cursor.getString(cursor.getColumnIndexOrThrow(AudioColumns.TITLE))
+        val trackNumber = cursor.getInt(cursor.getColumnIndexOrThrow(AudioColumns.TRACK))
+        val year = cursor.getInt(cursor.getColumnIndexOrThrow(AudioColumns.YEAR))
+        val duration = cursor.getLong(cursor.getColumnIndexOrThrow(AudioColumns.DURATION))
+        val data = cursor.getString(cursor.getColumnIndexOrThrow(Constants.DATA)) // Corrected to use Constants.DATA
+        val dateModified = cursor.getLong(cursor.getColumnIndexOrThrow(AudioColumns.DATE_MODIFIED))
+        val albumId = cursor.getLong(cursor.getColumnIndexOrThrow(AudioColumns.ALBUM_ID))
+        val albumName = cursor.getString(cursor.getColumnIndexOrThrow(AudioColumns.ALBUM))
+        val artistId = cursor.getLong(cursor.getColumnIndexOrThrow(AudioColumns.ARTIST_ID))
+        val artistName = cursor.getString(cursor.getColumnIndexOrThrow(AudioColumns.ARTIST))
+        val composer = cursor.getStringOrNull(cursor.getColumnIndexOrThrow(AudioColumns.COMPOSER))
+        // album_artist is not standard in Playlists.Members, derive or use artistName
+        val albumArtist = artistName // Simplified, actual logic might be more complex if "album_artist" is available elsewhere
+
+        return Song(
+            id = id, title = title, trackNumber = trackNumber, year = year, duration = duration,
+            data = data, dateModified = dateModified, albumId = albumId, albumName = albumName,
+            artistId = artistId, artistName = artistName, composer = composer ?: "",
+            albumArtist = albumArtist ?: ""
+        )
+    }
+
+    private fun makePlaylistCursor(selection: String?, values: Array<String>?): Cursor? {
+        return try {
+            contentResolver.query(
+                EXTERNAL_CONTENT_URI,
+                arrayOf(_ID, NAME),
+                selection,
+                values,
+                DEFAULT_SORT_ORDER
             )
-        )
-    }
-
-    override fun searchPlaylist(query: String): List<Playlist> {
-        return playlists(makePlaylistCursor("$NAME=?", arrayOf(query)))
-    }
-
-    override fun playlists(): List<Playlist> {
-        return playlists(makePlaylistCursor(null, null))
-    }
-
-    override fun playlists(cursor: Cursor?): List<Playlist> {
-        val playlists = mutableListOf<Playlist>()
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                playlists.add(getPlaylistFromCursorImpl(cursor))
-            } while (cursor.moveToNext())
-        }
-        cursor?.close()
-        return playlists
-    }
-
-    override fun favoritePlaylist(playlistName: String): List<Playlist> {
-        return playlists(
-            makePlaylistCursor(
-                "$NAME=?",
-                arrayOf(playlistName)
-            )
-        )
-    }
-
-    override fun deletePlaylist(playlistId: Long) {
-        val localUri = EXTERNAL_CONTENT_URI
-        val localStringBuilder = StringBuilder()
-        localStringBuilder.append("_id IN (")
-        localStringBuilder.append(playlistId)
-        localStringBuilder.append(")")
-        contentResolver.delete(localUri, localStringBuilder.toString(), null)
-    }
-
-    private fun getPlaylistFromCursorImpl(
-        cursor: Cursor
-    ): Playlist {
-        val id = cursor.getLong(0)
-        val name = cursor.getString(1)
-        return if (name != null) {
-            Playlist(id, name)
-        } else {
-            Playlist.empty
+        } catch (e: SecurityException) {
+            println("[PlaylistRepo] SecurityException in makePlaylistCursor: ${e.message}")
+            null
         }
     }
-
-    override fun playlistSongs(playlistId: Long): List<Song> {
-        val songs = arrayListOf<Song>()
-        if (playlistId == -1L) return songs
-        val cursor = makePlaylistSongCursor(playlistId)
-
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                songs.add(getPlaylistSongFromCursorImpl(cursor, playlistId))
-            } while (cursor.moveToNext())
-        }
-        cursor?.close()
-        return songs
-    }
-
-    private fun getPlaylistSongFromCursorImpl(cursor: Cursor, playlistId: Long): PlaylistSong {
-        val id = cursor.getLong(Members.AUDIO_ID)
-        val title = cursor.getString(TITLE)
-        val trackNumber = cursor.getInt(AudioColumns.TRACK)
-        val year = cursor.getInt(AudioColumns.YEAR)
-        val duration = cursor.getLong(DURATION)
-        val data = cursor.getString(Constants.DATA)
-        val dateModified = cursor.getLong(AudioColumns.DATE_MODIFIED)
-        val albumId = cursor.getLong(AudioColumns.ALBUM_ID)
-        val albumName = cursor.getString(ALBUM)
-        val artistId = cursor.getLong(AudioColumns.ARTIST_ID)
-        val artistName = cursor.getString(ARTIST)
-        val idInPlaylist = cursor.getLong(Members._ID)
-        val composer = cursor.getStringOrNull(COMPOSER)
-        val albumArtist = cursor.getStringOrNull("album_artist")
-        return PlaylistSong(
-            id,
-            title,
-            trackNumber,
-            year,
-            duration,
-            data,
-            dateModified,
-            albumId,
-            albumName,
-            artistId,
-            artistName,
-            playlistId,
-            idInPlaylist,
-            composer ?: "",
-            albumArtist
-        )
-    }
-
-    private fun makePlaylistCursor(
-        selection: String?,
-        values: Array<String>?
-    ): Cursor? {
-        return contentResolver.query(
-            EXTERNAL_CONTENT_URI,
-            arrayOf(
-                _ID, /* 0 */
-                NAME /* 1 */
-            ),
-            selection,
-            values,
-            DEFAULT_SORT_ORDER
-        )
-    }
-
 
     private fun makePlaylistSongCursor(playlistId: Long): Cursor? {
-        return contentResolver.query(
-            Members.getContentUri("external", playlistId),
-            arrayOf(
-                Members.AUDIO_ID, // 0
-                TITLE, // 1
-                AudioColumns.TRACK, // 2
-                AudioColumns.YEAR, // 3
-                DURATION, // 4
-                Constants.DATA, // 5
-                AudioColumns.DATE_MODIFIED, // 6
-                AudioColumns.ALBUM_ID, // 7
-                ALBUM, // 8
-                AudioColumns.ARTIST_ID, // 9
-                ARTIST, // 10
-                Members._ID,//11
-                COMPOSER,//12
-                "album_artist"//13
-            ), Constants.IS_MUSIC, null, Members.DEFAULT_SORT_ORDER
-        )
+        return try {
+            contentResolver.query(
+                Members.getContentUri("external", playlistId),
+                arrayOf(
+                    Members.AUDIO_ID, AudioColumns.TITLE, AudioColumns.TRACK, AudioColumns.YEAR,
+                    AudioColumns.DURATION, Constants.DATA, AudioColumns.DATE_MODIFIED,
+                    AudioColumns.ALBUM_ID, AudioColumns.ALBUM, AudioColumns.ARTIST_ID,
+                    AudioColumns.ARTIST, AudioColumns.COMPOSER
+                ),
+                Constants.IS_MUSIC,
+                null,
+                Members.DEFAULT_SORT_ORDER
+            )
+        } catch (e: SecurityException) {
+            println("[PlaylistRepo] SecurityException in makePlaylistSongCursor for playlistId $playlistId: ${e.message}")
+            null
+        }
     }
 }

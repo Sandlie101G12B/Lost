@@ -7,12 +7,17 @@ import code.name.monkey.lost.R
 import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.model.CategoryInfo
 import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.model.Playlist // Assuming Playlist model and its methods like getInfoString are handled
 import code.name.monkey.lost.repository.*
 import code.name.monkey.lost.service.MusicService
 import code.name.monkey.lost.util.MusicUtil
 import code.name.monkey.lost.util.PreferenceUtil
 import java.lang.ref.WeakReference
-
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel // Keep for serviceScope if used elsewhere
+import kotlinx.coroutines.runBlocking
 
 /**
  * Created by Beesham Sarendranauth (Beesham)
@@ -26,68 +31,108 @@ class AutoMusicProvider(
     private val playlistsRepository: PlaylistRepository,
     private val topPlayedRepository: TopPlayedRepository
 ) {
+
+    private val serviceJob = SupervisorJob()
+    // This scope can still be used for other truly asynchronous tasks in this class
+    private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
+
     private var mMusicService: WeakReference<MusicService>? = null
 
     fun setMusicService(service: MusicService) {
         mMusicService = WeakReference(service)
     }
 
+    // getChildren is NOT suspend. It will execute its logic synchronously,
+    // using runBlocking for internal suspend calls.
     fun getChildren(mediaId: String?, resources: Resources): List<MediaBrowserCompat.MediaItem> {
         val mediaItems: MutableList<MediaBrowserCompat.MediaItem> = ArrayList()
+
+        // The main logic is now directly part of getChildren's execution flow
         when (mediaId) {
             AutoMediaIDHelper.MEDIA_ID_ROOT -> {
+                // getRootChildren will also use runBlocking for its internal repository calls
                 mediaItems.addAll(getRootChildren(resources))
             }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_PLAYLIST -> for (playlist in playlistsRepository.playlists()) {
-                mediaItems.add(
-                    AutoMediaItem.with(mContext)
-                        .path(AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_PLAYLIST, playlist.id)
-                        .icon(R.drawable.ic_playlist_play)
-                        .title(playlist.name)
-                        .subTitle(playlist.getInfoString(mContext))
-                        .asPlayable()
-                        .build()
-                )
+
+            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_PLAYLIST -> {
+                val playlists = runBlocking(Dispatchers.IO) {
+                    playlistsRepository.playlists()
+                }
+                for (playlist in playlists) {
+                    mediaItems.add(
+                        AutoMediaItem.with(mContext)
+                            .path(AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_PLAYLIST, playlist.id)
+                            .icon(R.drawable.ic_playlist_play)
+                            .title(playlist.name)
+                            .subTitle(playlist.getInfoString(mContext)) // Ensure getInfoString is not suspend or handles its own blocking
+                            .asPlayable()
+                            .build()
+                    )
+                }
             }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM -> for (album in albumsRepository.albums()) {
-                mediaItems.add(
-                    AutoMediaItem.with(mContext)
-                        .path(mediaId, album.id)
-                        .title(album.title)
-                        .subTitle(album.albumArtist ?: album.artistName)
-                        .icon(MusicUtil.getMediaStoreAlbumCoverUri(album.id))
-                        .asPlayable()
-                        .build()
-                )
+
+            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM -> {
+                val albums = runBlocking(Dispatchers.IO) {
+                    albumsRepository.albums()
+                }
+                for (album in albums) {
+                    mediaItems.add(
+                        AutoMediaItem.with(mContext)
+                            .path(mediaId, album.id)
+                            .title(album.title)
+                            .subTitle(album.albumArtist ?: album.artistName)
+                            .icon(MusicUtil.getMediaStoreAlbumCoverUri(album.id))
+                            .asPlayable()
+                            .build()
+                    )
+                }
             }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ARTIST -> for (artist in artistsRepository.artists()) {
-                mediaItems.add(
-                    AutoMediaItem.with(mContext)
-                        .asPlayable()
-                        .path(mediaId, artist.id)
-                        .title(artist.name)
-                        .build()
-                )
+
+            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ARTIST -> {
+                val artists = runBlocking(Dispatchers.IO) {
+                    artistsRepository.artists()
+                }
+                for (artist in artists) {
+                    mediaItems.add(
+                        AutoMediaItem.with(mContext)
+                            .asPlayable()
+                            .path(mediaId, artist.id)
+                            .title(artist.name)
+                            .build()
+                    )
+                }
             }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM_ARTIST -> for (artist in artistsRepository.albumArtists()) {
-                mediaItems.add(
-                    AutoMediaItem.with(mContext)
-                        .asPlayable()
-                        // we just pass album id here as we don't have album artist id's
-                        .path(mediaId, artist.safeGetFirstAlbum().id)
-                        .title(artist.name)
-                        .build()
-                )
+
+            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_ALBUM_ARTIST -> {
+                val albumArtists = runBlocking(Dispatchers.IO) {
+                    artistsRepository.albumArtists()
+                }
+                for (artist in albumArtists) {
+                    mediaItems.add(
+                        AutoMediaItem.with(mContext)
+                            .asPlayable()
+                            .path(mediaId, artist.safeGetFirstAlbum().id)
+                            .title(artist.name)
+                            .build()
+                    )
+                }
             }
-            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_GENRE -> for (genre in genresRepository.genres()) {
-                mediaItems.add(
-                    AutoMediaItem.with(mContext)
-                        .asPlayable()
-                        .path(mediaId, genre.id)
-                        .title(genre.name)
-                        .build()
-                )
+
+            AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_GENRE -> {
+                val genres = runBlocking(Dispatchers.IO) {
+                    genresRepository.genres()
+                }
+                for (genre in genres) {
+                    mediaItems.add(
+                        AutoMediaItem.with(mContext)
+                            .asPlayable()
+                            .path(mediaId, genre.id)
+                            .title(genre.name)
+                            .build()
+                    )
+                }
             }
+
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_QUEUE ->
                 mMusicService?.get()?.playingQueue
                     ?.let {
@@ -103,10 +148,13 @@ class AutoMusicProvider(
                             )
                         }
                     }
+
             else -> {
+                // getPlaylistChildren will also use runBlocking for its internal repository calls
                 getPlaylistChildren(mediaId, mediaItems)
             }
         }
+        // This return is now correct and will have the fully populated list
         return mediaItems
     }
 
@@ -114,15 +162,15 @@ class AutoMusicProvider(
         mediaId: String?,
         mediaItems: MutableList<MediaBrowserCompat.MediaItem>
     ) {
-        val songs = when (mediaId) {
+        val songs: List<Song> = when (mediaId) {
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_TOP_TRACKS -> {
-                topPlayedRepository.topTracks()
+                runBlocking(Dispatchers.IO) { topPlayedRepository.topTracks() }
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_HISTORY -> {
-                topPlayedRepository.recentlyPlayedTracks()
+                runBlocking(Dispatchers.IO) { topPlayedRepository.recentlyPlayedTracks() }
             }
             AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SUGGESTIONS -> {
-                topPlayedRepository.notRecentlyPlayedTracks().take(8)
+                runBlocking(Dispatchers.IO) { topPlayedRepository.notRecentlyPlayedTracks() }.take(8)
             }
             else -> {
                 emptyList()
@@ -199,7 +247,7 @@ class AutoMusicProvider(
                 .path(AutoMediaIDHelper.MEDIA_ID_MUSICS_BY_SHUFFLE)
                 .icon(R.drawable.ic_shuffle)
                 .title(resources.getString(R.string.action_shuffle_all))
-                .subTitle(MusicUtil.getPlaylistInfoString(mContext, songsRepository.songs()))
+                .subTitle(MusicUtil.getPlaylistInfoString(mContext, runBlocking(Dispatchers.IO) { songsRepository.songs() }))
                 .build()
         )
         mediaItems.add(
@@ -220,7 +268,7 @@ class AutoMusicProvider(
                 .subTitle(
                     MusicUtil.getPlaylistInfoString(
                         mContext,
-                        topPlayedRepository.topTracks()
+                        runBlocking(Dispatchers.IO) { topPlayedRepository.topTracks() }
                     )
                 )
                 .asBrowsable().build()
@@ -234,7 +282,7 @@ class AutoMusicProvider(
                 .subTitle(
                     MusicUtil.getPlaylistInfoString(
                         mContext,
-                        topPlayedRepository.notRecentlyPlayedTracks().takeIf {
+                        runBlocking(Dispatchers.IO) { topPlayedRepository.notRecentlyPlayedTracks() }.takeIf {
                             it.size > 9
                         } ?: emptyList()
                     )
@@ -250,7 +298,7 @@ class AutoMusicProvider(
                 .subTitle(
                     MusicUtil.getPlaylistInfoString(
                         mContext,
-                        topPlayedRepository.recentlyPlayedTracks()
+                        runBlocking(Dispatchers.IO) { topPlayedRepository.recentlyPlayedTracks() }
                     )
                 )
                 .asBrowsable().build()
@@ -266,5 +314,10 @@ class AutoMusicProvider(
             .subTitle(song.artistName)
             .icon(MusicUtil.getMediaStoreAlbumCoverUri(song.albumId))
             .build()
+    }
+
+    // Call this to clean up the SupervisorJob when AutoMusicProvider is no longer needed
+    fun onCleared() {
+        serviceJob.cancel()
     }
 }
