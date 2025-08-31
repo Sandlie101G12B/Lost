@@ -64,7 +64,7 @@ class RealPlaylistRepository(
     private val autoDbCheckCooldownMs = TimeUnit.MINUTES.toMillis(60)
 
     companion object {
-        private const val AUTO_PREFIX = "[AUTO] "
+        private const val AUTO_SUFFIX = " [AUTO]" // Changed from AUTO_PREFIX
         private val DATE_FORMATTER = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         private const val MEDIA_STORE_PLAYLIST_ID_THRESHOLD: Long = 0
     }
@@ -160,7 +160,8 @@ class RealPlaylistRepository(
             val allSongMetaData by lazy { metaDataManagerHelper.getSongMetaDataList() }
 
             for (definition in automaticPlaylistDefinitions) {
-                val todaysPlaylistName = "$AUTO_PREFIX${definition.baseName} ($currentDateString)"
+                // Changed to AUTO_SUFFIX
+                val todaysPlaylistName = "${definition.baseName} ($currentDateString)$AUTO_SUFFIX"
                 val existingTodayPlaylist = playlistDao.getPlaylistByName(todaysPlaylistName)
 
                 if (existingTodayPlaylist == null || forceUpdate) {
@@ -195,7 +196,8 @@ class RealPlaylistRepository(
                 }
 
                 // Clean up old versions for this baseName
-                val likePattern = "$AUTO_PREFIX${definition.baseName} (%"
+                // Changed to AUTO_SUFFIX
+                val likePattern = "${definition.baseName} (%$AUTO_SUFFIX"
                 val oldPlaylists = playlistDao.getPlaylistsWithNameLikeAndNotName(likePattern, todaysPlaylistName)
                 for (oldPlaylist in oldPlaylists) {
                     println("[PlaylistRepo] Deleting old daily playlist: '${oldPlaylist.playlistName}' (ID: ${oldPlaylist.playListId})")
@@ -294,7 +296,8 @@ class RealPlaylistRepository(
     }
 
     override suspend fun deletePlaylist(playlistId: Long, playlistName: String?) = withContext(Dispatchers.IO) {
-        if (playlistName != null && playlistName.startsWith(AUTO_PREFIX)) {
+        // Changed to AUTO_SUFFIX and endsWith
+        if (playlistName != null && playlistName.endsWith(AUTO_SUFFIX)) {
             println("[PlaylistRepo] Deletion of automatic playlist ('$playlistName') by user is generally not allowed/needed.")
             return@withContext // Or handle differently if specific old auto playlists can be user-deleted.
         }

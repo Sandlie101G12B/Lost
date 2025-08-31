@@ -49,7 +49,7 @@ object AutomaticPlaylistGenerator {
     ): PlaylistBlueprint? {
         val random = Random(getDailySeed())
         val filteredMetaData = allSongMetaData.asSequence()
-            .filter { (it.year.toIntOrNull() ?: 0) == targetYear }
+            .filter { (it.year.toIntOrNull() ?: 0) <= targetYear }
             .shuffled(random)
             .take(count)
             .toList()

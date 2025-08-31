@@ -10,6 +10,7 @@ import code.name.monkey.lost.fragments.albums.AlbumDetailsViewModel
 import code.name.monkey.lost.fragments.artists.ArtistDetailsViewModel
 import code.name.monkey.lost.fragments.genres.GenreDetailsViewModel
 import code.name.monkey.lost.fragments.playlists.PlaylistDetailsViewModel
+import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
 import code.name.monkey.lost.model.Genre
 import code.name.monkey.lost.network.provideDefaultCache
 import code.name.monkey.lost.network.provideLastFmRest
@@ -144,6 +145,8 @@ private val dataModule = module {
     single {
         RealLocalDataRepository(get())
     } bind LocalDataRepository::class
+
+    single { MetaDataManagerHelper } // Added MetaDataManagerHelper definition
 }
 
 private val viewModules = module {
