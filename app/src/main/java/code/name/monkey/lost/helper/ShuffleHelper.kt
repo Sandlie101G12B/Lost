@@ -282,15 +282,15 @@ object ShuffleHelper {
 
         // 1. Artist Matching
         val commonArtists = a.artists.intersect(b.artists.toSet())
-        val artistScore = commonArtists.size * Random.nextInt(1, 10)
+        val artistScore = commonArtists.size * Random.nextInt(7, 10)
 
         // 2. Genre Matching
         val commonGenres = a.genre.intersect(b.genre.toSet())
-        val genreScore = commonGenres.size * Random.nextInt(10, 20)
+        val genreScore = commonGenres.size * Random.nextInt(15, 20)
 
         // 3. Mood Matching
         val commonMoods = a.mood.intersect(b.mood.toSet())
-        val moodScore = commonMoods.size * Random.nextInt(7, 10)
+        val moodScore = commonMoods.size * Random.nextInt(8, 10)
 
         // 4. Danceability
         val danceabilityScore = (10 - (kotlin.math.abs(a.danceability?.minus(b.danceability ?: 0.0) ?: 0.0) * 10).coerceAtMost(10.0)).toInt()
@@ -367,9 +367,9 @@ object ShuffleHelper {
         val totalScore = artistScore + genreScore + moodScore + danceabilityScore + marketScore +
                 yearScore + modernBonus + energyScore + valenceScore + tempoScore +
                 genreArtistSimilarity + favArtistBoost + favGenreBoost + favMoodBoost +
-                likedBonus + favoritedBonus + ratingAdjustment - playHistoryPenalty - skipHistoryPenalty
+                likedBonus + favoritedBonus + ratingAdjustment - Random.nextInt(0, (playHistoryPenalty + skipHistoryPenalty + 1))
         
-        return totalScore.coerceIn(0, 200) // Ensure score is within a reasonable range
+        return totalScore
     }
 
     private fun getGenreBasedArtistSimilarity(metaA: SongMetaData, metaB: SongMetaData): Int {
