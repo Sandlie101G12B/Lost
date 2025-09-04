@@ -98,7 +98,7 @@ object ShuffleHelper {
 
         // Artist De-concentration Logic
         if (originalScored.isNotEmpty()) {
-            val topSongsForArtistCheck = originalScored.take(6)
+            val topSongsForArtistCheck = originalScored.take(7)
             var songsByCurrentArtistInTop = 0
             for ((song, _) in topSongsForArtistCheck) {
                 val songMeta = metadata[getSongKey(song)]
@@ -108,13 +108,13 @@ object ShuffleHelper {
                 }
             }
 
-            if (songsByCurrentArtistInTop >= 3) {
+            if (songsByCurrentArtistInTop >= 7) {
                 for (i in originalScored.indices) {
                     val (song, score) = originalScored[i]
                     val songMeta = metadata[getSongKey(song)]
                     // Check if songMeta is not null and shares any artist with currentArtistsSet
                     if (songMeta != null && songMeta.artists.any { it in currentArtistsSet }) {
-                        val basePenalty = Random.nextInt(10, 35) // Base penalty: 5 to 15 points
+                        val basePenalty = Random.nextInt(0, 15) // Base penalty: 5 to 15 points
                         // Adjust penalty based on the number of artists on the track being penalized
                         val numArtistsOnTrack = songMeta.artists.size.coerceAtLeast(1)
                         val adjustedPenalty = basePenalty / numArtistsOnTrack
@@ -124,48 +124,48 @@ object ShuffleHelper {
             }
         }
 
-        val selectedFlow = selectFlowType(currentMeta)
-        // Ensure reorderByFlow uses the smoothed scores from originalScored
-        val reordered: List<Pair<Song, Int>> = reorderByFlow(selectedFlow, originalScored, metadata)
-        // Also ensure enforceMaxMovement uses the smoothed originalScored for its original positions
-        val finalOrdered = enforceMaxMovement(reordered, originalScored, maxMovement = Random.nextInt(5, 11))
-        val smartShuffled = finalOrdered
-            .groupBy { it.second } // Group by the (potentially smoothed) score
-            .toSortedMap(compareByDescending { it }) // Sort groups by score descending
-            .flatMap { (_, group) -> group.shuffled().map { it.first } } // Shuffle within score groups
-        
-        val extraRandomized = smartShuffled.toMutableList()
-        // Ensure extraRandomized has enough elements for swapping logic
-        if (extraRandomized.size > 1) {
-            val swapRange = Random.nextInt(2,5)
-            // Ensure swaps is at least 1 only if there are enough elements to perform a meaningful swap.
-            val swaps = if (extraRandomized.size > 1) (extraRandomized.size / 7).coerceAtLeast(1) else 0
-
-            if (swaps > 0) { // Only proceed if swaps > 0
-                repeat(swaps) {
-                    // Check if extraRandomized.size is > 1 before calling random()
-                    if (extraRandomized.size <= 1) return@repeat // Not enough elements to pick 'i' from (1 until size)
-
-                    val i = (1 until extraRandomized.size).random()
-                    val minJ = (i - swapRange).coerceAtLeast(1)
-                    val maxJ = (i + swapRange).coerceAtMost(extraRandomized.size - 1)
-
-                    if (maxJ > minJ) {
-                        val possibleJs = (minJ..maxJ).filter { it != i }
-                        if (possibleJs.isNotEmpty()) { // Check if filter results in non-empty list
-                            val j = possibleJs.random()
-                            val tmp = extraRandomized[i]
-                            extraRandomized[i] = extraRandomized[j]
-                            extraRandomized[j] = tmp
-                        }
-                    }
-                }
-            }
-        }
+//        val selectedFlow = selectFlowType(currentMeta)
+//        // Ensure reorderByFlow uses the smoothed scores from originalScored
+//        val reordered: List<Pair<Song, Int>> = reorderByFlow(selectedFlow, originalScored, metadata)
+//        // Also ensure enforceMaxMovement uses the smoothed originalScored for its original positions
+//        //val finalOrdered = enforceMaxMovement(reordered, originalScored, maxMovement = 5)
+//        val smartShuffled = reordered
+//            .groupBy { it.second } // Group by the (potentially smoothed) score
+//            .toSortedMap(compareByDescending { it }) // Sort groups by score descending
+//            .flatMap { (_, group) -> group.shuffled().map { it.first } } // Shuffle within score groups
+//        
+//        val extraRandomized = smartShuffled.toMutableList()
+//        // Ensure extraRandomized has enough elements for swapping logic
+//        if (extraRandomized.size > 1) {
+//            val swapRange = Random.nextInt(2,4)
+//            // Ensure swaps is at least 1 only if there are enough elements to perform a meaningful swap.
+//            val swaps = if (extraRandomized.size > 1) (extraRandomized.size / 5).coerceAtLeast(1) else 0
+//
+//            if (swaps > 0) { // Only proceed if swaps > 0
+//                repeat(swaps) {
+//                    // Check if extraRandomized.size is > 1 before calling random()
+//                    if (extraRandomized.size <= 1) return@repeat // Not enough elements to pick 'i' from (1 until size)
+//
+//                    val i = (1 until extraRandomized.size).random()
+//                    val minJ = (i - swapRange).coerceAtLeast(1)
+//                    val maxJ = (i + swapRange).coerceAtMost(extraRandomized.size - 1)
+//
+//                    if (maxJ > minJ) {
+//                        val possibleJs = (minJ..maxJ).filter { it != i }
+//                        if (possibleJs.isNotEmpty()) { // Check if filter results in non-empty list
+//                            val j = possibleJs.random()
+//                            val tmp = extraRandomized[i]
+//                            extraRandomized[i] = extraRandomized[j]
+//                            extraRandomized[j] = tmp
+//                        }
+//                    }
+//                }
+//            }
+//        }
 
         listToShuffle.clear()
         listToShuffle.add(currentSong)
-        listToShuffle.addAll(extraRandomized)
+        listToShuffle.addAll(originalScored.sortedByDescending { it.second }.map { it.first })
     }
 
     private fun scoreSongs(
@@ -280,24 +280,25 @@ object ShuffleHelper {
         favoriteMoods: Set<String> = emptySet()
     ): Int {
 
+        println("[Shuffle score] >> >> ${b.title}")
         // 1. Artist Matching
         val commonArtists = a.artists.intersect(b.artists.toSet())
-        val artistScore = commonArtists.size * Random.nextInt(7, 10)
+        val artistScore = commonArtists.size * Random.nextInt(8, 20)
 
         // 2. Genre Matching
-        val commonGenres = a.genre.intersect(b.genre.toSet())
-        val genreScore = commonGenres.size * Random.nextInt(15, 20)
+        val commonGenres = a.genre.take(3).intersect(b.genre.toSet())
+        val genreScore = commonGenres.size * 20
 
         // 3. Mood Matching
-        val commonMoods = a.mood.intersect(b.mood.toSet())
-        val moodScore = commonMoods.size * Random.nextInt(8, 10)
+        val commonMoods = a.mood.take(3).intersect(b.mood.toSet())
+        val moodScore = commonMoods.size * Random.nextInt(10, 20)
 
         // 4. Danceability
         val danceabilityScore = (10 - (kotlin.math.abs(a.danceability?.minus(b.danceability ?: 0.0) ?: 0.0) * 10).coerceAtMost(10.0)).toInt()
 
         // 5. Market Similarity
         val marketScore = try {
-            b.market?.let { a.market?.intersect(it.toSet())?.size ?: 0 }?.times(4) ?: 0
+            b.market?.let { a.market?.take(2)?.intersect(it.toSet())?.size ?: 0 }?.times(5) ?: 0
         } catch (_: Exception) { 0 }
 
         // 6. Year Proximity
@@ -305,20 +306,21 @@ object ShuffleHelper {
             val aYear = a.year.toIntOrNull()
             val bYear = b.year.toIntOrNull()
             if (aYear != null && bYear != null && aYear > 0 && bYear > 0) {
-                (7 - (kotlin.math.abs(aYear - bYear) / 2).coerceAtMost(10)).coerceAtLeast(-7)
+                (-15 + (kotlin.math.abs(aYear - bYear)).coerceAtMost(15)).coerceAtLeast(-5)
             } else 0
         } catch (_: Exception) { 0 }
+
 
         // 7. Modern Song Bonus — strong boost for newer songs
         val modernBonus = try {
             val bYear = b.year.toIntOrNull()
             val normalized = (((bYear?.coerceIn(1990, 2025) ?: 0) - 1990) / 35.0)
-            (normalized * Random.nextInt(5, 25)).toInt()
+            (normalized * Random.nextInt(0, 5)).toInt()
         } catch (_: Exception) { 0 }
 
         // 8. Energy
         val energyScore = if (a.energy != null && b.energy != null) {
-            (10 - (kotlin.math.abs(a.energy - b.energy) * 10).coerceAtMost(10.0)).toInt()
+            (11 - (kotlin.math.abs(a.energy - b.energy) * 11).coerceAtMost(11.0)).toInt()
         } else 0
 
         // 9. Valence
@@ -334,16 +336,11 @@ object ShuffleHelper {
         // 11. Genre-Based Artist Similarity
         val genreArtistSimilarity = getGenreBasedArtistSimilarity(a, b)
 
-        // 12. Favorite Preference Boost (optional)
-        val favArtistBoost = b.artists.count { it in favoriteArtists } * 15
-        val favGenreBoost = b.genre.count { it in favoriteGenres } * 10
-        val favMoodBoost = b.mood.count { it in favoriteMoods } * 10
-
         // 13. Play History Penalty
         val currentTime = System.currentTimeMillis()
         val twoWeeksInMillis = TimeUnit.DAYS.toMillis(14)
         val recentPlays = b.playTimestamps.count { (currentTime - it) < twoWeeksInMillis }
-        val playHistoryPenalty = recentPlays * 7
+        val playHistoryPenalty = recentPlays * 2
 
         // 14. Skip History Penalty
         val oneWeekInMillis = TimeUnit.DAYS.toMillis(7)
@@ -366,9 +363,9 @@ object ShuffleHelper {
 
         val totalScore = artistScore + genreScore + moodScore + danceabilityScore + marketScore +
                 yearScore + modernBonus + energyScore + valenceScore + tempoScore +
-                genreArtistSimilarity + favArtistBoost + favGenreBoost + favMoodBoost +
-                likedBonus + favoritedBonus + ratingAdjustment - Random.nextInt(0, (playHistoryPenalty + skipHistoryPenalty + 1))
-        
+                genreArtistSimilarity + likedBonus + favoritedBonus + ratingAdjustment -
+                Random.nextInt(0, (playHistoryPenalty + skipHistoryPenalty + 1))
+        println("[Shuffle score] > ${totalScore}")
         return totalScore
     }
 
