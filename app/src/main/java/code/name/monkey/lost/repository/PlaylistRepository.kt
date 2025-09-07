@@ -123,11 +123,11 @@ class RealPlaylistRepository(
         )
     }
 
-    private suspend fun playlistEntityToPlaylist(entity: PlaylistEntity): Playlist {
+    private fun playlistEntityToPlaylist(entity: PlaylistEntity): Playlist {
         return Playlist(id = entity.playListId, name = entity.playlistName)
     }
 
-    private suspend fun resolveSongPathsToSongs(
+    private fun resolveSongPathsToSongs(
         songFilePaths: List<String>,
         allLibrarySongs: List<Song>
     ): List<Song> {
@@ -283,19 +283,17 @@ class RealPlaylistRepository(
 
         // Try DAO delete first
         val playlistEntity = playlistDao.getPlaylistByName(playlistName ?: "###INVALID_NAME_FOR_DAO_LOOKUP_BY_ID_ALONE###") // Imperfect for ID only
-        // Ideally, DAO would have getPlaylistById(Long) and deleteById(Long)
-        var deletedFromDao = false
+
         if (playlistEntity != null && playlistEntity.playListId == playlistId) {
             playlistDao.deletePlaylistSongs(playlistEntity.playListId)
             playlistDao.deletePlaylist(playlistEntity)
-            deletedFromDao = true
         }
 
 
         // Try MediaStore delete if ID is positive (heuristic) and not already handled by DAO
         if (playlistId > MEDIA_STORE_PLAYLIST_ID_THRESHOLD) {
             try {
-                val rowsDeleted = contentResolver.delete(EXTERNAL_CONTENT_URI, "$_ID=?", arrayOf(playlistId.toString()))
+                contentResolver.delete(EXTERNAL_CONTENT_URI, "$_ID=?", arrayOf(playlistId.toString()))
             } catch (_: SecurityException) {
 
             }
@@ -347,17 +345,17 @@ class RealPlaylistRepository(
 
     private fun getPlaylistSongFromMediaStoreCursorImpl(cursor: Cursor, playlistIdForContext: Long): Song {
         val id = cursor.getLong(cursor.getColumnIndexOrThrow(Members.AUDIO_ID))
-        val title = cursor.getString(cursor.getColumnIndexOrThrow(AudioColumns.TITLE))
+        val title = cursor.getString(cursor.getColumnIndexOrThrow(TITLE))
         val trackNumber = cursor.getInt(cursor.getColumnIndexOrThrow(AudioColumns.TRACK))
         val year = cursor.getInt(cursor.getColumnIndexOrThrow(AudioColumns.YEAR))
-        val duration = cursor.getLong(cursor.getColumnIndexOrThrow(AudioColumns.DURATION))
+        val duration = cursor.getLong(cursor.getColumnIndexOrThrow(DURATION))
         val data = cursor.getString(cursor.getColumnIndexOrThrow(Constants.DATA)) // Corrected to use Constants.DATA
         val dateModified = cursor.getLong(cursor.getColumnIndexOrThrow(AudioColumns.DATE_MODIFIED))
         val albumId = cursor.getLong(cursor.getColumnIndexOrThrow(AudioColumns.ALBUM_ID))
-        val albumName = cursor.getString(cursor.getColumnIndexOrThrow(AudioColumns.ALBUM))
+        val albumName = cursor.getString(cursor.getColumnIndexOrThrow(ALBUM))
         val artistId = cursor.getLong(cursor.getColumnIndexOrThrow(AudioColumns.ARTIST_ID))
-        val artistName = cursor.getString(cursor.getColumnIndexOrThrow(AudioColumns.ARTIST))
-        val composer = cursor.getStringOrNull(cursor.getColumnIndexOrThrow(AudioColumns.COMPOSER))
+        val artistName = cursor.getString(cursor.getColumnIndexOrThrow(ARTIST))
+        val composer = cursor.getStringOrNull(cursor.getColumnIndexOrThrow(COMPOSER))
         // album_artist is not standard in Playlists.Members, derive or use artistName
         val albumArtist = artistName // Simplified, actual logic might be more complex if "album_artist" is available elsewhere
 
@@ -378,7 +376,7 @@ class RealPlaylistRepository(
                 values,
                 DEFAULT_SORT_ORDER
             )
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             null
         }
     }
@@ -388,16 +386,16 @@ class RealPlaylistRepository(
             contentResolver.query(
                 Members.getContentUri("external", playlistId),
                 arrayOf(
-                    Members.AUDIO_ID, AudioColumns.TITLE, AudioColumns.TRACK, AudioColumns.YEAR,
-                    AudioColumns.DURATION, Constants.DATA, AudioColumns.DATE_MODIFIED,
-                    AudioColumns.ALBUM_ID, AudioColumns.ALBUM, AudioColumns.ARTIST_ID,
-                    AudioColumns.ARTIST, AudioColumns.COMPOSER
+                    Members.AUDIO_ID, TITLE, AudioColumns.TRACK, AudioColumns.YEAR,
+                    DURATION, Constants.DATA, AudioColumns.DATE_MODIFIED,
+                    AudioColumns.ALBUM_ID, ALBUM, AudioColumns.ARTIST_ID,
+                    ARTIST, COMPOSER
                 ),
                 Constants.IS_MUSIC,
                 null,
                 Members.DEFAULT_SORT_ORDER
             )
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             null
         }
     }
