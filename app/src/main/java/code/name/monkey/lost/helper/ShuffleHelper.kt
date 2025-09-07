@@ -175,7 +175,6 @@ object ShuffleHelper {
     ): List<Pair<Song, Int>> {
         return songs.mapNotNull { song ->
             val meta = metadata[getSongKey(song)]
-            println(meta)
             if (meta == null || isCorrupted(meta)) {
                 null
             } else {

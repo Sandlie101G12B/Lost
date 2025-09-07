@@ -62,9 +62,7 @@ object LyricsGetter {
                 outputStream?.write(lrc.toByteArray())
                 outputStream?.close()
             }
-        } else {
-            println("Unable to handle FileNotFoundException for: ${file?.absolutePath}")
-        }
+        } 
     }
 
     fun String.toLrcFile(): File? {
@@ -104,7 +102,6 @@ object LyricsGetter {
                 }
             }
         } catch (e: Exception) {
-            println("Error fetching lyrics for ${song.title}: ${e.message}")
             return ""
         }
         return lyricsContentToWrite

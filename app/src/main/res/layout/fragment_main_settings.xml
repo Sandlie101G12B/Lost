@@ -146,7 +146,7 @@
         <code.name.monkey.lost.views.SettingListItemView
             android:id="@+id/notificationSettings"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
             app:settingListItemIcon="@drawable/ic_notifications_active"
             app:settingListItemIconColor="@color/md_yellow_A400"
             app:settingListItemText="@string/notification_settings_summary"
@@ -173,7 +173,7 @@
         <code.name.monkey.lost.views.SettingListItemView
             android:id="@+id/aboutSettings"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
             app:settingListItemIcon="@drawable/ic_info_outline"
             app:settingListItemIconColor="@color/md_light_green_A400"
             app:settingListItemText="@string/about_settings_summary"

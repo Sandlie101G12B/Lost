@@ -47,7 +47,7 @@ Caused by: java.rmi.UnmarshalException: Error unmarshaling return header; nested
 	at java.rmi/sun.rmi.server.UnicastRef.invoke(Unknown Source)
 	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(Unknown Source)
 	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(Unknown Source)
-	at jdk.proxy6/jdk.proxy6.$Proxy266.compile(Unknown Source)
+	at jdk.proxy5/jdk.proxy5.$Proxy155.compile(Unknown Source)
 	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.incrementalCompilationWithDaemon(GradleKotlinCompilerWork.kt:328)
 	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:235)
 	... 37 more

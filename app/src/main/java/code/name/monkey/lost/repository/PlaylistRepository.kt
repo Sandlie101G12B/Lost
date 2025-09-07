@@ -81,7 +81,6 @@ class RealPlaylistRepository(
     }
 
     init {
-        println("[PlaylistRepo] Initialized RealPlaylistRepository instance.")
         // repositoryScope.launch { ensureDailyAutomaticPlaylistsInDb() } // Consider calling this strategically
     }
 
@@ -142,16 +141,13 @@ class RealPlaylistRepository(
     private suspend fun ensureDailyAutomaticPlaylistsInDb(forceUpdate: Boolean = false) = withContext(Dispatchers.IO) {
         val currentTime = System.currentTimeMillis()
         if (!forceUpdate && (currentTime - lastAutoDbCheckMs < autoDbCheckCooldownMs)) {
-            println("[PlaylistRepo] Throttling automatic playlist DB check.")
             return@withContext
         }
 
         autoPlaylistUpdateMutex.withLock {
             if (!forceUpdate && (System.currentTimeMillis() - lastAutoDbCheckMs < autoDbCheckCooldownMs)) {
-                println("[PlaylistRepo] Throttling automatic playlist DB check (post-lock).")
                 return@withLock
             }
-            println("[PlaylistRepo] >> ensureDailyAutomaticPlaylistsInDb: Starting DB check/update.")
             lastAutoDbCheckMs = System.currentTimeMillis()
 
             val currentDateString = getCurrentDateString()
@@ -166,12 +162,8 @@ class RealPlaylistRepository(
 
                 if (existingTodayPlaylist == null || forceUpdate) {
                     if (forceUpdate && existingTodayPlaylist != null) {
-                        println("[PlaylistRepo] Force updating playlist: '${existingTodayPlaylist.playlistName}'")
                         playlistDao.deletePlaylistSongs(existingTodayPlaylist.playListId)
-                        // Note: We don't delete the playlist entity itself, just its songs, then re-add.
-                        // If we deleted the entity, we'd need to re-create it.
                     }
-                    println("[PlaylistRepo] Generating playlist for '${definition.baseName}' for today ($currentDateString).")
                     val blueprint = definition.generator(allSongMetaData, allLibrarySongs)
                     if (blueprint != null && blueprint.songFilePaths.isNotEmpty()) {
                         val songsForPlaylist = resolveSongPathsToSongs(blueprint.songFilePaths, allLibrarySongs)
@@ -184,15 +176,8 @@ class RealPlaylistRepository(
                             }
                             val songEntities = songsForPlaylist.map { songToSongEntity(it, playlistIdToUse) }
                             playlistDao.insertSongsToPlaylist(songEntities) // Assumes this handles conflicts or is preceded by delete
-                            println("[PlaylistRepo] Created/Updated daily playlist: '$todaysPlaylistName' with ${songEntities.size} songs.")
-                        } else {
-                            println("[PlaylistRepo] Blueprint for '${definition.baseName}' resolved to 0 songs. Skipping.")
                         }
-                    } else {
-                        println("[PlaylistRepo] Blueprint for '${definition.baseName}' is null or has no songs. Skipping.")
                     }
-                } else {
-                    println("[PlaylistRepo] Daily playlist '$todaysPlaylistName' already exists and no force update.")
                 }
 
                 // Clean up old versions for this baseName
@@ -200,12 +185,10 @@ class RealPlaylistRepository(
                 val likePattern = "${definition.baseName} (%$AUTO_SUFFIX"
                 val oldPlaylists = playlistDao.getPlaylistsWithNameLikeAndNotName(likePattern, todaysPlaylistName)
                 for (oldPlaylist in oldPlaylists) {
-                    println("[PlaylistRepo] Deleting old daily playlist: '${oldPlaylist.playlistName}' (ID: ${oldPlaylist.playListId})")
                     playlistDao.deletePlaylistSongs(oldPlaylist.playListId)
                     playlistDao.deletePlaylist(oldPlaylist)
                 }
             }
-            println("[PlaylistRepo] << ensureDailyAutomaticPlaylistsInDb: Finished.")
         }
     }
 
@@ -278,9 +261,6 @@ class RealPlaylistRepository(
     }
 
     override suspend fun favoritePlaylist(playlistName: String): List<Playlist> = withContext(Dispatchers.IO) {
-        // This is ambiguous, "Favorites" could be in DAO or MediaStore.
-        // For simplicity, let's assume it primarily refers to MediaStore "Favorites" if it exists,
-        // or a user-created one in DAO.
         val results = mutableListOf<Playlist>()
         playlistDao.getPlaylistByName(playlistName)?.let { results.add(playlistEntityToPlaylist(it)) }
 
@@ -298,7 +278,6 @@ class RealPlaylistRepository(
     override suspend fun deletePlaylist(playlistId: Long, playlistName: String?) = withContext(Dispatchers.IO) {
         // Changed to AUTO_SUFFIX and endsWith
         if (playlistName != null && playlistName.endsWith(AUTO_SUFFIX)) {
-            println("[PlaylistRepo] Deletion of automatic playlist ('$playlistName') by user is generally not allowed/needed.")
             return@withContext // Or handle differently if specific old auto playlists can be user-deleted.
         }
 
@@ -310,7 +289,6 @@ class RealPlaylistRepository(
             playlistDao.deletePlaylistSongs(playlistEntity.playListId)
             playlistDao.deletePlaylist(playlistEntity)
             deletedFromDao = true
-            println("[PlaylistRepo] Deleted playlist from DAO: ID $playlistId, Name '${playlistEntity.playlistName}'")
         }
 
 
@@ -318,13 +296,8 @@ class RealPlaylistRepository(
         if (playlistId > MEDIA_STORE_PLAYLIST_ID_THRESHOLD) {
             try {
                 val rowsDeleted = contentResolver.delete(EXTERNAL_CONTENT_URI, "$_ID=?", arrayOf(playlistId.toString()))
-                if (rowsDeleted > 0) {
-                    println("[PlaylistRepo] MediaStore delete: $rowsDeleted rows deleted for ID $playlistId.")
-                } else if (!deletedFromDao) {
-                    println("[PlaylistRepo] Playlist ID $playlistId not found in MediaStore for deletion or already deleted.")
-                }
-            } catch (e: SecurityException) {
-                println("[PlaylistRepo] Error deleting MediaStore playlist ID $playlistId: ${e.message}")
+            } catch (_: SecurityException) {
+
             }
         }
     }
@@ -406,7 +379,6 @@ class RealPlaylistRepository(
                 DEFAULT_SORT_ORDER
             )
         } catch (e: SecurityException) {
-            println("[PlaylistRepo] SecurityException in makePlaylistCursor: ${e.message}")
             null
         }
     }
@@ -426,7 +398,6 @@ class RealPlaylistRepository(
                 Members.DEFAULT_SORT_ORDER
             )
         } catch (e: SecurityException) {
-            println("[PlaylistRepo] SecurityException in makePlaylistSongCursor for playlistId $playlistId: ${e.message}")
             null
         }
     }

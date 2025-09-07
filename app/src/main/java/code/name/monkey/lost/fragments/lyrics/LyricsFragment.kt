@@ -2,6 +2,8 @@ package code.name.monkey.lost.fragments.lyrics
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
@@ -10,10 +12,12 @@ import android.view.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
 import androidx.transition.Fade
 import code.name.monkey.appthemehelper.common.ATHToolbarActivity
+import code.name.monkey.appthemehelper.util.ATHUtil
 import code.name.monkey.appthemehelper.util.ToolbarContentTintHelper
 import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.lost.R
@@ -24,15 +28,22 @@ import code.name.monkey.lost.extensions.materialDialog
 import code.name.monkey.lost.extensions.openUrl
 import code.name.monkey.lost.extensions.uri
 import code.name.monkey.lost.fragments.base.AbsMainActivityFragment
+import code.name.monkey.lost.glide.LostGlideExtension.asBitmapPalette
+import code.name.monkey.lost.glide.SongGlideRequest
+import code.name.monkey.lost.glide.palette.BitmapPaletteWrapper
 import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.helper.MusicProgressViewUpdateHelper
 import code.name.monkey.lost.lyrics.LrcView
 import code.name.monkey.lost.model.AudioTagInfo
 import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.util.ColorUtil
 import code.name.monkey.lost.util.FileUtils
 import code.name.monkey.lost.util.LyricUtil
 import code.name.monkey.lost.util.UriUtil
 import com.afollestad.materialdialogs.input.input
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -107,16 +118,56 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     }
 
     private fun setupLyricsView() {
-        binding.lyricsView.apply {
-            setCurrentColor(accentColor())
-            setTimeTextColor(accentColor())
-            setTimelineColor(accentColor())
-            setTimelineTextColor(accentColor())
-            setDraggable(true, LrcView.OnPlayClickListener {
-                MusicPlayerRemote.seekTo(it.toInt())
-                return@OnPlayClickListener true
+        if (!isAdded) return // Ensure fragment is added
+
+        Glide.with(requireContext())
+            .asBitmapPalette()
+            .load(SongGlideRequest.Builder.from(requireContext(), song).build())
+            .into(object : CustomTarget<BitmapPaletteWrapper>() {
+                override fun onResourceReady(
+                    resource: BitmapPaletteWrapper,
+                    transition: Transition<in BitmapPaletteWrapper>?
+                ) {
+                    val backgroundColor = ColorUtil.getColor(
+                        resource.palette,
+                        ATHUtil.resolveColor(requireContext(), R.attr.defaultFooterColor)
+                    )
+                    binding.lyricsView.setBackgroundColor(backgroundColor)
+                    val textColor = if (ColorUtils.calculateLuminance(backgroundColor) > 0.5) {
+                        Color.BLACK
+                    } else {
+                        Color.WHITE
+                    }
+                    binding.lyricsView.apply {
+                        setCurrentColor(textColor)
+                        setTimeTextColor(textColor)
+                        setTimelineColor(textColor)
+                        setTimelineTextColor(textColor)
+                    }
+                }
+
+                override fun onLoadFailed(errorDrawable: Drawable?) {
+                    // Set default colors if image loading fails
+                    val defaultBackgroundColor = ATHUtil.resolveColor(requireContext(), R.attr.defaultFooterColor)
+                    binding.lyricsView.setBackgroundColor(defaultBackgroundColor)
+                    val defaultTextColor = accentColor()
+                    binding.lyricsView.apply {
+                        setCurrentColor(defaultTextColor)
+                        setTimeTextColor(defaultTextColor)
+                        setTimelineColor(defaultTextColor)
+                        setTimelineTextColor(defaultTextColor)
+                    }
+                }
+
+                override fun onLoadCleared(placeholder: Drawable?) {
+                    // Not implemented
+                }
             })
-        }
+
+        binding.lyricsView.setDraggable(true, LrcView.OnPlayClickListener {
+            MusicPlayerRemote.seekTo(it.toInt())
+            return@OnPlayClickListener true
+        })
     }
 
     override fun onUpdateProgressViews(progress: Int, total: Int) {
@@ -140,12 +191,14 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     override fun onPlayingMetaChanged() {
         super.onPlayingMetaChanged()
         updateTitleSong()
+        setupLyricsView() // Update colors when song changes
         loadLyrics()
     }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         updateTitleSong()
+        setupLyricsView() // Update colors when service connects
         loadLyrics()
     }
 

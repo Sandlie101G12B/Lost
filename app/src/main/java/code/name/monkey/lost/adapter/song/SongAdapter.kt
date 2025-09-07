@@ -207,7 +207,6 @@ open class SongAdapter(
         }
 
         override fun onLongClick(v: View?): Boolean {
-            println("Long click")
             return toggleChecked(layoutPosition)
         }
     }

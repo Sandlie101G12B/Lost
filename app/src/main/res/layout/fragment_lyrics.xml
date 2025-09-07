@@ -37,7 +37,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="?attr/colorSurface"
-            android:gravity="start"
+            android:gravity="center"
             app:contentInsetLeft="0dp"
             app:contentInsetStart="0dp"
             app:contentInsetStartWithNavigation="0dp"
@@ -75,15 +75,15 @@
 
         <code.name.monkey.lost.lyrics.LrcView
             android:id="@+id/lyricsView"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:textColor="?android:attr/textColorPrimary"
             app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
             app:lrcLabel="@string/no_lyrics_found"
             app:lrcNormalTextSize="24sp"
             app:lrcPadding="18dp"
-            app:lrcTextGravity="left"
-            app:lrcTextSize="30sp"
-            android:textColor="?android:attr/textColorPrimary"/>
+            app:lrcTextGravity="center"
+            app:lrcTextSize="30sp" />
 
         <TextView
             android:id="@+id/noLyricsFound"

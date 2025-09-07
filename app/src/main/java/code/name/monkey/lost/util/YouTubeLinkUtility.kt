@@ -85,13 +85,10 @@ object YouTubeLinkUtility {
 //        val link = YouTubeLinkUtility.getVideoLink(this, songName, apiKey)
 //
 //        if (link != null) {
-//            println("Video link: $link")
 //            // Example: Load into WebView with start/end times
 //            val start = 30
 //            val end = 60
 //            val loopedUrl = "$link?start=$start&end=$end&loop=1&playlist=${link.substringAfterLast("/")}"
 //            myWebView.settings.javaScriptEnabled = true
 //            myWebView.loadUrl(loopedUrl)
-//        } else {
-//            println("No video found for $songName")
 //        }

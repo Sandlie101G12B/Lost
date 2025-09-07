@@ -75,7 +75,6 @@ class MediaButtonIntentReceiver : MediaButtonReceiver() {
         }
 
         fun handleIntent(context: Context, intent: Intent): Boolean {
-            println("Intent Action: ${intent.action}")
             val intentAction = intent.action
             if (Intent.ACTION_MEDIA_BUTTON == intentAction) {
                 val event = intent.extras?.let { BundleCompat.getParcelable(it, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) }

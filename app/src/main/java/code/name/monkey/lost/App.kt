@@ -30,7 +30,7 @@ class App : Application() {
         // default theme
         if (!ThemeStore.isConfigured(this, 3)) {
             ThemeStore.editTheme(this)
-                .accentColorRes(code.name.monkey.appthemehelper.R.color.md_deep_purple_A200)
+                .accentColorRes(code.name.monkey.appthemehelper.R.color.md_yellow_A400)
                 .coloredNavigationBar(true)
                 .commit()
         }
