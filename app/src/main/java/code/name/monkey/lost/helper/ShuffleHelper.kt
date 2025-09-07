@@ -280,7 +280,6 @@ object ShuffleHelper {
         favoriteMoods: Set<String> = emptySet()
     ): Int {
 
-        println("[Shuffle score] >> >> ${b.title}")
         // 1. Artist Matching
         val commonArtists = a.artists.intersect(b.artists.toSet())
         val artistScore = commonArtists.size * Random.nextInt(8, 20)
@@ -365,7 +364,6 @@ object ShuffleHelper {
                 yearScore + modernBonus + energyScore + valenceScore + tempoScore +
                 genreArtistSimilarity + likedBonus + favoritedBonus + ratingAdjustment -
                 Random.nextInt(0, (playHistoryPenalty + skipHistoryPenalty + 1))
-        println("[Shuffle score] > ${totalScore}")
         return totalScore
     }
 

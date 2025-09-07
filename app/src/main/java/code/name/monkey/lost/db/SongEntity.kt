@@ -9,7 +9,7 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 @Entity(indices = [Index(value = ["playlist_creator_id", "id"], unique = true)])
-class SongEntity(
+data class SongEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "song_key")
     val songPrimaryKey: Long = 0L,

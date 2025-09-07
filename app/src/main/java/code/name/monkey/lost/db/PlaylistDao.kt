@@ -41,10 +41,10 @@ interface PlaylistDao {
     @Query("SELECT * FROM SongEntity WHERE playlist_creator_id = :playlistId AND id = :songId")
     suspend fun isSongExistsInPlaylist(playlistId: Long, songId: Long): List<SongEntity>
 
-    @Query("SELECT * FROM SongEntity WHERE playlist_creator_id = :playlistId ORDER BY song_key asc")
+    @Query("SELECT * FROM SongEntity WHERE playlist_creator_id = :playlistId ORDER BY song_key desc")
     fun songsFromPlaylist(playlistId: Long): LiveData<List<SongEntity>> // Existing LiveData
 
-    @Query("SELECT * FROM SongEntity WHERE playlist_creator_id = :playlistId ORDER BY song_key asc")
+    @Query("SELECT * FROM SongEntity WHERE playlist_creator_id = :playlistId ORDER BY song_key desc")
     suspend fun getSongsByPlaylistIdSync(playlistId: Long): List<SongEntity> // New suspend function
 
     @Delete
@@ -57,11 +57,11 @@ interface PlaylistDao {
     suspend fun deletePlaylistSongs(songs: List<SongEntity>)
 
     @RewriteQueriesToDropUnusedColumns
-    @Query("SELECT * FROM SongEntity ,(SELECT playlist_id FROM PlaylistEntity WHERE playlist_name= :playlistName LIMIT 1) AS playlist WHERE playlist_creator_id= playlist.playlist_id")
+    @Query("SELECT * FROM SongEntity ,(SELECT playlist_id FROM PlaylistEntity WHERE playlist_name= :playlistName LIMIT 1) AS playlist WHERE playlist_creator_id= playlist.playlist_id ORDER BY song_key desc")
     fun favoritesSongsLiveData(playlistName: String): LiveData<List<SongEntity>>
 
     // Existing, can be used by getSongsByPlaylistIdSync if desired, or keep both
-    @Query("SELECT * FROM SongEntity WHERE playlist_creator_id= :playlistId")
+    @Query("SELECT * FROM SongEntity WHERE playlist_creator_id= :playlistId ORDER BY song_key desc")
     fun favoritesSongs(playlistId: Long): List<SongEntity>
 
     @Query("SELECT EXISTS(SELECT * FROM PlaylistEntity WHERE playlist_id = :playlistId)")

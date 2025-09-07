@@ -395,8 +395,6 @@ object MusicUtil : KoinComponent {
                 newIsFavoriteStatus = true
             }
         }
-        // Update SongMetaData with the new liked status and timestamp
-        updateSongMetaDataWithLikedStatus(song, newIsFavoriteStatus)
     }
 
     private fun getSongKeyForMetaData(song: Song): String {

@@ -32,7 +32,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.core.content.edit
-import code.name.monkey.lost.helper.MetaDataManagerHelper.reconcileLikedStatusWithLibrary
+
+//import code.name.monkey.lost.helper.MetaDataManagerHelper.reconcileLikedStatusWithLibrary
 
 const val inputPath = "inputile.txt"
 const val outputPath = "outputile.txt"
@@ -61,7 +62,7 @@ fun initialiseMetaDataProcess(context: Context) {
 
     CoroutineScope(Dispatchers.IO).launch {
         enhanceSongsData(inputPath, outputPath, deviceSongs, context)
-        reconcileLikedStatusWithLibrary(songs)
+        //reconcileLikedStatusWithLibrary(songs)
     }
 }
 
@@ -252,19 +253,35 @@ fun saveApiKeys(context: Context, apiKeys: List<String>) {
 }
 
 fun getApiKeys(context: Context): List<String> {
-    val masterKey = MasterKey.Builder(context, MasterKey.DEFAULT_MASTER_KEY_ALIAS)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    try {
+        val masterKey = MasterKey.Builder(context, MasterKey.DEFAULT_MASTER_KEY_ALIAS)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
 
-    val sharedPreferences = EncryptedSharedPreferences.create(
-        context,
-        "secure_api_keys",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
-    val keys = sharedPreferences.getString("api_keys", "") ?: ""
-    return keys.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        val sharedPreferences = EncryptedSharedPreferences.create(
+            context,
+            "secure_api_keys",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+        val keys = sharedPreferences.getString("api_keys", "") ?: ""
+        return keys.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    }catch (_: Exception) {
+        try {
+            if(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    context.deleteSharedPreferences("secure_api_keys")
+                } else {
+                    TODO("VERSION.SDK_INT < N")
+                }
+            ){
+                return emptyList()
+            }
+        } catch (_: Exception) {
+
+        }
+    }
+    return emptyList()
 }
 
 fun addApiKey(context: Context): Boolean {

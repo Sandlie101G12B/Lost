@@ -1,5 +1,7 @@
 package code.name.monkey.lost.model
 
+import com.google.gson.annotations.SerializedName
+
 data class SongMetaData(
     val title: String,
     val artists: List<String>,
@@ -49,3 +51,10 @@ data class DataStatistics(
 )
 
 enum class FlowType { RollerCoaster, WindDown, MoodLift, Pulse, Wave }
+
+// Ensure this data class is defined, e.g., in the same file or a common models package
+data class UserSongInputByNameAndArtists(
+    val name: String,
+    @SerializedName("artist")
+    val artists: List<String>?
+)

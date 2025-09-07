@@ -136,7 +136,7 @@ class OrderablePlaylistSongAdapter(
     fun saveSongs(playlistEntity: PlaylistEntity) {
         onFilter(null)
         activity.lifecycleScope.launch(Dispatchers.IO) {
-            libraryViewModel.insertSongs(dataSet.toSongsEntity(playlistEntity))
+            libraryViewModel.insertSongs(dataSet.toSongsEntity(playlistEntity).reversed())
         }
     }
 

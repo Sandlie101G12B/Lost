@@ -26,7 +26,7 @@ interface RoomRepository {
     suspend fun deletePlaylistEntities(playlistEntities: List<PlaylistEntity>)
     suspend fun renamePlaylistEntity(playlistId: Long, name: String)
     suspend fun deleteSongsInPlaylist(songs: List<SongEntity>)
-    suspend fun deletePlaylistSongs(playlists: List<PlaylistEntity>)
+    suspend fun deletePlaylistSongs(playlists: List<PlaylistEntity>) // Potentially ambiguous, consider renaming if it's only for deleting all songs of specific playlists
     suspend fun favoritePlaylist(favorite: String): PlaylistEntity
     suspend fun isFavoriteSong(songEntity: SongEntity): List<SongEntity>
     suspend fun removeSongFromPlaylist(songEntity: SongEntity)
@@ -42,6 +42,7 @@ interface RoomRepository {
     suspend fun isSongFavorite(context: Context, songId: Long): Boolean
     fun checkPlaylistExists(playListId: Long): LiveData<Boolean>
     fun getPlaylist(playlistId: Long): LiveData<PlaylistWithSongs>
+    suspend fun addSongsToTopOfPlaylist(playlistId: Long, songsToAdd: List<Song>) // Name is now misleading
 }
 
 class RealRoomRepository(
@@ -84,7 +85,6 @@ class RealRoomRepository(
 
     @WorkerThread
     override suspend fun insertSongs(songs: List<SongEntity>) {
-
         playlistDao.insertSongsToPlaylist(songs)
     }
 
@@ -176,5 +176,48 @@ class RealRoomRepository(
                 ?: -1,
             songId
         ).isNotEmpty()
+    }
+
+    @WorkerThread
+    override suspend fun addSongsToTopOfPlaylist(playlistId: Long, songsToAdd: List<Song>) { // Name is now misleading
+        // Fetch existing songs in the playlist
+        val existingSongEntities = playlistDao.getSongsByPlaylistIdSync(playlistId)
+
+        // Convert new songs (Song) to SongEntity, ensuring songPrimaryKey is 0L for auto-generation
+        val newSongEntitiesToAdd = songsToAdd.map { song ->
+            SongEntity(
+                songPrimaryKey = 0L, // Important for auto-generation to work as expected
+                playlistCreatorId = playlistId,
+                id = song.id,
+                title = song.title,
+                trackNumber = song.trackNumber,
+                year = song.year,
+                duration = song.duration,
+                data = song.data,
+                dateModified = song.dateModified,
+                albumId = song.albumId,
+                albumName = song.albumName,
+                artistId = song.artistId,
+                artistName = song.artistName,
+                composer = song.composer,
+                albumArtist = song.albumArtist
+            )
+        }
+
+        // Combine existing songs first, then new songs
+        // Ensure existing songs are re-mapped to have songPrimaryKey = 0L
+        // so their keys are regenerated in the new order.
+        val allSongEntitiesInNewOrder = newSongEntitiesToAdd + existingSongEntities.map { songEntity ->
+            songEntity.copy(songPrimaryKey = 0L)
+        }
+        
+        // Delete all songs currently in the playlist
+        playlistDao.deletePlaylistSongs(playlistId)
+
+        // Insert all songs (existing ones first, then new ones)
+        // This will assign new songPrimaryKey values in ascending order
+        if (allSongEntitiesInNewOrder.isNotEmpty()) {
+            playlistDao.insertSongsToPlaylist(allSongEntitiesInNewOrder)
+        }
     }
 }
