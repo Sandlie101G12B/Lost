@@ -9,8 +9,8 @@ import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.lost.activities.ErrorActivity
 import code.name.monkey.lost.activities.MainActivity
 import code.name.monkey.lost.appshortcuts.DynamicShortcutManager
-//import code.name.monkey.lost.billing.BillingManager
 import code.name.monkey.lost.helper.WallpaperAccentManager
+import code.name.monkey.lost.appModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
