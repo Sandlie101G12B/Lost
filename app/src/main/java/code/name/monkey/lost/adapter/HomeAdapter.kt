@@ -39,9 +39,8 @@ class HomeAdapter(private val activity: AppCompatActivity) :
         val layout =
             LayoutInflater.from(activity).inflate(R.layout.section_recycler_view, parent, false)
         return when (viewType) {
-            RECENT_ARTISTS, TOP_ARTISTS -> ArtistViewHolder(layout)
-            FAVOURITES -> PlaylistViewHolder(layout)
-            TOP_ALBUMS, RECENT_ALBUMS -> AlbumViewHolder(layout)
+            TOP_ARTISTS -> ArtistViewHolder(layout)
+            FAVOURITES, YOU_MIGHT_LIKE_SONGS, TRY_SOMETHING_NEW, SELECTED_FOR_YOUR_TASTE -> PlaylistViewHolder(layout)
             else -> {
                 ArtistViewHolder(layout)
             }
@@ -51,39 +50,6 @@ class HomeAdapter(private val activity: AppCompatActivity) :
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val home = list[position]
         when (getItemViewType(position)) {
-            RECENT_ALBUMS -> {
-                val viewHolder = holder as AlbumViewHolder
-                viewHolder.bindView(home)
-                viewHolder.clickableArea.setOnClickListener {
-                    it.findFragment<HomeFragment>().setSharedAxisXTransitions()
-                    activity.findNavController(R.id.fragment_container).navigate(
-                        R.id.detailListFragment,
-                        bundleOf("type" to RECENT_ALBUMS)
-                    )
-                }
-            }
-            TOP_ALBUMS -> {
-                val viewHolder = holder as AlbumViewHolder
-                viewHolder.bindView(home)
-                viewHolder.clickableArea.setOnClickListener {
-                    it.findFragment<HomeFragment>().setSharedAxisXTransitions()
-                    activity.findNavController(R.id.fragment_container).navigate(
-                        R.id.detailListFragment,
-                        bundleOf("type" to TOP_ALBUMS)
-                    )
-                }
-            }
-            RECENT_ARTISTS -> {
-                val viewHolder = holder as ArtistViewHolder
-                viewHolder.bindView(home)
-                viewHolder.clickableArea.setOnClickListener {
-                    it.findFragment<HomeFragment>().setSharedAxisXTransitions()
-                    activity.findNavController(R.id.fragment_container).navigate(
-                        R.id.detailListFragment,
-                        bundleOf("type" to RECENT_ARTISTS)
-                    )
-                }
-            }
             TOP_ARTISTS -> {
                 val viewHolder = holder as ArtistViewHolder
                 viewHolder.bindView(home)
@@ -104,6 +70,27 @@ class HomeAdapter(private val activity: AppCompatActivity) :
                         R.id.detailListFragment,
                         bundleOf("type" to FAVOURITES)
                     )
+                }
+            }
+            YOU_MIGHT_LIKE_SONGS -> {
+                val viewHolder = holder as PlaylistViewHolder
+                viewHolder.bindView(home)
+                viewHolder.clickableArea.setOnClickListener {
+                    // [TODO] Define click behavior
+                }
+            }
+            TRY_SOMETHING_NEW -> {
+                val viewHolder = holder as PlaylistViewHolder
+                viewHolder.bindView(home)
+                viewHolder.clickableArea.setOnClickListener {
+                    // [TODO] Define click behavior
+                }
+            }
+            SELECTED_FOR_YOUR_TASTE -> {
+                val viewHolder = holder as PlaylistViewHolder
+                viewHolder.bindView(home)
+                viewHolder.clickableArea.setOnClickListener {
+                    // [TODO] Define click behavior
                 }
             }
         }
@@ -141,21 +128,35 @@ class HomeAdapter(private val activity: AppCompatActivity) :
         }
     }
 
+
     @Suppress("UNCHECKED_CAST")
     private inner class PlaylistViewHolder(view: View) : AbsHomeViewItem(view) {
         fun bindView(home: Home) {
             title.setText(home.titleRes)
             recyclerView.apply {
+                val songsList = home.arrayList as? MutableList<Song> ?: mutableListOf()
+
+                val itemLayoutId = if (home.homeSection == TRY_SOMETHING_NEW || home.homeSection == SELECTED_FOR_YOUR_TASTE) {
+                    R.layout.item_try_new_song // Use new layout for TRY_SOMETHING_NEW
+                } else {
+                    R.layout.item_favourite_card // Default layout for others
+                }
                 val songAdapter = SongAdapter(
                     activity,
-                    home.arrayList as MutableList<Song>,
-                    R.layout.item_favourite_card
+                    songsList,
+                    itemLayoutId // Pass the chosen layout ID
                 )
-                layoutManager = linearLayoutManager()
+
+                if (home.homeSection == TRY_SOMETHING_NEW || home.homeSection == SELECTED_FOR_YOUR_TASTE) {
+                    layoutManager = LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false)
+                } else {
+                    layoutManager = linearLayoutManager()
+                }
                 adapter = songAdapter
             }
         }
     }
+
 
     open class AbsHomeViewItem(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val recyclerView: RecyclerView = itemView.findViewById(R.id.recyclerView)

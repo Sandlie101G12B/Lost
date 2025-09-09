@@ -7,6 +7,7 @@ import code.name.monkey.lost.*
 import code.name.monkey.lost.db.*
 import code.name.monkey.lost.fragments.search.Filter
 import code.name.monkey.lost.model.*
+import code.name.monkey.lost.helper.MetaDataManagerHelper // Ensure this is the correct import
 import code.name.monkey.lost.model.smartplaylist.NotPlayedPlaylist
 import code.name.monkey.lost.network.LastFMService
 import code.name.monkey.lost.network.Result
@@ -15,6 +16,7 @@ import code.name.monkey.lost.network.Result.Success
 import code.name.monkey.lost.network.model.LastFmAlbum
 import code.name.monkey.lost.network.model.LastFmArtist
 import code.name.monkey.lost.util.logE
+import kotlin.random.Random
 
 interface Repository {
 
@@ -41,10 +43,7 @@ interface Repository {
     suspend fun topArtists(): List<Artist>
     suspend fun topAlbums(): List<Album>
     suspend fun recentAlbums(): List<Album>
-    suspend fun recentArtistsHome(): Home
     suspend fun topArtistsHome(): Home
-    suspend fun topAlbumsHome(): Home
-    suspend fun recentAlbumsHome(): Home
     suspend fun favoritePlaylistHome(): Home
     suspend fun suggestions(): List<Song>
     suspend fun genresHome(): Home
@@ -83,6 +82,8 @@ interface Repository {
     fun getSongByGenre(genreId: Long): Song
     fun checkPlaylistExists(playListId: Long): LiveData<Boolean>
     fun getPlaylist(playlistId: Long): LiveData<PlaylistWithSongs>
+    suspend fun getSongsForTaste(limit: Int): List<Song>
+    fun newSongs(): List<Song>
 }
 
 class RealRepository(
@@ -187,9 +188,6 @@ class RealRepository(
         val homeSections = mutableListOf<Home>()
         val sections: List<Home> = listOf(
             topArtistsHome(),
-            topAlbumsHome(),
-            recentArtistsHome(),
-            recentAlbumsHome(),
             favoritePlaylistHome()
         )
         for (section in sections) {
@@ -262,6 +260,212 @@ class RealRepository(
 
     override suspend fun topPlayedSongs(): List<Song> = topPlayedRepository.topTracks()
 
+    // Data class to hold our derived taste profile
+    data class UserTasteProfile(
+        val prominentGenres: Map<String, Int>, // Genre -> Count
+        val averageEnergy: Double?,
+        val averageDanceability: Double?,
+        val averageTempo: Double?,
+        val prominentArtistNames: List<String> // Still useful for a direct boost
+    )
+
+    // Data class to hold a song and its similarity score
+    data class ScoredSong(
+        val song: Song,
+        val score: Double
+    )
+
+    override suspend fun getSongsForTaste(limit: Int): List<Song> = try {
+        println("Starting getSongsForTaste with limit: $limit")
+        val numSeedSongsToAnalyze = 20
+        val numProminentArtistsToPick = 3
+
+        val allSongMetaDataMap = MetaDataManagerHelper.getSongMetaDataList()
+            .filter { it.file.isNotBlank() }
+            .associateBy { it.file }
+        println("Fetched ${allSongMetaDataMap.size} valid metadata entries.")
+
+        val topPlayedSeedSongs = topPlayedRepository.topTracks().take(numSeedSongsToAnalyze)
+        println("Fetched ${topPlayedSeedSongs.size} top played seed songs.")
+
+        val allLibrarySongs = songRepository.songs()
+        println("Fetched ${allLibrarySongs.size} songs from the library.")
+
+        if (topPlayedSeedSongs.isEmpty()) {
+            println("No seed songs. Returning random from library.")
+            allLibrarySongs.shuffled().take(limit).also {
+                println("Returning ${it.size} songs (random): ${it.joinToString { s -> s.title }}")
+            }
+        }
+
+        val seedSongMetadata = topPlayedSeedSongs.mapNotNull { allSongMetaDataMap[it.data] }
+        if (seedSongMetadata.isEmpty()) {
+            println("No metadata for seed songs. Returning random from library.")
+            allLibrarySongs.shuffled().take(limit).also {
+                println("Returning ${it.size} songs (random due to no seed metadata): ${it.joinToString { s -> s.title }}")
+            }
+        }
+
+        val tasteProfile = createUserTasteProfile(seedSongMetadata, numProminentArtistsToPick)
+        println("Created taste profile: $tasteProfile")
+
+
+        val seedSongIds = topPlayedSeedSongs.map { it.id }.toSet()
+
+        val candidateSongs = allLibrarySongs
+            .filter { song -> !seedSongIds.contains(song.id) } // Exclude seed songs
+            .mapNotNull { song ->
+                allSongMetaDataMap[song.data]?.let { meta ->
+                    val score = calculateSimilarityScore(meta, tasteProfile)
+                    if (score > 0.0) {
+                        ScoredSong(song, score)
+                    } else {
+                        null
+                    }
+                }
+            }
+        println("Scored ${candidateSongs.size} candidate songs.")
+
+        if (candidateSongs.isEmpty()) {
+            println("No suitable candidate songs found after scoring. Returning random from library.")
+            allLibrarySongs.shuffled().take(limit).also {
+                println("Returning ${it.size} songs (random due to no candidates): ${it.joinToString { s -> s.title }}")
+            }
+        }
+
+        val selectedSongs = mutableListOf<Song>()
+        val availableCandidates = candidateSongs.toMutableList()
+
+        repeat(limit) {
+            if (availableCandidates.isEmpty()) {
+                println("Ran out of candidates during selection.")
+                return@repeat // Break repeat if no more candidates
+            }
+
+            val totalWeight = availableCandidates.sumOf { it.score }
+            if (totalWeight <= 0.0) {
+                println("Total weight is zero or negative, selecting purely random from remaining.")
+                // Fallback to random if all scores are zero (should be filtered earlier)
+                if (availableCandidates.isNotEmpty()) {
+                    selectedSongs.add(availableCandidates.removeAt(Random.nextInt(availableCandidates.size)).song)
+                }
+                return@repeat
+            }
+
+            var randomPick = Random.nextDouble(totalWeight) // From 0.0 up to totalWeight
+            var chosenSong: ScoredSong? = null
+
+            for (scoredSong in availableCandidates) {
+                if (randomPick < scoredSong.score) {
+                    chosenSong = scoredSong
+                    break
+                }
+                randomPick -= scoredSong.score
+            }
+
+            if (chosenSong == null && availableCandidates.isNotEmpty()) {
+                println("Fallback: Choosing random candidate as weighted selection missed.")
+                chosenSong = availableCandidates.random()
+            }
+
+
+            chosenSong?.let {
+                selectedSongs.add(it.song)
+                availableCandidates.remove(it) // Ensure song is not picked again
+                println("Selected by weight: ${it.song.title} (Score: ${it.score})")
+            }
+        }
+
+        println("Final selected songs for taste (${selectedSongs.size}): ${selectedSongs.joinToString { it.title }}")
+        selectedSongs
+
+    } catch (e: Exception) {
+        println("An error occurred in getSongsForTaste: ${e.message}")
+        e.printStackTrace()
+        val allLibrarySongs = try { songRepository.songs() } catch (_: Exception) { emptyList() }
+        println("Error fallback: Returning purely random songs.")
+        allLibrarySongs.shuffled().take(limit)
+    }
+
+    private fun createUserTasteProfile(
+        seedMetadata: List<SongMetaData>,
+        numProminentArtists: Int
+    ): UserTasteProfile {
+        val prominentGenres = seedMetadata
+            .flatMap { it.genre }
+            .groupingBy { it.lowercase() }
+            .eachCount()
+
+        val validEnergies = seedMetadata.mapNotNull { it.energy }.filter { it in 0.0..1.0 }
+        val validDanceabilities = seedMetadata.mapNotNull { it.danceability }.filter { it in 0.0..1.0 }
+        val validTempos = seedMetadata.mapNotNull { it.tempo }.filter { it > 0 }
+
+
+        val prominentArtistNames = seedMetadata
+            .flatMap { it.artists }
+            .groupingBy { it }
+            .eachCount()
+            .toList()
+            .sortedByDescending { it.second }
+            .take(numProminentArtists)
+            .map { it.first }
+
+        return UserTasteProfile(
+            prominentGenres = prominentGenres,
+            averageEnergy = if (validEnergies.isNotEmpty()) validEnergies.average() else null,
+            averageDanceability = if (validDanceabilities.isNotEmpty()) validDanceabilities.average() else null,
+            averageTempo = if (validTempos.isNotEmpty()) validTempos.average() else null,
+            prominentArtistNames = prominentArtistNames
+        )
+    }
+
+    private fun calculateSimilarityScore(
+        songMeta: SongMetaData,
+        profile: UserTasteProfile
+    ): Double {
+        var score = 0.0
+        val maxScorePerFeature = 10.0
+
+        val matchedGenres = songMeta.genre.count { profile.prominentGenres.containsKey(it.lowercase()) }
+        val profileGenreCount = profile.prominentGenres.size.coerceAtLeast(1) // Avoid division by zero
+        val genreScore = (matchedGenres.toDouble() / profileGenreCount) * maxScorePerFeature
+        score += genreScore
+
+        if (songMeta.artists.any { profile.prominentArtistNames.contains(it) }) {
+            score += maxScorePerFeature * 0.5
+        }
+
+        val energyWeight = 0.33
+        val danceabilityWeight = 0.33
+        val tempoWeight = 0.34
+
+        var audioFeatureScore = 0.0
+
+        profile.averageEnergy?.let { avgEnergy ->
+            songMeta.energy?.let { songEnergy ->
+                val diff = kotlin.math.abs(avgEnergy - songEnergy)
+                audioFeatureScore += (1.0 - diff) * energyWeight * maxScorePerFeature
+            }
+        }
+        profile.averageDanceability?.let { avgDance ->
+            songMeta.danceability?.let { songDance ->
+                val diff = kotlin.math.abs(avgDance - songDance)
+                audioFeatureScore += (1.0 - diff) * danceabilityWeight * maxScorePerFeature
+            }
+        }
+        profile.averageTempo?.let { avgTempo ->
+            songMeta.tempo?.let { songTempo ->
+                val tempoDiffRatio = kotlin.math.abs(avgTempo - songTempo) / avgTempo.coerceAtLeast(1.0)
+                audioFeatureScore += (1.0 - tempoDiffRatio.coerceAtMost(1.0)) * tempoWeight * maxScorePerFeature
+            }
+        }
+        score += audioFeatureScore.coerceAtLeast(0.0)
+
+        score += Random.nextDouble(0.0, 0.5)
+        return score.coerceAtLeast(0.0)
+    }
+
+
     override suspend fun upsertSongInPlayCount(playCountEntity: PlayCountEntity) =
         roomRepository.upsertSongInPlayCount(playCountEntity)
 
@@ -285,6 +489,27 @@ class RealRepository(
         roomRepository.observableHistorySongs().map {
             it.fromHistoryToSongs()
         }
+    override fun newSongs(): List<Song> {
+        return try {
+            val historySongIds = roomRepository.historySongs().map { it.id }.toSet()
+
+            val allLibrarySongs = songRepository.songs()
+
+            val unplayedSongs = allLibrarySongs.filterNot { librarySong ->
+                librarySong.id in historySongIds
+            }
+
+            if (unplayedSongs.isEmpty()) {
+                emptyList()
+            } else {
+                println("Returning ${unplayedSongs.size} new songs: ${unplayedSongs.joinToString { it.title }}")
+                unplayedSongs.shuffled().take(5)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
 
     override fun historySong(): List<HistoryEntity> =
         roomRepository.historySongs()
@@ -306,21 +531,6 @@ class RealRepository(
     override suspend fun playlists(): Home {
         val playlist = playlistRepository.playlists()
         return Home(playlist, PLAYLISTS, R.string.playlists)
-    }
-
-    override suspend fun recentArtistsHome(): Home {
-        val artists = lastAddedRepository.recentArtists().take(5)
-        return Home(artists, RECENT_ARTISTS, R.string.recent_artists)
-    }
-
-    override suspend fun recentAlbumsHome(): Home {
-        val albums = lastAddedRepository.recentAlbums().take(5)
-        return Home(albums, RECENT_ALBUMS, R.string.recent_albums)
-    }
-
-    override suspend fun topAlbumsHome(): Home {
-        val albums = topPlayedRepository.topAlbums().take(5)
-        return Home(albums, TOP_ALBUMS, R.string.top_albums)
     }
 
     override suspend fun topArtistsHome(): Home {

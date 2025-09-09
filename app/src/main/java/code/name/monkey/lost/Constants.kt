@@ -20,7 +20,7 @@ object Constants {
     const val AUDIO_SCROBBLER_URL = "https://ws.audioscrobbler.com/2.0/"
 
     const val IS_MUSIC =
-        MediaStore.Audio.AudioColumns.IS_MUSIC + "=1" + " AND " + MediaStore.Audio.AudioColumns.TITLE + " != ''"
+        MediaStore.Audio.AudioColumns.IS_MUSIC + "=1" + " AND " + MediaStore.Audio.AudioColumns.TITLE + " != \'\'"
 
     const val DATA = "_data"
 
@@ -151,3 +151,4 @@ const val PAUSE_HISTORY = "pause_history"
 const val MANAGE_AUDIO_FOCUS = "manage_audio_focus"
 const val SWIPE_DOWN_DISMISS = "swipe_to_dismiss"
 const val ENABLE_SEARCH_PLAYLIST= "enable_search_playlist"
+

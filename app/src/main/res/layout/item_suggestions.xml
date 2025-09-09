@@ -4,47 +4,55 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="4dp">
+    android:paddingBottom="16dp"
+    android:paddingLeft="4dp"
+    android:paddingRight="4dp"
+    android:paddingTop="4dp">
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="?rectSelector"
-        android:padding="16dp"
+        android:paddingBottom="5dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="20dp"
+        android:paddingTop="25dp"
         android:text="@string/suggestion_songs"
         android:textAppearance="@style/TextViewHeadline6"
-        android:textStyle="bold"
         app:layout_constrainedWidth="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <code.name.monkey.lost.views.AccentIcon
         android:id="@+id/refresh_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
+        android:layout_width="49dp"
+        android:layout_height="57dp"
+        android:background="@drawable/round_selector"
+        android:paddingBottom="5dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="25dp"
         app:layout_constraintBottom_toTopOf="@+id/card7"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:background="@drawable/round_selector"
         app:srcCompat="@drawable/ic_refresh" />
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card1"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="0.01dp"
+        android:layout_height="39dp"
         app:cardCornerRadius="@dimen/m3_card_corner_radius"
         app:cardUseCompatPadding="true"
         app:layout_constraintDimensionRatio="1,1"
-        app:layout_constraintEnd_toStartOf="@id/card2"
+        app:layout_constraintEnd_toStartOf="@+id/card3"
         app:layout_constraintHorizontal_weight="2"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/card6">
+        app:layout_constraintStart_toEndOf="@+id/card6"
+        app:layout_constraintTop_toBottomOf="@+id/card2">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/image4"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="match_parent"
             android:scaleType="centerCrop"
             tools:src="@tools:sample/avatars" />
@@ -52,15 +60,15 @@
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card2"
-        android:layout_width="0dp"
+        android:layout_width="0.01dp"
         android:layout_height="0dp"
         app:cardCornerRadius="@dimen/m3_card_corner_radius"
         app:cardUseCompatPadding="true"
+        app:layout_constraintBottom_toBottomOf="@+id/card8"
         app:layout_constraintDimensionRatio="1,1"
         app:layout_constraintEnd_toStartOf="@id/card3"
         app:layout_constraintHorizontal_weight="2"
-        app:layout_constraintStart_toEndOf="@id/card1"
-        app:layout_constraintTop_toBottomOf="@id/card6">
+        app:layout_constraintStart_toEndOf="@id/card1">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/image5"
@@ -72,15 +80,15 @@
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card3"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="0.01dp"
+        android:layout_height="0.01dp"
         app:cardCornerRadius="@dimen/m3_card_corner_radius"
         app:cardUseCompatPadding="true"
         app:layout_constraintDimensionRatio="1,1"
         app:layout_constraintEnd_toStartOf="@id/card4"
         app:layout_constraintHorizontal_weight="2"
-        app:layout_constraintStart_toEndOf="@id/card2"
-        app:layout_constraintTop_toBottomOf="@id/card6">
+        app:layout_constraintStart_toEndOf="@+id/card6"
+        app:layout_constraintTop_toBottomOf="@+id/card8">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/image6"
@@ -92,15 +100,15 @@
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card4"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="0.01dp"
+        android:layout_height="0.01dp"
         app:cardCornerRadius="@dimen/m3_card_corner_radius"
         app:cardUseCompatPadding="true"
         app:layout_constraintDimensionRatio="1,1"
         app:layout_constraintEnd_toStartOf="@id/card5"
         app:layout_constraintHorizontal_weight="2"
         app:layout_constraintStart_toEndOf="@id/card3"
-        app:layout_constraintTop_toBottomOf="@id/card6">
+        app:layout_constraintTop_toBottomOf="@+id/card8">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/image7"
@@ -120,7 +128,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_weight="2"
         app:layout_constraintStart_toEndOf="@id/card4"
-        app:layout_constraintTop_toBottomOf="@id/card6">
+        app:layout_constraintTop_toBottomOf="@+id/card8">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/image8"
@@ -183,8 +191,8 @@
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card8"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="0.01dp"
+        android:layout_height="0.01dp"
         app:cardCornerRadius="@dimen/m3_card_corner_radius"
         app:cardUseCompatPadding="true"
         app:layout_constraintDimensionRatio="1,1"
@@ -202,6 +210,7 @@
     </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.card.MaterialCardView
+        android:id="@+id/materialCardView2"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:cardCornerRadius="@dimen/m3_card_corner_radius"

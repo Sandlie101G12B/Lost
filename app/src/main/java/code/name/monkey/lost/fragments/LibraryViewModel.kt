@@ -23,6 +23,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import code.name.monkey.lost.YOU_MIGHT_LIKE_SONGS
+import code.name.monkey.lost.TRY_SOMETHING_NEW // Added import
 
 class LibraryViewModel(
     private val repository: RealRepository,
@@ -48,7 +50,7 @@ class LibraryViewModel(
 
     private fun loadLibraryContent() {
         viewModelScope.launch(IO) {
-            fetchHomeSections()
+            fetchHomeSections() // This will now include "You also might like"
             awaitAll(
                 async { fetchSuggestions() },
                 async { fetchSongs() },
@@ -103,7 +105,45 @@ class LibraryViewModel(
     }
 
     private suspend fun fetchHomeSections() {
-        home.postValue(repository.homeSections())
+        val currentHomeSections = repository.homeSections().toMutableList()
+
+        val tasteBasedSongs: List<Song> = repository.getSongsForTaste(3) // You need to implement this in RealRepository
+        if (tasteBasedSongs.isNotEmpty()) { // Ensure we only add if we got songs
+            val selectedForTasteSection = Home(
+                titleRes = R.string.selected_for_your_taste, // Ensure this string resource exists
+                arrayList = ArrayList(tasteBasedSongs),
+                homeSection = SELECTED_FOR_YOUR_TASTE
+            )
+            currentHomeSections.add(selectedForTasteSection)
+        }
+
+        val allRecentSongs: List<Song> = repository.recentSongs()
+        if (allRecentSongs.size >= 10) { // Changed from >= 10 to > 0 for more chances to show
+            val shuffledRecent = allRecentSongs.shuffled().take(5) // Was 7, requirement was 5
+            if (shuffledRecent.isNotEmpty()) {
+                val youMightLikeSection = Home(
+                    titleRes = R.string.you_also_might_like,
+                    arrayList = ArrayList(shuffledRecent),
+                    homeSection = YOU_MIGHT_LIKE_SONGS
+                )
+                currentHomeSections.add(youMightLikeSection)
+            }
+        }
+
+        val lastAddedSongs: List<Song> = repository.newSongs()
+        if (lastAddedSongs.isNotEmpty()) {
+            val shuffledLastAdded = lastAddedSongs.shuffled().take(3)
+            if (shuffledLastAdded.isNotEmpty()) {
+                val trySomethingNewSection = Home(
+                    titleRes = R.string.try_something_new,
+                    arrayList = ArrayList(shuffledLastAdded),
+                    homeSection = TRY_SOMETHING_NEW
+                )
+                currentHomeSections.add(trySomethingNewSection)
+            }
+        }
+
+        home.postValue(currentHomeSections)
     }
 
     private suspend fun fetchSuggestions() {
@@ -121,7 +161,7 @@ class LibraryViewModel(
             Songs -> fetchSongs()
             Albums -> fetchAlbums()
             Artists -> fetchArtists()
-            HomeSections -> fetchHomeSections()
+            HomeSections -> fetchHomeSections() // This will also update your new section
             Playlists -> fetchPlaylists()
             Genres -> fetchGenres()
             Suggestions -> fetchSuggestions()
@@ -250,19 +290,11 @@ class LibraryViewModel(
     fun artists(type: Int): LiveData<List<Artist>> = liveData(IO) {
         when (type) {
             TOP_ARTISTS -> emit(repository.topArtists())
-            RECENT_ARTISTS -> {
-                emit(repository.recentArtists())
-            }
         }
     }
 
     fun albums(type: Int): LiveData<List<Album>> = liveData(IO) {
-        when (type) {
-            TOP_ALBUMS -> emit(repository.topAlbums())
-            RECENT_ALBUMS -> {
-                emit(repository.recentAlbums())
-            }
-        }
+
     }
 
     fun artist(artistId: Long): LiveData<Artist> = liveData(IO) {

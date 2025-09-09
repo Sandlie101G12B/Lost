@@ -573,5 +573,8 @@
     <string name="scan_complete">Scan complete: %1$d media items found.</string>
     <string name="pref_save_last_directory_summary">When switching to folder view, restore last used directory</string>
     <string name="pref_save_last_directory_title">Save Last Directory</string>
+    <string name="you_also_might_like">You might also like</string>
+    <string name="try_something_new">Try Something New</string>
+    <string name="selected_for_your_taste">Selected for your taste</string>
 
 </resources>

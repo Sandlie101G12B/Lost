@@ -20,10 +20,8 @@ class MusicSeekSkipTouchListener(val activity: FragmentActivity, val next: Boole
     private var job: Job? = null
     private var counter = 0
     private var wasSeeking = false
-
     private var startX = 0f
     private var startY = 0f
-
     private val scaledTouchSlop = ViewConfiguration.get(activity).scaledTouchSlop
 
     @SuppressLint("ClickableViewAccessibility")

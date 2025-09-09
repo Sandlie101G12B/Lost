@@ -20,19 +20,24 @@
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_width="349dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:padding="16dp"
+            android:paddingLeft="16dp"
+            android:paddingTop="40dp"
+            android:paddingRight="20dp"
+            android:paddingBottom="5dp"
             android:textAppearance="@style/TextViewHeadline6"
-            android:textStyle="bold"
             tools:text="@tools:sample/full_names" />
 
         <code.name.monkey.lost.views.AccentIcon
             android:id="@+id/arrow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:padding="16dp"
+            android:paddingBottom="5dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingTop="40dp"
             app:srcCompat="@drawable/ic_arrow_forward" />
     </LinearLayout>
 
@@ -42,6 +47,7 @@
         android:layout_height="wrap_content"
         android:nestedScrollingEnabled="false"
         android:overScrollMode="@integer/overScrollMode"
+        android:paddingBottom="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/clickable_area"
