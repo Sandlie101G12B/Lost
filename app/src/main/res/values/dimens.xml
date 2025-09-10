@@ -60,7 +60,7 @@
     <dimen name="indicator_radius">10dp</dimen>
     <dimen name="lyrics_dialog_radius">20dp</dimen>
 
-    <dimen name="m3_card_corner_radius">16dp</dimen>
+    <dimen name="m3_card_corner_radius">6dp</dimen>
     <dimen name="m3_card_medium_radius">24dp</dimen>
     <dimen name="m3_card_large_radius">40dp</dimen>
     <dimen name="m3_dialog_corner_size">28dp</dimen>

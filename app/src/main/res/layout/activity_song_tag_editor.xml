@@ -43,7 +43,7 @@
                 android:layout_marginHorizontal="32dp"
                 android:transitionName="@string/transition_album_art"
                 app:cardCornerRadius="@dimen/m3_card_large_radius"
-                app:cardElevation="8dp"
+                app:cardElevation="0dp"
                 app:cardUseCompatPadding="true"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"

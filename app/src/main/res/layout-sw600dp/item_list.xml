@@ -73,7 +73,7 @@
         android:maxLines="1"
         android:paddingHorizontal="16dp"
         android:textAppearance="@style/TextViewSubtitle1"
-        android:textColor="?android:attr/textColorPrimary"
+        android:textColor="#dddddd"
         app:layout_constraintBottom_toBottomOf="@id/imageTextContainer"
         app:layout_constraintEnd_toStartOf="@id/text"
         app:layout_constraintStart_toEndOf="@id/imageTextContainer"

@@ -29,6 +29,8 @@
         android:id="@android:id/title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:textStyle="bold|normal"
+        android:textColor="#dddddd"
         android:textAppearance="@style/TextViewSubtitle1"
         app:layout_constrainedWidth="true"
         app:layout_constraintEnd_toEndOf="parent"
@@ -41,7 +43,8 @@
         android:id="@android:id/summary"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="5dp"
+        android:textSize="11sp"
         android:textAppearance="@style/TextViewNormal"
         android:textColor="?android:attr/textColorSecondary"
         app:layout_constrainedWidth="true"
@@ -56,6 +59,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_begin="@dimen/list_pref_guideline_begin" />
+        app:layout_constraintGuide_end="339dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

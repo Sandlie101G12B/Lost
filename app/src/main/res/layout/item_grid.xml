@@ -16,7 +16,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:scaleType="centerCrop"
-        app:cardCornerRadius="@dimen/m3_card_corner_radius"
+        app:cardCornerRadius="1dp"
         app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -50,13 +50,14 @@
             android:singleLine="true"
             android:textAppearance="@style/TextViewSubtitle1"
             android:textStyle="bold"
+            android:textColor="#dddddd"
             tools:text="@tools:sample/full_names" />
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingTop="4dp"
+            android:paddingTop="5dp"
             android:singleLine="true"
             tools:text="@tools:sample/full_names" />
     </LinearLayout>

@@ -65,7 +65,7 @@
         android:layout_height="match_parent"
         app:shapeAppearanceOverlay="@style/TopCornerCardView"
         app:behavior_hideable="false"
-        app:cardElevation="24dp"
+        app:cardElevation="0dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
         tools:peekHeight="0dp">
 

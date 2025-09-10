@@ -42,6 +42,8 @@
         android:layout_weight="1"
         android:maxLines="1"
         android:textAppearance="@style/TextViewBody1"
+        android:textStyle="bold|normal"
+        android:textColor="#dddddd"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/time"
         app:layout_constraintHorizontal_bias="0.5"

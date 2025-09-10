@@ -91,7 +91,7 @@ object ShuffleHelper {
             return
         }
         // currentMeta is confirmed to be non-null here
-        val currentArtistsSet = currentMeta.artists.toSet()
+        val currentArtistsSet = (currentMeta.artists ?: emptyList()).toSet()
 
         val scoredSongs = scoreSongs(listToShuffle, metadata, currentMeta)
         val originalScored = scoredSongs.toMutableList()
@@ -103,7 +103,7 @@ object ShuffleHelper {
             for ((song, _) in topSongsForArtistCheck) {
                 val songMeta = metadata[getSongKey(song)]
                 // Check if songMeta is not null and shares any artist with currentArtistsSet
-                if (songMeta != null && songMeta.artists.any { it in currentArtistsSet }) {
+                if (songMeta != null && (songMeta.artists ?: emptyList()).any { it in currentArtistsSet }) {
                     songsByCurrentArtistInTop++
                 }
             }
@@ -113,10 +113,10 @@ object ShuffleHelper {
                     val (song, score) = originalScored[i]
                     val songMeta = metadata[getSongKey(song)]
                     // Check if songMeta is not null and shares any artist with currentArtistsSet
-                    if (songMeta != null && songMeta.artists.any { it in currentArtistsSet }) {
+                    if (songMeta != null && (songMeta.artists ?: emptyList()).any { it in currentArtistsSet }) {
                         val basePenalty = Random.nextInt(0, 15) // Base penalty: 5 to 15 points
                         // Adjust penalty based on the number of artists on the track being penalized
-                        val numArtistsOnTrack = songMeta.artists.size.coerceAtLeast(1)
+                        val numArtistsOnTrack = (songMeta.artists ?: emptyList()).size.coerceAtLeast(1)
                         val adjustedPenalty = basePenalty / numArtistsOnTrack
                         originalScored[i] = song to (score - adjustedPenalty)
                     }
@@ -189,10 +189,10 @@ object ShuffleHelper {
      */
     private fun selectFlowType(currentMeta: SongMetaData): FlowType {
         return when {
-            (currentMeta.energy ?: 0.0) > 0.7 && (currentMeta.danceability)!! > 0.7 -> FlowType.Pulse
+            (currentMeta.energy ?: 0.0) > 0.7 && (currentMeta.danceability ?: 0.0) > 0.7 -> FlowType.Pulse
             (currentMeta.energy ?: 0.0) < 0.4 && (currentMeta.valence ?: 0.0) < 0.4 -> FlowType.WindDown
             (currentMeta.valence ?: 0.0) > 0.7 && (currentMeta.energy ?: 0.0) > 0.4 -> FlowType.MoodLift
-            currentMeta.mood.any { it.contains("party", ignoreCase = true) || it.contains("dance", ignoreCase = true) } -> FlowType.RollerCoaster
+            (currentMeta.mood ?: emptyList()).any { it.contains("party", ignoreCase = true) || it.contains("dance", ignoreCase = true) } -> FlowType.RollerCoaster
             (currentMeta.tempo ?: 0.0) > 130.0 -> FlowType.Wave
             else -> FlowType.RollerCoaster
         }
@@ -280,15 +280,15 @@ object ShuffleHelper {
     ): Int {
 
         // 1. Artist Matching
-        val commonArtists = a.artists.intersect(b.artists.toSet())
+        val commonArtists = (a.artists ?: emptyList()).intersect((b.artists ?: emptyList()).toSet())
         val artistScore = commonArtists.size * Random.nextInt(8, 20)
 
         // 2. Genre Matching
-        val commonGenres = a.genre.take(3).intersect(b.genre.toSet())
+        val commonGenres = (a.genre ?: emptyList()).take(3).intersect((b.genre ?: emptyList()).toSet())
         val genreScore = commonGenres.size * 20
 
         // 3. Mood Matching
-        val commonMoods = a.mood.take(3).intersect(b.mood.toSet())
+        val commonMoods = (a.mood ?: emptyList()).take(3).intersect((b.mood ?: emptyList()).toSet())
         val moodScore = commonMoods.size * Random.nextInt(10, 20)
 
         // 4. Danceability
@@ -296,7 +296,7 @@ object ShuffleHelper {
 
         // 5. Market Similarity
         val marketScore = try {
-            b.market?.let { a.market?.take(2)?.intersect(it.toSet())?.size ?: 0 }?.times(5) ?: 0
+            (b.market ?: emptyList())?.let { (a.market ?: emptyList())?.take(2)?.intersect(it.toSet())?.size ?: 0 }?.times(5) ?: 0
         } catch (_: Exception) { 0 }
 
         // 6. Year Proximity
@@ -367,34 +367,30 @@ object ShuffleHelper {
     }
 
     private fun getGenreBasedArtistSimilarity(metaA: SongMetaData, metaB: SongMetaData): Int {
-        if (metaA.genre.isEmpty() || metaB.genre.isEmpty() || metaA.artists.isEmpty() || metaB.artists.isEmpty()) {
+        val aArtists = metaA.artists ?: emptyList()
+        val bArtists = metaB.artists ?: emptyList()
+        val aGenre = metaA.genre ?: emptyList()
+        val bGenre = metaB.genre ?: emptyList()
+
+        if (aGenre.isEmpty() || bGenre.isEmpty() || aArtists.isEmpty() || bArtists.isEmpty()) {
             return 0
         }
-        val commonGenres = metaA.genre.intersect(metaB.genre.toSet())
+        val commonGenres = aGenre.intersect(bGenre.toSet())
         if (commonGenres.isEmpty()) {
             return 0
         }
-        // If they share genres, give a small boost if artists are different,
-        // to encourage variety within a genre session.
-        // No penalty if artists are the same, as other factors handle direct artist repetition.
-        return if (metaA.artists.intersect(metaB.artists.toSet()).isEmpty()) {
-            Random.nextInt(1, 8) // Small boost for different artists in shared genres
+        return if (aArtists.intersect(bArtists.toSet()).isEmpty()) {
+            Random.nextInt(1, 8)
         } else {
-            0 // Neutral if same artist or if artists already matched by direct artist similarity
+            0
         }
     }
 
 
     private fun isCorrupted(meta: SongMetaData): Boolean {
-        // Example check: A song might be considered corrupted if it has no title AND no artists
-        // AND the file path seems unusually short or nonsensical (though file path check is harder here).
-        // For now, let's base it on essential textual metadata.
         val hasNoTitle = meta.title.isBlank()
-        val hasNoArtists = meta.artists.isEmpty() || meta.artists.all { it.isBlank() }
+        val hasNoArtists = (meta.artists ?: emptyList()).isEmpty() || (meta.artists ?: emptyList()).all { it.isBlank() }
         
-        // If critical fields like title or artist are missing, consider it potentially problematic.
-        // Add more checks as needed, e.g., for file existence if `meta.file` was validated elsewhere
-        // or if you have a reliable way to check it here.
         return hasNoTitle && hasNoArtists
     }
 }

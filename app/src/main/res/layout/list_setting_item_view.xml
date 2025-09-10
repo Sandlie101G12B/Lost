@@ -34,6 +34,7 @@
         android:singleLine="true"
         android:textAppearance="@style/TextViewSubtitle1"
         android:textStyle="bold"
+        android:textColor="#eeeeee"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/icon"
         app:layout_constraintTop_toTopOf="parent"

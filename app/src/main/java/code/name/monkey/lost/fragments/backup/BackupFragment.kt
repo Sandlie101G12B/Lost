@@ -95,7 +95,6 @@ class BackupFragment : Fragment(R.layout.fragment_backup), BackupAdapter.BackupC
         materialDialog().show {
             title(res = R.string.action_rename)
             input(prefill = BackupHelper.getTimeStamp()) { _, text ->
-                // Text submitted with the action button
                 lifecycleScope.launch {
                     BackupHelper.createBackup(requireContext(), text.sanitize())
                     backupViewModel.loadBackups()
