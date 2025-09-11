@@ -1,10 +1,5 @@
 package code.name.monkey.lost.helper
 
-/**
- * Simple thread safe stop watch.
- *
- * @author Karim Abou Zeid (kabouzeid)
- */
 class StopWatch {
 
     /**

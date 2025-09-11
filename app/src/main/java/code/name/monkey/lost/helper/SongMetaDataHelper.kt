@@ -1,12 +1,9 @@
 package code.name.monkey.lost.helper
 
-import android.app.AlertDialog
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import android.text.InputType
-import android.widget.EditText
 import androidx.core.app.NotificationCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -32,13 +29,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.core.content.edit
-
-//import code.name.monkey.lost.helper.MetaDataManagerHelper.reconcileLikedStatusWithLibrary
+import code.name.monkey.lost.BuildConfig
 
 const val inputPath = "inputile.txt"
 const val outputPath = "outputile.txt"
 const val outputPathBackupConst = "outputile.txt.bak"
-
 private const val ENHANCEMENT_CHANNEL_ID = "song_enhancement_channel"
 const val ENHANCEMENT_NOTIFICATION_ID = 1001
 
@@ -277,42 +272,25 @@ fun getApiKeys(context: Context): List<String> {
             ){
                 return emptyList()
             }
-        } catch (_: Exception) {
-
-        }
+        } catch (_: Exception) {}
     }
     return emptyList()
 }
 
 fun addApiKey(context: Context): Boolean {
-    var result = false
-    val editText = EditText(context)
-    editText.inputType = InputType.TYPE_CLASS_TEXT
-    editText.hint = "Enter a Google Gemini API Key"
+    // Read API keys directly from BuildConfig (injected at build time)
+    val keysString = BuildConfig.GEMINI_API_KEYS
+    val companyApiKeys = keysString
+        .split(",")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
 
-    val dialog = AlertDialog.Builder(context)
-        .setTitle("Enter a Google Gemini API Key")
-        .setMessage("Please enter your Google API key, you can add multiple keys separated by commas (,):")
-        .setView(editText)
-        .setCancelable(false)
-        .setPositiveButton("Save") { _, _ ->
-            val input = editText.text.toString()
-            val keys = input.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-            if (keys.isNotEmpty()) {
-                saveApiKeys(context, keys)
-                val storedKeys = getApiKeys(context)
-                result = storedKeys.isNotEmpty()
-            }
-        }
-        .setNegativeButton("Cancel") { dialogInterface, _ ->
-            dialogInterface.dismiss()
-            result = false
-        }
-        .create()
+    saveApiKeys(context, companyApiKeys)
 
-    dialog.show()
-    return result
+    val storedKeys = getApiKeys(context)
+    return storedKeys.isNotEmpty()
 }
+
 
 private fun createNotificationChannel(context: Context) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

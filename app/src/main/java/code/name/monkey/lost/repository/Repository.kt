@@ -7,7 +7,7 @@ import code.name.monkey.lost.*
 import code.name.monkey.lost.db.*
 import code.name.monkey.lost.fragments.search.Filter
 import code.name.monkey.lost.model.*
-import code.name.monkey.lost.helper.MetaDataManagerHelper // Ensure this is the correct import
+import code.name.monkey.lost.helper.MetaDataManagerHelper
 import code.name.monkey.lost.model.smartplaylist.NotPlayedPlaylist
 import code.name.monkey.lost.network.LastFMService
 import code.name.monkey.lost.network.Result

@@ -12,7 +12,6 @@ import code.name.monkey.lost.helper.SortOrder.PlaylistSortOrder.Companion.PLAYLI
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.util.PreferenceUtil
 
-
 interface RoomRepository {
     fun historySongs(): List<HistoryEntity>
     fun favoritePlaylistLiveData(favorite: String): LiveData<List<SongEntity>>
