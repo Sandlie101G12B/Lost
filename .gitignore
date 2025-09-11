@@ -31,7 +31,7 @@ Thumbs.db
 #.idea/workspace.xml - remove # and delete .idea if it better suit your needs.
 .gradle
 build/
- 
+
 #NDK
 obj/
 
@@ -39,3 +39,4 @@ captures
 app/normal/release/
 /models/
 /app/release/
+secrets.properties
