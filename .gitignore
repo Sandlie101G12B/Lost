@@ -40,3 +40,6 @@ app/normal/release/
 /models/
 /app/release/
 secrets.properties
+*hs_err_pid*
+*replay_pid*
+*/errors/*.log
