@@ -12,6 +12,14 @@ You can choose between three different main themes: Clearly White, Kinda
 Dark and Just Black for AMOLED displays. Select your favorite accent
 color from a color palette.
 <br><br>
+## **Screenshot**
+<img height="128" src="https://github.com/Sandlie101G12B/Lost/blob/dev/app/src/main/assets/images/Screenshot_20250911_235420_Lost Music.jpg">
+<img height="128" src="https://github.com/Sandlie101G12B/Lost/blob/dev/app/src/main/assets/images/Screenshot_20250911_235451_Lost Music.jpg">
+<img height="128" src="https://github.com/Sandlie101G12B/Lost/blob/dev/app/src/main/assets/images/Screenshot_20250911_235512_Lost Music.jpg">
+<img height="128" src="https://github.com/Sandlie101G12B/Lost/blob/dev/app/src/main/assets/images/Screenshot_20250911_235624_Lost Music.jpg">
+<img height="128" src="https://github.com/Sandlie101G12B/Lost/blob/dev/app/src/main/assets/images/Screenshot_20250911_235601_Lost Music.jpg">
+<img height="128" src="https://github.com/Sandlie101G12B/Lost/blob/dev/app/src/main/assets/images/Screenshot_20250911_235532_Lost Music.jpg">
+<br><br>
 ## **Home**
 Where you can view your recently/top played artists, albums and
 favorite songs. No other music player has this feature.
@@ -42,4 +50,5 @@ Lost is released under the GNU General Public License v3.0
 
 >Please note: Lost is a local music player app. It
 >doesn't support music downloading or online music streaming.
+
 
