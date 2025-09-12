@@ -392,13 +392,12 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                             modelIndex++
                         }
                     }
-                    Thread.sleep(2000)
+                    Thread.sleep(1500)
                 }
                 if (!processedThisSong) {
                     if (!InternetConnection.hasInternetConnection(context)){
                          // Consider what happens if connection drops mid-process
                     }else{
-
                         apiKeyIndex++
                         modelIndex = 0
                     }
@@ -410,7 +409,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                         InternetConnection.waitForConnection(context, notificationBuilder, notificationManager)
                     }
                 }else{
-                    Thread.sleep(1000*60*3)
+                    Thread.sleep(10000)
                     initialiseMetaDataProcess(context)
                     return
                 }

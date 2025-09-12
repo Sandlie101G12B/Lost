@@ -1,7 +1,7 @@
 <p align="center">
   <img src="app/src/main/ic_launcher-web.png" height="128">
-  <h3 align="center"><b>Lost Music Player</b></h3>
 </p>
+<h3 align="center"><b>Lost Music Player</b></h3>
 <br><br>
 
 ## **Navigation Has Never Been Easier**
@@ -59,7 +59,7 @@ We are dedicated to delivering the best user experience. The app is **actively m
 
 ---
 
-## 💬 Feedback & Bug Reports
+## Feedback & Bug Reports
 
 If you find any bugs or have feature requests, please let us know:
 
@@ -71,11 +71,11 @@ If you find any bugs or have feature requests, please let us know:
 
 ---
 
-## **Social Links**  
-📢 Telegram: [https://t.me/lostmusicplayer](https://t.me/lostmusicplayer)  
+## **Social Links**
+Telegram: [https://t.me/lostmusicplayer](https://t.me/lostmusicplayer)  
 <br>
 
-## **License**  
+## **License**
 Lost is released under the **GNU General Public License v3.0 (GPLv3)**.  
 You can read it [here](LICENSE.md).
 
