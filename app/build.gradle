@@ -129,9 +129,6 @@ dependencies {
     // WebServer by NanoHttpd
     normalImplementation(libs.nanohttpd)
 
-    implementation(libs.core)
-    implementation(libs.jvm)
-
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
@@ -183,6 +180,5 @@ dependencies {
     implementation(libs.fastscroll.library)
     implementation(libs.customactivityoncrash)
     implementation(libs.tankery.circularSeekBar)
-
     implementation(libs.androidx.exoplayer)
 }

@@ -4,10 +4,6 @@ buildscript {
     repositories {
         mavenCentral()
         google()
-        maven {
-            name = "TarsosDSP repository"
-            url = "https://mvn.0110.be/releases"
-        }
     }
     dependencies {
         classpath libs.gradle

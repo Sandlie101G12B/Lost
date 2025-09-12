@@ -64,7 +64,6 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 
 #google_play
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
-core = { module = "be.tarsos.dsp:core", version.ref = "core" }
 google-feature-delivery = { module = "com.google.android.play:feature-delivery", version.ref = "google_featureDelivery_version" }
 google-play-services-cast-framework = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "playServicesCastFramework" }
 google-play-review = { module = "com.google.android.play:review", version.ref = "google_play_review_version" }
@@ -76,7 +75,6 @@ glide-okhttp3-integration = { module = "com.github.bumptech.glide:okhttp3-integr
 
 
 #koin
-jvm = { module = "be.tarsos.dsp:jvm", version.ref = "core" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinAndroid" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koinAndroid" }
 
