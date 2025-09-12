@@ -278,19 +278,20 @@ fun getApiKeys(context: Context): List<String> {
 }
 
 fun addApiKey(context: Context): Boolean {
-    // Read API keys directly from BuildConfig (injected at build time)
-    val keysString = BuildConfig.GEMINI_API_KEYS
-    val companyApiKeys = keysString
-        .split(",")
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
+    return try {
+        val keysString = BuildConfig.GEMINI_API_KEYS ?: ""
+        val companyApiKeys = keysString
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
 
-    saveApiKeys(context, companyApiKeys)
+        saveApiKeys(context, companyApiKeys)
 
-    val storedKeys = getApiKeys(context)
-    return storedKeys.isNotEmpty()
+        getApiKeys(context).isNotEmpty()
+    } catch (_: Exception) {
+        false
+    }
 }
-
 
 private fun createNotificationChannel(context: Context) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
