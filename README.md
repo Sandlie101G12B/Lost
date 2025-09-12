@@ -2,7 +2,17 @@
   <img src="app/src/main/ic_launcher-web.png" height="128">
 </p>
 <h3 align="center"><b>Lost Music Player</b></h3>
-<br><br>
+
+<p align="center">
+  <a href="https://github.com/Sandlie101G12B/LostMusicPlayer/releases/latest">
+    <img hspace="10" src="https://img.shields.io/badge/Release-v1.0.0-green?logo=github" alt="GitHub release">
+  </a>
+  <a href="https://f-droid.org/en/packages/com.sandile.lostmusicplayer/">
+    <img hspace="10" src="https://img.shields.io/badge/Release-v1.0.0-green?logo=f-droid" alt="F-Droid release">
+  </a>
+</p>
+
+<br>
 
 ## **Navigation Has Never Been Easier**
 A self-explanatory interface with no overloaded menus or unnecessary clutter.
@@ -85,5 +95,3 @@ You can read it [here](LICENSE.md).
 
 ## **Support**
 If you enjoy this project, consider supporting me on [Ko-fi](https://ko-fi.com/sandile10)!
-
-
