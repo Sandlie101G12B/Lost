@@ -2,7 +2,7 @@
   <img src="app/src/main/ic_launcher-web.png" height="128">
 </p>
 <h3 align="center"><b>Lost Music Player</b></h3>
-
+<br>
 <p align="center">
   <a href="https://github.com/Sandlie101G12B/LostMusicPlayer/releases/latest">
     <img hspace="10" src="https://img.shields.io/badge/Release-v1.0.0-green?logo=github" alt="GitHub release">
@@ -95,3 +95,4 @@ You can read it [here](LICENSE.md).
 
 ## **Support**
 If you enjoy this project, consider supporting me on [Ko-fi](https://ko-fi.com/sandile10)!
+
