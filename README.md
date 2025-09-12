@@ -81,5 +81,9 @@ You can read it [here](LICENSE.md).
 
 > **Note:** Lost is a local music player.  
 > It does **not** support downloading or streaming music from the internet.
+<br>
+
+## **Support**
+If you enjoy this project, consider supporting me on [Ko-fi](https://ko-fi.com/sandile10)!
 
 
