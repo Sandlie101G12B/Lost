@@ -16,7 +16,7 @@ android {
         vectorDrawables.useSupportLibrary = true
 
         applicationId = namespace
-        versionCode = 10650
+        versionCode = 10651
         versionName = "6.5.1"
 
         buildConfigField "String", "GEMINI_API_KEYS", "\"${getProperty(getProperties('local.properties'), 'GEMINI_API_KEYS')}\""

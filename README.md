@@ -36,7 +36,7 @@ We are dedicated to delivering the best user experience. The app is **actively m
 
 <p align="center">
   <img height="450" hspace="10" src="app/src/main/assets/images/Screenshot_20250911_235420_Lost Music.jpg">
-  <img height="450" hspace="10" src="app/src/main/assets/images/Screenshot_20250911_235451_Lost Music.jpg">
+  <img height="450" hspace="10" src="app/src/main/assets/images/Screenshot_20250913_180113_Lost Music.jpg">
   <img height="450" hspace="10" src="app/src/main/assets/images/Screenshot_20250911_235512_Lost Music.jpg">
   <br><br>
   <img height="450" hspace="10" src="app/src/main/assets/images/Screenshot_20250911_235624_Lost Music.jpg">
