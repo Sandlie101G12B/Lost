@@ -4,7 +4,7 @@
 * Make make a [Google Gemini API key](https://aistudio.google.com/app/apikey)
 * Add the following line to local.properties file
 ```properties
-GEMINI_API_KEYS=<YOUR GOOGLE GEMINI API KEY>
+GEMINI_API_KEYS=<YOUR_GOOGLE_GEMINI_API_KEY>
 ```
 
 ## Using the issue tracker
