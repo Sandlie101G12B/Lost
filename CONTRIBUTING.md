@@ -1,5 +1,12 @@
 # Contributing
 
+## Important!
+* Make make a [Google Gemini API key](https://aistudio.google.com/app/apikey)
+* Add the following line to local.properties file
+```properties
+GEMINI_API_KEYS=<YOUR_GOOGLE_GEMINI_API_KEY>
+```
+
 ## Using the issue tracker
 The [issue tracker](https://github.com/Lost/Lost/issues) is the preferred channel for bug reports, feature requests and submitting pull requests, but please follow these rules:
 
