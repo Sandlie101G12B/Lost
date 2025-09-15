@@ -1,62 +1,13 @@
 package code.name.monkey.lost.helper
 
-import android.content.Context
-import android.os.Environment // Added
-import android.util.Log // Added
 import code.name.monkey.lost.model.FlowType
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.SongMetaData
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
-import java.io.IOException // Added
-import java.util.concurrent.TimeUnit // Added for time calculations
+import java.util.concurrent.TimeUnit
 import kotlin.random.Random
-
-object SongDataManager {
-    var defaultSongsJson = "[]"
-    const val TAG = "SongDataManager" // Added for logging
-
-    fun loadDefaultSongsJson(context: Context) {
-        val sourceFile = File(context.filesDir, "outputile.txt")
-        defaultSongsJson = if (!sourceFile.exists() || sourceFile.readText().isBlank()) {
-            "[]"
-        } else {
-            sourceFile.readText()
-        }
-
-        // Start: Added code for copying the file
-        if (sourceFile.exists()) {
-            try {
-                val destinationDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "LostFiles")
-                if (!destinationDir.exists()) {
-                    if (!destinationDir.mkdirs()) {
-                        Log.e(TAG, "Failed to create destination directory: ${destinationDir.absolutePath}")
-                        return // Stop if directory creation fails
-                    }
-                }
-
-                val destinationFile = File(destinationDir, "outputile.txt")
-
-                sourceFile.inputStream().use { input ->
-                    destinationFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                Log.i(TAG, "Successfully copied outputile.txt to ${destinationFile.absolutePath}")
-            } catch (e: IOException) {
-                Log.e(TAG, "Error copying file: ${e.message}", e)
-            } catch (e: SecurityException) {
-                Log.e(TAG, "SecurityException: Missing WRITE_EXTERNAL_STORAGE permission or other security issue. ${e.message}", e)
-            }
-        } else {
-            Log.w(TAG, "Source file outputile.txt does not exist in app's internal storage. Skipping copy.")
-        }
-        // End: Added code for copying the file
-    }
-
-    var songs: MutableList<SongMetaData> = mutableListOf()
-}
 
 object ShuffleHelper {
     private var metadataMap: Map<String, SongMetaData>? = null
@@ -173,10 +124,10 @@ object ShuffleHelper {
         metadata: Map<String, SongMetaData>,
         currentMeta: SongMetaData
     ): List<Pair<Song, Int>> {
-        return songs.mapNotNull { song ->
+        return songs.map { song ->
             val meta = metadata[getSongKey(song)]
             if (meta == null || isCorrupted(meta)) {
-                null
+                Pair(song, Random.nextInt(-10, 10000)) // Assign a random score between -10 and -1
             } else {
                 val score = calculateSimilarity(currentMeta, meta)
                 Pair(song, score)
@@ -278,92 +229,95 @@ object ShuffleHelper {
         favoriteGenres: Set<String> = emptySet(),
         favoriteMoods: Set<String> = emptySet()
     ): Int {
+        return try {
+            // 1. Artist Matching
+            val commonArtists = (a.artists ?: emptyList()).intersect((b.artists ?: emptyList()).toSet())
+            val artistScore = commonArtists.size * Random.nextInt(8, 20)
 
-        // 1. Artist Matching
-        val commonArtists = (a.artists ?: emptyList()).intersect((b.artists ?: emptyList()).toSet())
-        val artistScore = commonArtists.size * Random.nextInt(8, 20)
+            // 2. Genre Matching
+            val commonGenres = (a.genre ?: emptyList()).take(3).intersect((b.genre ?: emptyList()).toSet())
+            val genreScore = commonGenres.size * 20
 
-        // 2. Genre Matching
-        val commonGenres = (a.genre ?: emptyList()).take(3).intersect((b.genre ?: emptyList()).toSet())
-        val genreScore = commonGenres.size * 20
+            // 3. Mood Matching
+            val commonMoods = (a.mood ?: emptyList()).take(3).intersect((b.mood ?: emptyList()).toSet())
+            val moodScore = commonMoods.size * Random.nextInt(10, 20)
 
-        // 3. Mood Matching
-        val commonMoods = (a.mood ?: emptyList()).take(3).intersect((b.mood ?: emptyList()).toSet())
-        val moodScore = commonMoods.size * Random.nextInt(10, 20)
+            // 4. Danceability
+            val danceabilityScore = (10 - (kotlin.math.abs(a.danceability?.minus(b.danceability ?: 0.0) ?: 0.0) * 10).coerceAtMost(10.0)).toInt()
 
-        // 4. Danceability
-        val danceabilityScore = (10 - (kotlin.math.abs(a.danceability?.minus(b.danceability ?: 0.0) ?: 0.0) * 10).coerceAtMost(10.0)).toInt()
+            // 5. Market Similarity
+            val marketScore = try {
+                (b.market ?: emptyList())?.let { (a.market ?: emptyList())?.take(2)?.intersect(it.toSet())?.size ?: 0 }?.times(5) ?: 0
+            } catch (_: Exception) { 0 }
 
-        // 5. Market Similarity
-        val marketScore = try {
-            (b.market ?: emptyList())?.let { (a.market ?: emptyList())?.take(2)?.intersect(it.toSet())?.size ?: 0 }?.times(5) ?: 0
-        } catch (_: Exception) { 0 }
+            // 6. Year Proximity
+            val yearScore = try {
+                val aYear = a.year.toIntOrNull()
+                val bYear = b.year.toIntOrNull()
+                if (aYear != null && bYear != null && aYear > 0 && bYear > 0) {
+                    (-15 + (kotlin.math.abs(aYear - bYear)).coerceAtMost(15)).coerceAtLeast(-5)
+                } else 0
+            } catch (_: Exception) { 0 }
 
-        // 6. Year Proximity
-        val yearScore = try {
-            val aYear = a.year.toIntOrNull()
-            val bYear = b.year.toIntOrNull()
-            if (aYear != null && bYear != null && aYear > 0 && bYear > 0) {
-                (-15 + (kotlin.math.abs(aYear - bYear)).coerceAtMost(15)).coerceAtLeast(-5)
+
+            // 7. Modern Song Bonus — strong boost for newer songs
+            val modernBonus = try {
+                val bYear = b.year.toIntOrNull()
+                val normalized = (((bYear?.coerceIn(1990, 2025) ?: 0) - 1990) / 35.0)
+                (normalized * Random.nextInt(0, 5)).toInt()
+            } catch (_: Exception) { 0 }
+
+            // 8. Energy
+            val energyScore = if (a.energy != null && b.energy != null) {
+                (11 - (kotlin.math.abs(a.energy - b.energy) * 11).coerceAtMost(11.0)).toInt()
             } else 0
-        } catch (_: Exception) { 0 }
 
+            // 9. Valence
+            val valenceScore = if (a.valence != null && b.valence != null) {
+                (10 - (kotlin.math.abs(a.valence - b.valence) * 10).coerceAtMost(10.0)).toInt()
+            } else 0
 
-        // 7. Modern Song Bonus — strong boost for newer songs
-        val modernBonus = try {
-            val bYear = b.year.toIntOrNull()
-            val normalized = (((bYear?.coerceIn(1990, 2025) ?: 0) - 1990) / 35.0)
-            (normalized * Random.nextInt(0, 5)).toInt()
-        } catch (_: Exception) { 0 }
+            // 10. Tempo
+            val tempoScore = if (a.tempo != null && b.tempo != null) {
+                (10 - (kotlin.math.abs(a.tempo - b.tempo) / 10).coerceAtMost(10.0)).toInt()
+            } else 0
 
-        // 8. Energy
-        val energyScore = if (a.energy != null && b.energy != null) {
-            (11 - (kotlin.math.abs(a.energy - b.energy) * 11).coerceAtMost(11.0)).toInt()
-        } else 0
+            // 11. Genre-Based Artist Similarity
+            val genreArtistSimilarity = getGenreBasedArtistSimilarity(a, b)
 
-        // 9. Valence
-        val valenceScore = if (a.valence != null && b.valence != null) {
-            (10 - (kotlin.math.abs(a.valence - b.valence) * 10).coerceAtMost(10.0)).toInt()
-        } else 0
+            // 13. Play History Penalty
+            val currentTime = System.currentTimeMillis()
+            val twoWeeksInMillis = TimeUnit.DAYS.toMillis(14)
+            val recentPlays = b.playTimestamps.count { (currentTime - it) < twoWeeksInMillis }
+            val playHistoryPenalty = recentPlays * 2
 
-        // 10. Tempo
-        val tempoScore = if (a.tempo != null && b.tempo != null) {
-            (10 - (kotlin.math.abs(a.tempo - b.tempo) / 10).coerceAtMost(10.0)).toInt()
-        } else 0
+            // 14. Skip History Penalty
+            val oneWeekInMillis = TimeUnit.DAYS.toMillis(7)
+            val recentSkips = b.skipTimestamps.count { (currentTime - it) < oneWeekInMillis }
+            val skipHistoryPenalty = recentSkips * 10 // Heavier penalty for recent skips
 
-        // 11. Genre-Based Artist Similarity
-        val genreArtistSimilarity = getGenreBasedArtistSimilarity(a, b)
+            // 15. Liked Song Bonus
+            val likedBonus = if (b.liked) Random.nextInt(5, 12) else 0
 
-        // 13. Play History Penalty
-        val currentTime = System.currentTimeMillis()
-        val twoWeeksInMillis = TimeUnit.DAYS.toMillis(14)
-        val recentPlays = b.playTimestamps.count { (currentTime - it) < twoWeeksInMillis }
-        val playHistoryPenalty = recentPlays * 2
+            // 16. Favorited Song Bonus (stronger than liked)
+            val favoritedBonus = if (b.favorite) Random.nextInt(10, 20) else 0
+            
+            // 17. Rating-Based Adjustment
+            val ratingAdjustment = when {
+                b.rating >= 4 -> Random.nextInt(5,15)
+                b.rating == 3 -> Random.nextInt(0,5)
+                b.rating <= 1 && b.rating > 0 -> -Random.nextInt(5,15) // Penalty for low rated songs
+                else -> 0
+            }
 
-        // 14. Skip History Penalty
-        val oneWeekInMillis = TimeUnit.DAYS.toMillis(7)
-        val recentSkips = b.skipTimestamps.count { (currentTime - it) < oneWeekInMillis }
-        val skipHistoryPenalty = recentSkips * 10 // Heavier penalty for recent skips
-
-        // 15. Liked Song Bonus
-        val likedBonus = if (b.liked) Random.nextInt(5, 12) else 0
-
-        // 16. Favorited Song Bonus (stronger than liked)
-        val favoritedBonus = if (b.favorite) Random.nextInt(10, 20) else 0
-        
-        // 17. Rating-Based Adjustment
-        val ratingAdjustment = when {
-            b.rating >= 4 -> Random.nextInt(5,15)
-            b.rating == 3 -> Random.nextInt(0,5)
-            b.rating <= 1 && b.rating > 0 -> -Random.nextInt(5,15) // Penalty for low rated songs
-            else -> 0
+            val totalScore = artistScore + genreScore + moodScore + danceabilityScore + marketScore +
+                    yearScore + modernBonus + energyScore + valenceScore + tempoScore +
+                    genreArtistSimilarity + likedBonus + favoritedBonus + ratingAdjustment -
+                    Random.nextInt(0, (playHistoryPenalty + skipHistoryPenalty + 1))
+            totalScore
+        } catch (_: Exception) {
+            Random.nextInt(-5, 11) // Returns a random int between -5 and 10 (inclusive)
         }
-
-        val totalScore = artistScore + genreScore + moodScore + danceabilityScore + marketScore +
-                yearScore + modernBonus + energyScore + valenceScore + tempoScore +
-                genreArtistSimilarity + likedBonus + favoritedBonus + ratingAdjustment -
-                Random.nextInt(0, (playHistoryPenalty + skipHistoryPenalty + 1))
-        return totalScore
     }
 
     private fun getGenreBasedArtistSimilarity(metaA: SongMetaData, metaB: SongMetaData): Int {
@@ -385,7 +339,6 @@ object ShuffleHelper {
             0
         }
     }
-
 
     private fun isCorrupted(meta: SongMetaData): Boolean {
         val hasNoTitle = meta.title.isBlank()
