@@ -123,7 +123,10 @@ dependencies {
     implementation(libs.androidx.palette.ktx)
     implementation(libs.androidx.mediarouter)
     implementation(libs.androidx.security.crypto)
-
+    implementation(project(":innertube"))
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.serialization.json)
+    implementation(libs.timber)
     // Cast Dependencies
     normalImplementation(libs.google.play.services.cast.framework)
     // WebServer by NanoHttpd
