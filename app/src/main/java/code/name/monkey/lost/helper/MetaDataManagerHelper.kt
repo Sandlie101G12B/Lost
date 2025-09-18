@@ -169,7 +169,7 @@ object MetaDataManagerHelper : KoinComponent {
 //        resetAndApplyFavoriteList(myJsonString)
     }
 
-    private fun getContext(): Context {
+    fun getContext(): Context {
         appContext?.let {
             return it
         } ?: run {
