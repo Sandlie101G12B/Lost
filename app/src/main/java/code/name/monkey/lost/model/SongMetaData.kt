@@ -4,10 +4,10 @@ import com.google.gson.annotations.SerializedName
 
 data class SongMetaData(
     val title: String,
-    val artists: List<String>,
+    val artists: List<String> = emptyList(),
     var file: String,
-    val mood: List<String>,
-    val genre: List<String>,
+    val mood: List<String> = emptyList(),
+    val genre: List<String> = emptyList(),
     val playlist: List<String> = emptyList(),
     val year: String = "",
     var liked: Boolean = false,
@@ -22,7 +22,10 @@ data class SongMetaData(
     val bpm: Float? = null,
     var playTimestamps: MutableList<Long> = mutableListOf(),
     var skipTimestamps: MutableList<Long> = mutableListOf(),
-    var likedTimestamp: Long? = null
+    var likedTimestamp: Long? = null,
+    val ytID: String? = null,
+    val isYTSong: Boolean = false,
+    val streamUrl: String? = null,
 )
 
 data class SongTMPContainer(

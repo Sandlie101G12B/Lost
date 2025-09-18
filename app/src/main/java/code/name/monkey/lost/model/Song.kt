@@ -20,11 +20,10 @@ open class Song(
     open val artistName: String, // Main artist name string, used to derive artistNames
     open val composer: String?,
     open val albumArtist: String?,
-    // These constructor parameters might be for explicit overrides if needed,
-//    // but artistNames and artistIds below are the derived versions.
-//    open val artistNames: List<String>? = null,
-//    open val artistIds: List<Long>? = null,
-    open val bpm: Float? = null // <-- Added BPM property
+    open val bpm: Float? = null,
+    open val ytID: String? = null,
+    open val isYTSong: Boolean = false,
+    open var streamUrl: String? = null,
 ) : Parcelable {
 
     @IgnoredOnParcel
