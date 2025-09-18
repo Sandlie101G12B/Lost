@@ -1,16 +1,26 @@
 package code.name.monkey.lost.helper
 
-import code.name.monkey.lost.model.FlowType
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.SongMetaData
+import code.name.monkey.lost.network.InternetConnection
+import code.name.monkey.lost.util.YTPlayerUtils.getSimilarContent
+import code.name.monkey.lost.util.YTPlayerUtils.searchVideos
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
-import java.util.concurrent.TimeUnit
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import kotlin.random.Random
+import kotlinx.coroutines.runBlocking
 
 object ShuffleHelper {
+    private const val DEBUG_TAG = "ShuffleHelperDebug"
     private var metadataMap: Map<String, SongMetaData>? = null
+
+    private const val CACHE_EXPIRY_MS = 5000L // 5 seconds
+    private data class CachedShuffle(val list: List<Song>, val timestamp: Long)
+    private val shuffleCache = mutableMapOf<String, CachedShuffle>()
+
     private fun loadMetadataMap(): Map<String, SongMetaData> {
         if (metadataMap != null) return metadataMap!!
         val defaultSongsJson = SongDataManager.defaultSongsJson
@@ -25,98 +35,182 @@ object ShuffleHelper {
     fun makeShuffleList(listToShuffle: MutableList<Song>, current: Int) {
         if (listToShuffle.isEmpty() || current !in listToShuffle.indices) return
 
+        val songForCacheKey = listToShuffle[current]
+        val cacheKey = getSongKey(songForCacheKey)
+        val currentTime = System.currentTimeMillis()
+
+        shuffleCache[cacheKey]?.let {
+            if ((currentTime - it.timestamp) < CACHE_EXPIRY_MS) {
+                println("$DEBUG_TAG: Cache hit for key '$cacheKey'. Using cached shuffle list.")
+                listToShuffle.clear()
+                listToShuffle.addAll(it.list)
+                return
+            }
+        }
+
         val metadata = loadMetadataMap()
-        val currentSong = listToShuffle.removeAt(current)
-        // After removing currentSong, listToShuffle might become empty.
-        // If it's empty, we can just add currentSong back and return.
+        val currentSong = listToShuffle.removeAt(current) // This is songForCacheKey, now removed
+
         if (listToShuffle.isEmpty()) {
             listToShuffle.add(0, currentSong)
+            shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
+            println("$DEBUG_TAG: Cache updated for key '$cacheKey' after list became empty.")
             return
         }
+
         val currentMeta = metadata[getSongKey(currentSong)]
         val hasAnyMetadata = listToShuffle.any { metadata[getSongKey(it)] != null }
 
         if (currentMeta == null || !hasAnyMetadata) {
+            println("$DEBUG_TAG: Current meta is null or no metadata in listToShuffle. Performing simple shuffle.")
             listToShuffle.shuffle()
             listToShuffle.add(0, currentSong)
+            shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
+            println("$DEBUG_TAG: Cache updated for key '$cacheKey' after simple shuffle.")
             return
         }
-        // currentMeta is confirmed to be non-null here
-        val currentArtistsSet = (currentMeta.artists ?: emptyList()).toSet()
 
-        val scoredSongs = scoreSongs(listToShuffle, metadata, currentMeta)
-        val originalScored = scoredSongs.toMutableList()
+        // Define shuffle functions (they modify listToShuffle in place)
+        fun offlineshuffle(){
+            println("$DEBUG_TAG: Performing offline shuffle for key '$cacheKey'.")
+            val currentArtistsSet = (currentMeta.artists ?: emptyList()).toSet()
+            val scoredSongs = scoreSongs(listToShuffle, metadata, currentMeta)
+            val originalScored = scoredSongs.toMutableList()
 
-        // Artist De-concentration Logic
-        if (originalScored.isNotEmpty()) {
-            val topSongsForArtistCheck = originalScored.take(7)
-            var songsByCurrentArtistInTop = 0
-            for ((song, _) in topSongsForArtistCheck) {
-                val songMeta = metadata[getSongKey(song)]
-                // Check if songMeta is not null and shares any artist with currentArtistsSet
-                if (songMeta != null && (songMeta.artists ?: emptyList()).any { it in currentArtistsSet }) {
-                    songsByCurrentArtistInTop++
-                }
-            }
-
-            if (songsByCurrentArtistInTop >= 7) {
-                for (i in originalScored.indices) {
-                    val (song, score) = originalScored[i]
+            if (originalScored.isNotEmpty()) {
+                val topSongsForArtistCheck = originalScored.take(7)
+                var songsByCurrentArtistInTop = 0
+                for ((song, _) in topSongsForArtistCheck) {
                     val songMeta = metadata[getSongKey(song)]
-                    // Check if songMeta is not null and shares any artist with currentArtistsSet
                     if (songMeta != null && (songMeta.artists ?: emptyList()).any { it in currentArtistsSet }) {
-                        val basePenalty = Random.nextInt(0, 15) // Base penalty: 5 to 15 points
-                        // Adjust penalty based on the number of artists on the track being penalized
-                        val numArtistsOnTrack = (songMeta.artists ?: emptyList()).size.coerceAtLeast(1)
-                        val adjustedPenalty = basePenalty / numArtistsOnTrack
-                        originalScored[i] = song to (score - adjustedPenalty)
+                        songsByCurrentArtistInTop++
+                    }
+                }
+                println("$DEBUG_TAG: Songs by current artist in top 7 for de-concentration: $songsByCurrentArtistInTop")
+                if (songsByCurrentArtistInTop >= 7) {
+                    println("$DEBUG_TAG: Applying artist de-concentration penalty.")
+                    for (i in originalScored.indices) {
+                        val (song, score) = originalScored[i]
+                        val songMeta = metadata[getSongKey(song)]
+                        if (songMeta != null && (songMeta.artists ?: emptyList()).any { it in currentArtistsSet }) {
+                            val basePenalty = Random.nextInt(0, 15)
+                            val numArtistsOnTrack = (songMeta.artists ?: emptyList()).size.coerceAtLeast(1)
+                            val adjustedPenalty = basePenalty / numArtistsOnTrack
+                            originalScored[i] = song to (score - adjustedPenalty)
+                        }
                     }
                 }
             }
+            listToShuffle.clear()
+            listToShuffle.add(currentSong)
+            listToShuffle.addAll(originalScored.sortedByDescending { it.second }.map { it.first })
+            println("$DEBUG_TAG: Offline shuffle complete. New list size: ${listToShuffle.size}")
         }
 
-//        val selectedFlow = selectFlowType(currentMeta)
-//        // Ensure reorderByFlow uses the smoothed scores from originalScored
-//        val reordered: List<Pair<Song, Int>> = reorderByFlow(selectedFlow, originalScored, metadata)
-//        // Also ensure enforceMaxMovement uses the smoothed originalScored for its original positions
-//        //val finalOrdered = enforceMaxMovement(reordered, originalScored, maxMovement = 5)
-//        val smartShuffled = reordered
-//            .groupBy { it.second } // Group by the (potentially smoothed) score
-//            .toSortedMap(compareByDescending { it }) // Sort groups by score descending
-//            .flatMap { (_, group) -> group.shuffled().map { it.first } } // Shuffle within score groups
-//        
-//        val extraRandomized = smartShuffled.toMutableList()
-//        // Ensure extraRandomized has enough elements for swapping logic
-//        if (extraRandomized.size > 1) {
-//            val swapRange = Random.nextInt(2,4)
-//            // Ensure swaps is at least 1 only if there are enough elements to perform a meaningful swap.
-//            val swaps = if (extraRandomized.size > 1) (extraRandomized.size / 5).coerceAtLeast(1) else 0
-//
-//            if (swaps > 0) { // Only proceed if swaps > 0
-//                repeat(swaps) {
-//                    // Check if extraRandomized.size is > 1 before calling random()
-//                    if (extraRandomized.size <= 1) return@repeat // Not enough elements to pick 'i' from (1 until size)
-//
-//                    val i = (1 until extraRandomized.size).random()
-//                    val minJ = (i - swapRange).coerceAtLeast(1)
-//                    val maxJ = (i + swapRange).coerceAtMost(extraRandomized.size - 1)
-//
-//                    if (maxJ > minJ) {
-//                        val possibleJs = (minJ..maxJ).filter { it != i }
-//                        if (possibleJs.isNotEmpty()) { // Check if filter results in non-empty list
-//                            val j = possibleJs.random()
-//                            val tmp = extraRandomized[i]
-//                            extraRandomized[i] = extraRandomized[j]
-//                            extraRandomized[j] = tmp
-//                        }
-//                    }
-//                }
-//            }
-//        }
+        suspend fun onlineShuffle() {
+            var allArtists = ""
+            (currentMeta.artists ?: emptyList()).forEach {
+                    artist ->
+                allArtists += " ${URLDecoder.decode(artist, StandardCharsets.UTF_8.toString())}"
+            }
+            val query = "${URLDecoder.decode(currentMeta.title, StandardCharsets.UTF_8.toString())} -$allArtists"
+            println("$DEBUG_TAG: Starting onlineShuffle for key '$cacheKey'. Decoded Query with hyphen: '$query'")
 
-        listToShuffle.clear()
-        listToShuffle.add(currentSong)
-        listToShuffle.addAll(originalScored.sortedByDescending { it.second }.map { it.first })
+            searchVideos(query)
+                .onSuccess { searchResults ->
+                    println("$DEBUG_TAG: searchVideos success. Found ${searchResults.size} results.")
+                    val firstVideoId = searchResults.firstOrNull()?.videoId
+                    if (firstVideoId == null) {
+                        println("$DEBUG_TAG: No videoId found from search. Falling back to offline shuffle.")
+                        offlineshuffle()
+                    } else {
+                        println("$DEBUG_TAG: Found videoId: $firstVideoId. Getting similar content.")
+                        getSimilarContent(firstVideoId)
+                            .onSuccess { recommendedYtItems ->
+                                println("$DEBUG_TAG: getSimilarContent success. Found ${recommendedYtItems.size} recommended YT items.")
+                                val orderedLocalSongs = mutableListOf<Song>()
+                                val songsToConsiderForMatching = listToShuffle.toMutableList() // currentSong is already removed from listToShuffle here
+                                println("$DEBUG_TAG: Initial songsToConsiderForMatching size: ${songsToConsiderForMatching.size}")
+
+                                for (ytSong in recommendedYtItems) {
+                                    val ytTitle = ytSong.title?.trim()?.lowercase()
+                                    val ytArtistNames = ytSong.artists
+                                        .mapNotNull { artist -> artist.name?.trim()?.lowercase() }
+                                        .filter { it.isNotEmpty() }.toSet()
+                                    println("$DEBUG_TAG: Processing YT recommendation: Title='$ytTitle', Artists=$ytArtistNames")
+
+                                    if (ytTitle == null || ytTitle.isEmpty()) {
+                                        println("$DEBUG_TAG: Skipping YT song due to empty title.")
+                                        continue
+                                    }
+
+                                    var matchedLocalSong: Song? = null
+                                    val iterator = songsToConsiderForMatching.iterator()
+                                    while (iterator.hasNext()) {
+                                        val localSong = iterator.next()
+                                        val localSongMeta = metadata[getSongKey(localSong)]
+
+                                        if (localSongMeta != null && !isCorrupted(localSongMeta)) {
+                                            val localTitle = localSongMeta.title.trim().lowercase()
+                                            val localArtistNames = (localSongMeta.artists ?: emptyList())
+                                                .mapNotNull { artist -> artist?.trim()?.lowercase() }
+                                                .filter { it.isNotEmpty() }.toSet()
+
+                                            val titleMatches = localTitle.contains(ytTitle) || ytTitle.contains(localTitle)
+                                            val artistsMatch = ytArtistNames.isEmpty() ||
+                                                             (localArtistNames.isNotEmpty() && ytArtistNames.intersect(localArtistNames).isNotEmpty())
+
+                                            if (titleMatches && artistsMatch) {
+                                                println("$DEBUG_TAG:   MATCHED! YT: '$ytTitle' - $ytArtistNames WITH Local: '$localTitle' - $localArtistNames")
+                                                matchedLocalSong = localSong
+                                                iterator.remove()
+                                                break
+                                            }
+                                        }
+                                    }
+                                    matchedLocalSong?.let { song ->
+                                        orderedLocalSongs.add(song)
+                                        println("$DEBUG_TAG: Added '${metadata[getSongKey(song)]?.title}' to orderedLocalSongs. New size: ${orderedLocalSongs.size}")
+                                    }
+                                }
+
+                                println("$DEBUG_TAG: Finished processing YT recommendations. orderedLocalSongs size: ${orderedLocalSongs.size}, songsToConsiderForMatching (remaining) size: ${songsToConsiderForMatching.size}")
+                                songsToConsiderForMatching.shuffle()
+                                println("$DEBUG_TAG: Shuffled remaining ${songsToConsiderForMatching.size} songs.")
+
+                                listToShuffle.clear()
+                                listToShuffle.add(currentSong)
+                                listToShuffle.addAll(orderedLocalSongs)
+                                listToShuffle.addAll(songsToConsiderForMatching)
+                                println("$DEBUG_TAG: Online shuffle complete. Final listToShuffle size: ${listToShuffle.size}")
+                            }
+                            .onFailure { exception ->
+                                println("$DEBUG_TAG: getSimilarContent failed. Exception Type: ${exception::class.java.name}")
+                                println("$DEBUG_TAG: Exception message details (if any): ${exception.message}")
+                                println("$DEBUG_TAG: Falling back to offline shuffle after getSimilarContent failure.")
+                                offlineshuffle()
+                            }
+                    }
+                }
+                .onFailure { exception ->
+                    println("$DEBUG_TAG: searchVideos failed. Exception Type: ${exception::class.java.name}")
+                    println("$DEBUG_TAG: Exception message details (if any): ${exception.message}")
+                    println("$DEBUG_TAG: Falling back to offline shuffle after searchVideos failure.")
+                    offlineshuffle()
+                }
+        }
+
+        if (InternetConnection.hasInternetConnection(MetaDataManagerHelper.getContext())) {
+            println("$DEBUG_TAG: Internet connection available. Attempting online shuffle for key '$cacheKey'.")
+            runBlocking { onlineShuffle() } // Modifies listToShuffle
+        } else {
+            println("$DEBUG_TAG: No internet connection. Performing offline shuffle for key '$cacheKey'.")
+            offlineshuffle() // Modifies listToShuffle
+        }
+
+        // Common point for cache update after any shuffle path that didn't return early
+        shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
+        println("$DEBUG_TAG: Cache updated for key '$cacheKey' after full shuffle process.")
     }
 
     private fun scoreSongs(
@@ -127,95 +221,12 @@ object ShuffleHelper {
         return songs.map { song ->
             val meta = metadata[getSongKey(song)]
             if (meta == null || isCorrupted(meta)) {
-                Pair(song, Random.nextInt(-10, 10000)) // Assign a random score between -10 and -1
+                Pair(song, Random.nextInt(-10, 10000))
             } else {
                 val score = calculateSimilarity(currentMeta, meta)
                 Pair(song, score)
             }
         }
-    }
-
-    /**
-     * Selects the flow type based on the current song's metadata.
-     */
-    private fun selectFlowType(currentMeta: SongMetaData): FlowType {
-        return when {
-            (currentMeta.energy ?: 0.0) > 0.7 && (currentMeta.danceability ?: 0.0) > 0.7 -> FlowType.Pulse
-            (currentMeta.energy ?: 0.0) < 0.4 && (currentMeta.valence ?: 0.0) < 0.4 -> FlowType.WindDown
-            (currentMeta.valence ?: 0.0) > 0.7 && (currentMeta.energy ?: 0.0) > 0.4 -> FlowType.MoodLift
-            (currentMeta.mood ?: emptyList()).any { it.contains("party", ignoreCase = true) || it.contains("dance", ignoreCase = true) } -> FlowType.RollerCoaster
-            (currentMeta.tempo ?: 0.0) > 130.0 -> FlowType.Wave
-            else -> FlowType.RollerCoaster
-        }
-    }
-
-    private fun reorderByFlow(
-        flow: FlowType,
-        scored: List<Pair<Song, Int>>, // This now receives the potentially smoothed scores
-        metadata: Map<String, SongMetaData>
-    ): List<Pair<Song, Int>> {
-        fun Song.getMeta(): SongMetaData? = metadata[getSongKey(this)]
-        // The `scored` list here contains pairs of (Song, potentially smoothed Int score)
-        // The sorting logic inside might use these scores or other metadata like energy, valence etc.
-        // If it uses `.second` from the pair, it will use the smoothed score.
-        return when (flow) {
-            FlowType.RollerCoaster -> {
-                val sorted = scored.sortedByDescending { it.first.getMeta()?.energy ?: 0.0 }
-                val high = sorted.filterIndexed { i, _ -> i % 2 == 0 }
-                val low = sorted.filterIndexed { i, _ -> i % 2 != 0 }.reversed()
-                (high + low).take(scored.size)
-            }
-            FlowType.WindDown -> {
-                scored.sortedWith(
-                    compareByDescending<Pair<Song, Int>> { it.first.getMeta()?.energy ?: 0.0 }
-                        .thenByDescending { it.first.getMeta()?.valence ?: 0.0 }
-                )
-            }
-            FlowType.MoodLift -> {
-                scored.sortedWith(
-                    compareBy<Pair<Song, Int>> { it.first.getMeta()?.valence ?: 0.0 }
-                        .thenBy { it.first.getMeta()?.energy ?: 0.0 }
-                )
-            }
-            FlowType.Pulse -> {
-                val sorted = scored.sortedByDescending { it.first.getMeta()?.danceability ?: 0.0 }
-                val high = sorted.filterIndexed { i, _ -> i % 2 == 0 }
-                val low = sorted.filterIndexed { i, _ -> i % 2 != 0 }.reversed()
-                (high + low).take(scored.size)
-            }
-            FlowType.Wave -> {
-                val sorted = scored.sortedByDescending { it.first.getMeta()?.energy ?: 0.0 }
-                val chunked = sorted.chunked(5).flatMapIndexed { idx, chunk ->
-                    if (idx % 2 == 0) chunk else chunk.reversed()
-                }
-                chunked
-            }
-        }
-    }
-
-    private fun enforceMaxMovement(
-        reordered: List<Pair<Song, Int>>, // This list is from reorderByFlow
-        originalScored: List<Pair<Song, Int>>, // This is the smoothed list
-        maxMovement: Int
-    ): MutableList<Pair<Song, Int>> {
-        val finalOrdered = MutableList(reordered.size) { reordered[it] }
-        // The originalScored list is used here to find the original index of an item
-        // based on the Song object and its (smoothed) score.
-        // If an item was (SongA, 100) and smoothed to (SongA, 105), originalScored reflects this.
-        for ((originalIdx, pair) in reordered.withIndex()) {
-            val origPos = originalScored.indexOf(pair) // This should correctly find the item if pair matches an entry in originalScored
-            if (origPos == -1) {
-                 // This case should ideally not happen if reordered contains items from originalScored.
-                 // Handle defensively or log if necessary.
-                 continue
-            }
-            val minPos = (origPos - maxMovement).coerceAtLeast(0)
-            val maxPos = (origPos + maxMovement).coerceAtMost(reordered.size - 1)
-            val targetPos = originalIdx.coerceIn(minPos, maxPos)
-            finalOrdered.remove(pair)
-            finalOrdered.add(targetPos, pair)
-        }
-        return finalOrdered
     }
 
     private fun getSongKey(song: Song): String {
@@ -230,27 +241,16 @@ object ShuffleHelper {
         favoriteMoods: Set<String> = emptySet()
     ): Int {
         return try {
-            // 1. Artist Matching
             val commonArtists = (a.artists ?: emptyList()).intersect((b.artists ?: emptyList()).toSet())
             val artistScore = commonArtists.size * Random.nextInt(8, 20)
-
-            // 2. Genre Matching
             val commonGenres = (a.genre ?: emptyList()).take(3).intersect((b.genre ?: emptyList()).toSet())
             val genreScore = commonGenres.size * 20
-
-            // 3. Mood Matching
             val commonMoods = (a.mood ?: emptyList()).take(3).intersect((b.mood ?: emptyList()).toSet())
             val moodScore = commonMoods.size * Random.nextInt(10, 20)
-
-            // 4. Danceability
             val danceabilityScore = (10 - (kotlin.math.abs(a.danceability?.minus(b.danceability ?: 0.0) ?: 0.0) * 10).coerceAtMost(10.0)).toInt()
-
-            // 5. Market Similarity
             val marketScore = try {
                 (b.market ?: emptyList())?.let { (a.market ?: emptyList())?.take(2)?.intersect(it.toSet())?.size ?: 0 }?.times(5) ?: 0
             } catch (_: Exception) { 0 }
-
-            // 6. Year Proximity
             val yearScore = try {
                 val aYear = a.year.toIntOrNull()
                 val bYear = b.year.toIntOrNull()
@@ -258,65 +258,43 @@ object ShuffleHelper {
                     (-15 + (kotlin.math.abs(aYear - bYear)).coerceAtMost(15)).coerceAtLeast(-5)
                 } else 0
             } catch (_: Exception) { 0 }
-
-
-            // 7. Modern Song Bonus — strong boost for newer songs
             val modernBonus = try {
                 val bYear = b.year.toIntOrNull()
                 val normalized = (((bYear?.coerceIn(1990, 2025) ?: 0) - 1990) / 35.0)
                 (normalized * Random.nextInt(0, 5)).toInt()
             } catch (_: Exception) { 0 }
-
-            // 8. Energy
             val energyScore = if (a.energy != null && b.energy != null) {
                 (11 - (kotlin.math.abs(a.energy - b.energy) * 11).coerceAtMost(11.0)).toInt()
             } else 0
-
-            // 9. Valence
             val valenceScore = if (a.valence != null && b.valence != null) {
                 (10 - (kotlin.math.abs(a.valence - b.valence) * 10).coerceAtMost(10.0)).toInt()
             } else 0
-
-            // 10. Tempo
             val tempoScore = if (a.tempo != null && b.tempo != null) {
                 (10 - (kotlin.math.abs(a.tempo - b.tempo) / 10).coerceAtMost(10.0)).toInt()
             } else 0
-
-            // 11. Genre-Based Artist Similarity
             val genreArtistSimilarity = getGenreBasedArtistSimilarity(a, b)
-
-            // 13. Play History Penalty
-            val currentTime = System.currentTimeMillis()
-            val twoWeeksInMillis = TimeUnit.DAYS.toMillis(14)
+            val currentTime = System.currentTimeMillis() // Note: This is a different currentTime than the cache logic
+            val twoWeeksInMillis = java.util.concurrent.TimeUnit.DAYS.toMillis(14)
             val recentPlays = b.playTimestamps.count { (currentTime - it) < twoWeeksInMillis }
             val playHistoryPenalty = recentPlays * 2
-
-            // 14. Skip History Penalty
-            val oneWeekInMillis = TimeUnit.DAYS.toMillis(7)
+            val oneWeekInMillis = java.util.concurrent.TimeUnit.DAYS.toMillis(7)
             val recentSkips = b.skipTimestamps.count { (currentTime - it) < oneWeekInMillis }
-            val skipHistoryPenalty = recentSkips * 10 // Heavier penalty for recent skips
-
-            // 15. Liked Song Bonus
+            val skipHistoryPenalty = recentSkips * 10
             val likedBonus = if (b.liked) Random.nextInt(5, 12) else 0
-
-            // 16. Favorited Song Bonus (stronger than liked)
             val favoritedBonus = if (b.favorite) Random.nextInt(10, 20) else 0
-            
-            // 17. Rating-Based Adjustment
             val ratingAdjustment = when {
                 b.rating >= 4 -> Random.nextInt(5,15)
                 b.rating == 3 -> Random.nextInt(0,5)
-                b.rating <= 1 && b.rating > 0 -> -Random.nextInt(5,15) // Penalty for low rated songs
+                b.rating <= 1 && b.rating > 0 -> -Random.nextInt(5,15)
                 else -> 0
             }
-
             val totalScore = artistScore + genreScore + moodScore + danceabilityScore + marketScore +
                     yearScore + modernBonus + energyScore + valenceScore + tempoScore +
                     genreArtistSimilarity + likedBonus + favoritedBonus + ratingAdjustment -
                     Random.nextInt(0, (playHistoryPenalty + skipHistoryPenalty + 1))
             totalScore
         } catch (_: Exception) {
-            Random.nextInt(-5, 11) // Returns a random int between -5 and 10 (inclusive)
+            Random.nextInt(-5, 11)
         }
     }
 
@@ -343,7 +321,7 @@ object ShuffleHelper {
     private fun isCorrupted(meta: SongMetaData): Boolean {
         val hasNoTitle = meta.title.isBlank()
         val hasNoArtists = (meta.artists ?: emptyList()).isEmpty() || (meta.artists ?: emptyList()).all { it.isBlank() }
-        
+
         return hasNoTitle && hasNoArtists
     }
 }

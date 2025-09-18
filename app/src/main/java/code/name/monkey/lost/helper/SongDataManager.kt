@@ -12,7 +12,7 @@ object SongDataManager {
     const val TAG = "SongDataManager"
 
     fun loadDefaultSongsJson(context: Context) {
-        val sourceFile = File(context.filesDir, "outputile.txt")
+        val sourceFile = File(context.filesDir, "resultantPath.txt")
         defaultSongsJson = if (!sourceFile.exists() || sourceFile.readText().isBlank()) {
             "[]"
         } else {
@@ -29,21 +29,21 @@ object SongDataManager {
                     }
                 }
 
-                val destinationFile = File(destinationDir, "outputile.txt")
+                val destinationFile = File(destinationDir, "resultantPath.txt")
 
                 sourceFile.inputStream().use { input ->
                     destinationFile.outputStream().use { output ->
                         input.copyTo(output)
                     }
                 }
-                Log.i(TAG, "Successfully copied outputile.txt to ${destinationFile.absolutePath}")
+                Log.i(TAG, "Successfully copied resultantPath.txt to ${destinationFile.absolutePath}")
             } catch (e: IOException) {
                 Log.e(TAG, "Error copying file: ${e.message}", e)
             } catch (e: SecurityException) {
                 Log.e(TAG, "SecurityException: Missing WRITE_EXTERNAL_STORAGE permission or other security issue. ${e.message}", e)
             }
         } else {
-            Log.w(TAG, "Source file outputile.txt does not exist in app's internal storage. Skipping copy.")
+            Log.w(TAG, "Source file resultantPath.txt does not exist in app's internal storage. Skipping copy.")
         }
     }
     var songs: MutableList<SongMetaData> = mutableListOf()
