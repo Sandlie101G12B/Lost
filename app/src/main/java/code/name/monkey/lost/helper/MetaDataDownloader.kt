@@ -33,6 +33,7 @@ import code.name.monkey.lost.BuildConfig
 
 const val inputPath = "inputile.txt"
 const val outputPath = "outputile.txt"
+const val resultantPath = "resultantPath.txt"
 const val outputPathBackupConst = "outputile.txt.bak"
 private const val ENHANCEMENT_CHANNEL_ID = "song_enhancement_channel"
 const val ENHANCEMENT_NOTIFICATION_ID = 1001
@@ -319,7 +320,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
 
     scanAndAddNewDeviceSongs(context, inputPath, deviceSongs)
     fixMissingSongMetaFields(context, outputPath, outputPathBackupConst)
-
+    mergeSongDataFiles(context)
     withContext(Dispatchers.IO) {
         InternetConnection.waitForConnection(context, notificationBuilder, notificationManager)
     }
@@ -379,6 +380,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                         val currentDataToWrite = gson.toJson(enhancedSongs)
                         writeToInternalStorage(context, outputPath, currentDataToWrite)
                         fixMissingSongMetaFields(context, outputPath, outputPathBackupConst)
+                        mergeSongDataFiles(context)
                         SongDataManager.loadDefaultSongsJson(context)
                         processedThisSong = true
                         songsProcessedCount++
@@ -517,4 +519,59 @@ fun fixMissingSongMetaFields(context: Context, outputPath: String, outputPathBac
 
     // 4. Write the final (potentially restored or reset) data to backup first, then to main output file.
     writeToInternalStorage(context, outputPath, finalJsonString)
+}
+
+fun mergeSongDataFiles(
+    context: Context,
+    inputFileName: String = inputPath,
+    outputFileName: String = outputPath,
+    resultFileName: String = resultantPath
+) {
+    val gson = Gson()
+
+    val inputFileContent = readFileOrCreate(context, inputFileName, "[]")
+    val inputSongsList: List<JsonObject> = try {
+        JsonParser.parseString(inputFileContent).asJsonArray.map { it.asJsonObject }
+    } catch (e: Exception) {
+        System.err.println("Error parsing input file $inputFileName: ${e.message}")
+        emptyList()
+    }
+
+    val outputFileContent = readFileOrCreate(context, outputFileName, "[]")
+    val outputSongsList: List<JsonObject> = try {
+        JsonParser.parseString(outputFileContent).asJsonArray.map { it.asJsonObject }
+    } catch (e: Exception) {
+        System.err.println("Error parsing output file $outputFileName: ${e.message}")
+        emptyList()
+    }
+
+    // Create a map of output songs, keyed by their 'file' field for efficient lookup
+    val outputSongsMap = outputSongsList.mapNotNull { songJson ->
+        songJson.get("file")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString?.let { fileKey ->
+            fileKey to songJson
+        }
+    }.toMap()
+
+    val mergedSongsResult = mutableListOf<JsonObject>()
+
+    for (inputSongJson in inputSongsList) {
+        // Start with a deep copy of the input song
+        val currentSongData = inputSongJson.deepCopy()
+        val fileKey = inputSongJson.get("file")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+
+        if (fileKey != null && outputSongsMap.containsKey(fileKey)) {
+            val outputSongJson = outputSongsMap[fileKey]!!
+            // Iterate over fields in the corresponding outputSongJson
+            // and add/overwrite them in currentSongData
+            for ((key, value) in outputSongJson.entrySet()) {
+                currentSongData.add(key, value)
+            }
+        }
+        mergedSongsResult.add(currentSongData)
+    }
+
+    val finalJsonString = gson.toJson(mergedSongsResult)
+    writeToInternalStorage(context, resultFileName, finalJsonString)
+    // You might want to add a log statement here indicating completion
+    // Log.d("MetaDataMerger", "Merged $inputFileName and $outputFileName into $resultFileName")
 }
