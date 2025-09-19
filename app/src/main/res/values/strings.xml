@@ -577,5 +577,6 @@
     <string name="try_something_new">Try Something New</string>
     <string name="selected_for_your_taste">Selected for your taste</string>
     <string name="unable_to_stream_youtube_song">Unable to stream online song</string>
+    <string name="unable_to_play_song_no_id">Unable to play song ID</string>
 
 </resources>

@@ -108,7 +108,7 @@ class SearchAdapter(
                 // Prepare Glide request with common options
                 val glideRequest = Glide.with(activity).asDrawable().songCoverOptions(song)
 
-                if (song.isYTSong && !song.ytID.isNullOrEmpty()) {
+                if (song.data.startsWith("https")) {
                     // It's a YouTube song, load thumbnail from URL
                     val thumbnailUrl = "https://img.youtube.com/vi/${song.ytID}/mqdefault.jpg" // Medium quality
                     glideRequest.load(thumbnailUrl).into(holder.image!!)
