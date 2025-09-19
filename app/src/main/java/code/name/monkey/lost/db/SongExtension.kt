@@ -15,6 +15,7 @@ fun List<SongEntity>.toSongs(): List<Song> {
 }
 
 fun Song.toHistoryEntity(timePlayed: Long): HistoryEntity {
+    println("player history 4: $title, $data")
     return HistoryEntity(
         id = id,
         title = title,

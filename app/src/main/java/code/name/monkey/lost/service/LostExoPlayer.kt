@@ -67,6 +67,21 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
         player.addListener(this) // Add the main listener
     }
 
+    fun extractYouTubeVideoId(youtubeUrl: String): String? {
+        val patterns = listOf(
+            Regex("""(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})"""),
+            // Add more patterns here if you encounter other YouTube URL formats
+        )
+
+        for (pattern in patterns) {
+            val matcher = pattern.find(youtubeUrl)
+            if (matcher != null && matcher.groupValues.size > 1) {
+                return matcher.groupValues[1]
+            }
+        }
+        return null
+    }
+
     override fun setDataSource(
         song: Song,
         force: Boolean,
@@ -74,12 +89,27 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
     ) {
         isInitialized = false
 
-        if (song.isYTSong && !song.ytID.isNullOrEmpty() && !song.data.startsWith("file")) {
+        if (song.data.startsWith("https")) {
             coroutineScope.launch {
-                Log.d(TAG, "Fetching stream URL for YouTube song: ${song.ytID}")
+                val determinedSongId: String? = if(song.ytID.isNullOrEmpty()){ // Renamed to avoid confusion
+                    extractYouTubeVideoId(song.data)
+                }else{
+                    song.ytID
+                }
+
+                if (determinedSongId.isNullOrBlank()) { // Check if songId is null or blank
+                    Log.e(TAG, "Could not determine a valid YouTube song ID for song: ${song.title}, data: ${song.data}, ytID: ${song.ytID}")
+                    withContext(Dispatchers.Main) {
+                        context.showToast(context.getString(R.string.unable_to_play_song_no_id)) // You might want a more specific string resource
+                        completion(false)
+                    }
+                    return@launch // Exit coroutine if no valid ID
+                }
+
+                Log.d(TAG, "Fetching stream URL for YouTube song ID: $determinedSongId")
                 // YTPlayerUtils internally handles its own client and user-agent for this call
                 val playbackDataResult = YTPlayerUtils.getPlaybackData(
-                    videoId = song.ytID!!,
+                    videoId = determinedSongId, // No !! needed now due to the check above
                     audioQuality = AudioQuality.AUTO
                 )
 
@@ -94,7 +124,7 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
                             preparePlayer(mediaItem, completion)
                         },
                         onFailure = {
-                            Log.e(TAG, "Failed to get stream URL for ${song.ytID}", it)
+                            Log.e(TAG, "Failed to get stream URL for $determinedSongId", it)
                             context.showToast(context.getString(R.string.unable_to_stream_youtube_song))
                             completion(false)
                         }

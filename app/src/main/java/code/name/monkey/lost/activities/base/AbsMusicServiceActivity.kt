@@ -110,7 +110,10 @@ abstract class AbsMusicServiceActivity : AbsBaseActivity(), IMusicServiceEventLi
         }
         lifecycleScope.launch(Dispatchers.IO) {
             if (!PreferenceUtil.pauseHistory) {
-                repository.upsertSongInHistory(MusicPlayerRemote.currentSong)
+                val song = MusicPlayerRemote.currentSong
+                println("player history 3: ${song.title}, ${song.data}")
+
+                repository.upsertSongInHistory(song)
             }
             val song = repository.findSongExistInPlayCount(MusicPlayerRemote.currentSong.id)
                 ?.apply { playCount += 1 }
