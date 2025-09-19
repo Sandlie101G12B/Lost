@@ -25,8 +25,11 @@ import code.name.monkey.lost.model.Album
 import code.name.monkey.lost.model.Artist
 import code.name.monkey.lost.model.Genre
 import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.network.InternetConnection
 import code.name.monkey.lost.util.MusicUtil
+import code.name.monkey.lost.util.YTPlayerUtils.getSimilarContent
 import com.bumptech.glide.Glide
+import kotlinx.coroutines.runBlocking
 import java.util.*
 
 class SearchAdapter(
@@ -99,9 +102,20 @@ class SearchAdapter(
                 holder.imageTextContainer?.isVisible = true
                 val song = dataSet[position] as Song
                 holder.title?.text = song.title
-                holder.text?.text = song.albumName
-                Glide.with(activity).asDrawable().songCoverOptions(song)
-                    .load(LostGlideExtension.getSongModel(song)).into(holder.image!!)
+                // For YouTube songs, display artist name as subtext, otherwise album name.
+                holder.text?.text = if (song.isYTSong) song.artistName else song.albumName
+
+                // Prepare Glide request with common options
+                val glideRequest = Glide.with(activity).asDrawable().songCoverOptions(song)
+
+                if (song.isYTSong && !song.ytID.isNullOrEmpty()) {
+                    // It's a YouTube song, load thumbnail from URL
+                    val thumbnailUrl = "https://img.youtube.com/vi/${song.ytID}/mqdefault.jpg" // Medium quality
+                    glideRequest.load(thumbnailUrl).into(holder.image!!)
+                } else {
+                    // It's a local song, load using existing method
+                    glideRequest.load(LostGlideExtension.getSongModel(song)).into(holder.image!!)
+                }
             }
 
             GENRE -> {
@@ -208,8 +222,45 @@ class SearchAdapter(
                 }
 
                 SONG -> {
-                    MusicPlayerRemote.playNext(item as Song)
-                    MusicPlayerRemote.playNextSong()
+                    val song = item as Song
+                    if(!song.ytID.isNullOrBlank() && InternetConnection.hasInternetConnection(activity)) { // if there is internet connection and the song is not a local song
+
+                        MusicPlayerRemote.clearQueue()
+                        runBlocking {
+                            getSimilarContent(song.ytID!!)
+                                .onSuccess { 
+                                    recommendedYtItems ->
+                                    for (ytSong in recommendedYtItems){
+                                        val actualArtistNameString = ytSong.artists.map { it.name }.joinToString(", ").let {
+                                            if (it.isNotBlank()) it else "Unknown Artist"
+                                        }
+                                        val songToqueue = Song(
+                                            id = ytSong.id.hashCode().toLong(), // Using videoId's hashcode as a placeholder ID
+                                            title = ytSong.title ?: "Unknown Title",
+                                            trackNumber = 0, // Default value
+                                            year = 0, // Default value
+                                            duration = 0L, // TODO: Parse ytSong.duration (String) to Long (milliseconds) correctly
+                                            data = "https://www.youtube.com/watch?v=${ytSong.id}", // YouTube URL as data
+                                            dateModified = System.currentTimeMillis(), // Current time for dateModified
+                                            albumId = 0L, // Default value
+                                            albumName = "Online Songs", // Default album name for online searches
+                                            artistId = actualArtistNameString.hashCode().toLong(), // Placeholder artist ID from joined names
+                                            artistName = actualArtistNameString, // Joined artist names
+                                            composer = null, // No composer info from YouTubeSearchItem
+                                            albumArtist = null, // No album artist info
+                                            bpm = null, // No BPM info
+                                            ytID = ytSong.id,
+                                            isYTSong = true
+                                        )
+                                        MusicPlayerRemote.enqueue(songToqueue)
+                                    }
+                                }
+                            MusicPlayerRemote.playSongAt(-1)
+                        }
+                    }else{
+                        MusicPlayerRemote.playNext(song)
+                        MusicPlayerRemote.playNextSong()
+                    }
                 }
             }
         }

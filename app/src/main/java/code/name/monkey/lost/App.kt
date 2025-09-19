@@ -1,7 +1,10 @@
 package code.name.monkey.lost
 
-import android.app.Application
 import android.app.Activity
+import android.app.Application
+import android.widget.Toast
+import android.widget.Toast.LENGTH_SHORT
+import androidx.datastore.preferences.core.edit
 import androidx.preference.PreferenceManager
 import cat.ereza.customactivityoncrash.config.CaocConfig
 import code.name.monkey.appthemehelper.ThemeStore
@@ -9,24 +12,151 @@ import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.lost.activities.ErrorActivity
 import code.name.monkey.lost.activities.MainActivity
 import code.name.monkey.lost.appshortcuts.DynamicShortcutManager
+import code.name.monkey.lost.contants.ContentCountryKey
+import code.name.monkey.lost.contants.ContentLanguageKey
+import code.name.monkey.lost.contants.CountryCodeToName
+import code.name.monkey.lost.contants.DataSyncIdKey
+import code.name.monkey.lost.contants.InnerTubeCookieKey
+import code.name.monkey.lost.contants.LanguageCodeToName
+import code.name.monkey.lost.contants.ProxyEnabledKey
+import code.name.monkey.lost.contants.ProxyPasswordKey
+import code.name.monkey.lost.contants.ProxyTypeKey
+import code.name.monkey.lost.contants.ProxyUrlKey
+import code.name.monkey.lost.contants.ProxyUsernameKey
+import code.name.monkey.lost.contants.SYSTEM_DEFAULT
+import code.name.monkey.lost.contants.UseLoginForBrowse
+import code.name.monkey.lost.contants.VisitorDataKey
+import code.name.monkey.lost.extensions.toInetSocketAddress
 import code.name.monkey.lost.helper.WallpaperAccentManager
-import code.name.monkey.lost.appModules
+import code.name.monkey.lost.util.YTPlayerUtils
+import code.name.monkey.lost.util.dataStore
+import code.name.monkey.lost.util.get
+import code.name.monkey.lost.util.toEnum
+import com.metrolist.innertube.YouTube
+import com.metrolist.innertube.models.YouTubeLocale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Credentials
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
+import timber.log.Timber
+import java.net.Authenticator
+import java.net.PasswordAuthentication
+import java.net.Proxy
+import java.util.Locale
 
 class App : Application() {
 
     //lateinit var billingManager: BillingManager
     private val wallpaperAccentManager = WallpaperAccentManager(this)
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        YTPlayerUtils.giveContext(this)
+        val locale = Locale.getDefault()
+        val languageTag =
+            locale.toLanguageTag().replace("-Hant", "") // replace zh-Hant-* to zh-*
+
+        YouTube.locale = YouTubeLocale(
+            gl = dataStore[ContentCountryKey]?.takeIf { it != SYSTEM_DEFAULT }
+                ?: locale.country.takeIf { it in CountryCodeToName }
+                ?: "US",
+            hl = dataStore[ContentLanguageKey]?.takeIf { it != SYSTEM_DEFAULT }
+                ?: locale.language.takeIf { it in LanguageCodeToName }
+                ?: languageTag.takeIf { it in LanguageCodeToName }
+                ?: "en"
+        )
+
+        if (dataStore[ProxyEnabledKey] == true) {
+            val username = dataStore[ProxyUsernameKey].orEmpty()
+            val password = dataStore[ProxyPasswordKey].orEmpty()
+            val type = dataStore[ProxyTypeKey].toEnum(defaultValue = Proxy.Type.HTTP)
+
+            if (username.isNotEmpty() || password.isNotEmpty()) {
+                if (type == Proxy.Type.HTTP) {
+                    YouTube.proxyAuth = Credentials.basic(username, password)
+                } else {
+                    Authenticator.setDefault(object : Authenticator() {
+                        override fun getPasswordAuthentication() =
+                            PasswordAuthentication(username, password.toCharArray())
+                    })
+                }
+            }
+            try {
+                YouTube.proxy = Proxy(type, dataStore[ProxyUrlKey]!!.toInetSocketAddress())
+            } catch (_: Exception) {
+                Toast.makeText(this@App, "Failed to parse proxy url.", LENGTH_SHORT).show()
+            }
+        }
+
+        if (dataStore[UseLoginForBrowse] != false) {
+            YouTube.useLoginForBrowse = true
+        }
+
+        applicationScope.launch(IO) {
+            dataStore.data
+                .map { it[VisitorDataKey] }
+                .distinctUntilChanged()
+                .collect { visitorData ->
+                    YouTube.visitorData = visitorData
+                        ?.takeIf { it != "null" } // Previously visitorData was sometimes saved as "null" due to a bug
+                        ?: YouTube.visitorData().onFailure {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@App, "Failed to get visitorData.", LENGTH_SHORT).show()
+                            }
+                        }.getOrNull()?.also { newVisitorData ->
+                            dataStore.edit { settings ->
+                                settings[VisitorDataKey] = newVisitorData
+                            }
+                        }
+                }
+        }
+
+        applicationScope.launch(IO) {
+            dataStore.data
+                .map { it[DataSyncIdKey] }
+                .distinctUntilChanged()
+                .collect { dataSyncId ->
+                    YouTube.dataSyncId = dataSyncId?.let {
+                        it.takeIf { !it.contains("||") }
+                            ?: it.takeIf { it.endsWith("||") }?.substringBefore("||")
+                            ?: it.substringAfter("||")
+                    }
+                }
+        }
+
+        applicationScope.launch(IO) {
+            dataStore.data
+                .map { it[InnerTubeCookieKey] }
+                .distinctUntilChanged()
+                .collect { cookie ->
+                    try {
+                        YouTube.cookie = cookie
+                    } catch (e: Exception) {
+                        // we now allow user input now, here be the demons. This serves as a last ditch effort to avoid a crash loop
+                        Timber.e("Could not parse cookie. Clearing existing cookie. %s", e.message)
+                        applicationContext.dataStore.edit { settings ->  // Assuming forgetAccount used to do this with this@App
+                            settings.remove(InnerTubeCookieKey)
+                            settings.remove(DataSyncIdKey)
+                            settings.remove(VisitorDataKey)
+                        }
+                    }
+                }
+        }
 
         startKoin {
             androidContext(this@App)
             modules(appModules)
         }
+
         // default theme
         if (!ThemeStore.isConfigured(this, 3)) {
             ThemeStore.editTheme(this)
@@ -68,3 +198,50 @@ class App : Application() {
         }
     }
 }
+
+//
+//override fun getTrendingYouTubeSongs(needed: Int): List<Song> {
+//    if (needed <= 0) return emptyList()
+//    return try {
+//        val chartsResult = runBlocking { YouTube.getChartsPage() }
+//        chartsResult.fold(
+//            onSuccess = { chartsPage ->
+//                println("Populate: Fetched ${chartsPage.sections.size} sections of charts")
+//                val songItems = chartsPage.sections
+//                    .flatMap { section -> section.items }
+//                    .filterIsInstance<SongItem>()
+//
+//                songItems.map { ytSongItem ->
+//                    Song(
+//                        id = ytSongItem.id.hashCode().toLong(),
+//                        title = ytSongItem.title,
+//                        trackNumber = 0,
+//                        year = 0,
+//                        duration = (ytSongItem.duration?.toLong() ?: 0L) * 1000L,
+//                        data = "https://music.youtube.com/watch?v=${ytSongItem.id}",
+//                        dateModified = System.currentTimeMillis(),
+//                        albumId = ytSongItem.album?.id?.hashCode()?.toLong() ?: 0L,
+//                        albumName = ytSongItem.album?.name ?: "YouTube Charts",
+//                        artistId = ytSongItem.artists.firstOrNull()?.id?.hashCode()?.toLong() ?: 0L,
+//                        artistName = ytSongItem.artists.joinToString { it.name }.ifEmpty { "Unknown Artist" },
+//                        composer = "",
+//                        albumArtist = ytSongItem.artists.firstOrNull()?.name ?: "",
+//                        bpm = null,
+//                        ytID = ytSongItem.id,
+//                        isYTSong = true,
+//                        streamUrl = null
+//                    )
+//                }
+//            },
+//            onFailure = { error ->
+//                println("Populate: Failed to fetch trending YouTube songs from charts: $error")
+//                Log.e("RealRepository", "Failed to fetch trending YouTube songs from charts", error)
+//                emptyList<Song>()
+//            }
+//        )
+//    } catch (e: Exception) {
+//        println("Populate: Exception in getTrendingYouTubeSongs: $e")
+//        Log.e("RealRepository", "Exception in getTrendingYouTubeSongs", e)
+//        emptyList()
+//    }
+//}

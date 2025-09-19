@@ -24,6 +24,7 @@ import io.ktor.util.encodeBase64
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import java.net.Proxy
+import java.net.http.HttpResponse
 import java.util.*
 
 /**
@@ -127,22 +128,33 @@ class InnerTube {
         query: String? = null,
         params: String? = null,
         continuation: String? = null,
-    ) = httpClient.post("search") {
-        ytClient(client, setLogin = useLoginForBrowse)
-        setBody(
-            SearchBody(
-                context = client.toContext(
-                    locale,
-                    visitorData,
-                    if (useLoginForBrowse) dataSyncId else null
-                ),
-                query = query,
-                params = params
+    ): io.ktor.client.statement.HttpResponse { // It's good practice to define the return type explicitly
+        println("ShuffleHelperDebug: Search function called with:")
+        println("ShuffleHelperDebug: Client: $client")
+        println("ShuffleHelperDebug: Query: $query")
+        println("ShuffleHelperDebug: Params: $params")
+        println("ShuffleHelperDebug: Continuation: $continuation")
+
+        val response = httpClient.post("search") {
+            ytClient(client, setLogin = useLoginForBrowse)
+            setBody(
+                SearchBody(
+                    context = client.toContext(
+                        locale,
+                        visitorData,
+                        if (useLoginForBrowse) dataSyncId else null
+                    ),
+                    query = query,
+                    params = params
+                )
             )
-        )
-        parameter("continuation", continuation)
-        parameter("ctoken", continuation)
+            parameter("continuation", continuation)
+            parameter("ctoken", continuation)
+        }
+        println("ShuffleHelperDebug: Search function completed. Response status: ${response.status}")
+        return response
     }
+
 
     suspend fun player(
         client: YouTubeClient,

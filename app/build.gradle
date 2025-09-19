@@ -1,8 +1,15 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: "androidx.navigation.safeargs.kotlin"
-apply plugin: 'kotlin-parcelize'
-apply plugin: 'com.google.devtools.ksp'
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'androidx.navigation.safeargs.kotlin'
+    id 'kotlin-parcelize'
+    alias(libs.plugins.compose.compiler)
+    id 'kotlin-kapt'
+    alias(libs.plugins.kotlin.ksp) // Corrected KSP plugin alias
+}
+
 def localProperties = new Properties()
 localProperties.load(new FileInputStream(rootProject.file("local.properties")))
 android {
@@ -10,7 +17,7 @@ android {
     namespace = "code.name.monkey.lost"
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 23 // Changed from 21 to 23
         targetSdk = 36
 
         vectorDrawables.useSupportLibrary = true
@@ -63,6 +70,16 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+        compose = true
+    }
+
+    kotlin {
+        jvmToolchain(21)
+
+        compilerOptions {
+            freeCompilerArgs.add("-Xannotation-default-target=param-property")
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
     }
 
     packagingOptions {
@@ -83,6 +100,14 @@ android {
 
     kotlinOptions {
         jvmTarget = "21"
+        freeCompilerArgs += [
+            "-P",
+            "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
+        ]
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = libs.versions.androidxComposeCompiler.get()
     }
 
     dependenciesInfo {
@@ -92,6 +117,20 @@ android {
 
     configurations.configureEach {
         resolutionStrategy.force 'com.google.code.findbugs:jsr305:1.3.9'
+    }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+kapt {
+    correctErrorTypes = true
+    useBuildCache = true
+    arguments {
+        arg("dagger.fastInit", "enabled")
+        arg("dagger.formatGeneratedSource", "disabled")
+        // dagger.gradle.incremental is deprecated in newer versions
     }
 }
 
@@ -123,22 +162,28 @@ dependencies {
     implementation(libs.androidx.palette.ktx)
     implementation(libs.androidx.mediarouter)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore.core)
     implementation(project(":innertube"))
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)
     implementation(libs.timber)
     // Cast Dependencies
     normalImplementation(libs.google.play.services.cast.framework)
+    implementation(libs.coil)
+    implementation(libs.coil.network.okhttp)
     // WebServer by NanoHttpd
     normalImplementation(libs.nanohttpd)
-
+    implementation(libs.room.runtime)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
+
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
 
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
@@ -148,6 +193,11 @@ dependencies {
 
     normalImplementation(libs.google.feature.delivery)
     normalImplementation(libs.google.play.review)
+
+    implementation(libs.hilt.navigation)
+    ksp(libs.room.compiler)
+    implementation(libs.hilt)
+    kapt(libs.hilt.compiler)
 
     implementation(libs.android.material)
 
@@ -160,9 +210,8 @@ dependencies {
     implementation(libs.afollestad.material.dialogs.color)
     implementation(libs.afollestad.material.cab)
 
+
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.koin.core)
-    implementation(libs.koin.android)
 
     implementation(libs.glide)
     ksp(libs.glide.ksp)
@@ -184,4 +233,20 @@ dependencies {
     implementation(libs.customactivityoncrash)
     implementation(libs.tankery.circularSeekBar)
     implementation(libs.androidx.exoplayer)
+    // Jetpack Compose
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3) // Assuming Material 3, adjust if using Material 2
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.navigation.compose) // For Jetpack Navigation with Compose
+
+    // Optional - For tooling (like live preview in Android Studio)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    // Optional - For UI tests
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

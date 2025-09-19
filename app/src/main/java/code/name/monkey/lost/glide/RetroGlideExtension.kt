@@ -49,7 +49,7 @@ object LostGlideExtension {
         get() = R.drawable.material_design_default
 
     private val DEFAULT_DISK_CACHE_STRATEGY_ARTIST = DiskCacheStrategy.RESOURCE
-    private val DEFAULT_DISK_CACHE_STRATEGY = DiskCacheStrategy.NONE
+    private val DEFAULT_DISK_CACHE_STRATEGY = DiskCacheStrategy.RESOURCE // Changed from NONE to RESOURCE
 
     private const val DEFAULT_ANIMATION = android.R.anim.fade_in
 
@@ -58,6 +58,7 @@ object LostGlideExtension {
     }
 
     private fun getSongModel(song: Song, ignoreMediaStore: Boolean): Any {
+        // This private function's logic for local songs remains unchanged
         return if (ignoreMediaStore) {
             AudioFileCover(song.data)
         } else {
@@ -65,8 +66,14 @@ object LostGlideExtension {
         }
     }
 
+    // THIS IS THE MODIFIED PUBLIC FUNCTION
     fun getSongModel(song: Song): Any {
-        return getSongModel(song, PreferenceUtil.isIgnoreMediaStoreArtwork)
+        return if (song.isYTSong && song.ytID?.isNotEmpty() == true) {
+            "https://img.youtube.com/vi/${song.ytID}/mqdefault.jpg" // Medium quality thumbnail
+        } else {
+            // Fallback to existing logic for local songs
+            getSongModel(song, PreferenceUtil.isIgnoreMediaStoreArtwork)
+        }
     }
 
     fun getArtistModel(artist: Artist): Any {
@@ -158,7 +165,11 @@ object LostGlideExtension {
     }
 
     private fun createSignature(song: Song): Key {
-        return MediaStoreSignature("", song.dateModified, 0)
+        return if (song.isYTSong && song.ytID?.isNotEmpty() == true) {
+            com.bumptech.glide.signature.ObjectKey(song.ytID!!)
+        } else {
+            MediaStoreSignature("", song.dateModified, 0)
+        }
     }
 
     private fun createSignature(file: File): Key {
