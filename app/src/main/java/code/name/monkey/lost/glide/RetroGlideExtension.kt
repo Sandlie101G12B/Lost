@@ -66,10 +66,25 @@ object LostGlideExtension {
         }
     }
 
+    fun extractYouTubeVideoId(youtubeUrl: String): String? {
+        val patterns = listOf(
+            Regex("""(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})"""),
+            // Add more patterns here if you encounter other YouTube URL formats
+        )
+
+        for (pattern in patterns) {
+            val matcher = pattern.find(youtubeUrl)
+            if (matcher != null && matcher.groupValues.size > 1) {
+                return matcher.groupValues[1]
+            }
+        }
+        return null
+    }
+
     // THIS IS THE MODIFIED PUBLIC FUNCTION
     fun getSongModel(song: Song): Any {
-        return if (song.isYTSong && song.ytID?.isNotEmpty() == true) {
-            "https://img.youtube.com/vi/${song.ytID}/mqdefault.jpg" // Medium quality thumbnail
+        return if (song.data.startsWith("https")) {
+            "https://img.youtube.com/vi/${extractYouTubeVideoId(song.data)}/mqdefault.jpg" // Medium quality thumbnail
         } else {
             // Fallback to existing logic for local songs
             getSongModel(song, PreferenceUtil.isIgnoreMediaStoreArtwork)
