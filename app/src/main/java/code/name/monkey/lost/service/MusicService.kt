@@ -43,7 +43,7 @@ import code.name.monkey.lost.extensions.toMediaSessionQueue
 import code.name.monkey.lost.extensions.uri
 import code.name.monkey.lost.glide.BlurTransformation
 import code.name.monkey.lost.glide.LostGlideExtension.getSongModel
-import code.name.monkey.lost.glide.LostGlideExtension.songCoverOptions
+import code.name.monkey.lost.glide.LostGlideExtension
 import code.name.monkey.lost.helper.MetaDataManagerHelper
 import code.name.monkey.lost.helper.ShuffleHelper.makeShuffleList
 import kotlinx.coroutines.launch
@@ -59,7 +59,6 @@ import code.name.monkey.lost.service.notification.PlayingNotificationImpl24
 import code.name.monkey.lost.service.playback.Playback
 import code.name.monkey.lost.service.playback.Playback.PlaybackCallbacks
 import code.name.monkey.lost.util.MusicUtil
-// import code.name.monkey.lost.util.MusicUtil.toggleFavorite // Removed as we now call MetaDataManagerHelper directly
 import code.name.monkey.lost.util.PackageValidator
 import code.name.monkey.lost.util.PreferenceUtil.crossFadeDuration
 import code.name.monkey.lost.util.PreferenceUtil.isAlbumArtOnLockScreen
@@ -840,6 +839,7 @@ class MusicService : MediaBrowserServiceCompat(),
                 if (success) {
                     play()
                 } else {
+                    println("PLayer: Musicservice error")
                     runOnUiThread {
                         showToast(R.string.unplayable_file)
                     }
@@ -1077,9 +1077,14 @@ class MusicService : MediaBrowserServiceCompat(),
         // else album art is blurry in notification
         if (isAlbumArtOnLockScreen || VersionUtils.hasT()) {
             // val screenSize: Point = LostUtil.getScreenSize(this)
+            val imageModel = if (song.isYTSong && !song.ytID.isNullOrEmpty()) {
+                "https://img.youtube.com/vi/${song.ytID}/mqdefault.jpg"
+            } else {
+                LostGlideExtension.getSongModel(song)
+            }
             val request = Glide.with(this)
                 .asBitmap()
-                .songCoverOptions(song)
+                .load(imageModel)
                 .load(getSongModel(song))
 
             if (isBlurredAlbumArt) {

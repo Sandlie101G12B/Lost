@@ -114,9 +114,16 @@ class PlayingNotificationImpl24(
         val bigNotificationImageSize = context.resources
             .getDimensionPixelSize(R.dimen.notification_big_image_size)
         currentTarget?.let { Glide.with(context).clear(it) }
+
+        val imageModel = if (song.isYTSong && !song.ytID.isNullOrEmpty()) {
+            "https://img.youtube.com/vi/${song.ytID}/mqdefault.jpg"
+        } else {
+            LostGlideExtension.getSongModel(song)
+        }
+
         currentTarget = Glide.with(context)
             .asBitmap()
-            .songCoverOptions(song)
+            .load(imageModel)
             .load(LostGlideExtension.getSongModel(song))
             //.checkIgnoreMediaStore()
             .centerCrop()
