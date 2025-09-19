@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import code.name.monkey.lost.YOU_MIGHT_LIKE_SONGS
-import code.name.monkey.lost.TRY_SOMETHING_NEW // Added import
+import code.name.monkey.lost.TRY_SOMETHING_NEW
 
 class LibraryViewModel(
     private val repository: RealRepository,
@@ -81,7 +81,14 @@ class LibraryViewModel(
     fun getFabMargin(): LiveData<Int> = fabMargin
 
     private suspend fun fetchSongs() {
-        songs.postValue(repository.allSongs())
+        val localSongs = repository.allSongs().toMutableList()
+        val youtubeSongsSource = repository.getTrendingYouTubeSongs(100)
+        // Add to the mutable list
+        youtubeSongsSource.forEach { songToAdd ->
+            println("Populate: Adding YouTube song to list: $songToAdd")
+            localSongs.add(songToAdd)
+        }
+        songs.postValue(localSongs)
     }
 
     private suspend fun fetchAlbums() {

@@ -4,6 +4,7 @@ import androidx.room.Room
 import code.name.monkey.lost.auto.AutoMusicProvider
 import code.name.monkey.lost.cast.LostWebServer
 import code.name.monkey.lost.db.MIGRATION_23_24
+import code.name.monkey.lost.db.MIGRATION_24_25
 import code.name.monkey.lost.db.LostDatabase
 import code.name.monkey.lost.fragments.LibraryViewModel
 import code.name.monkey.lost.fragments.albums.AlbumDetailsViewModel
@@ -42,7 +43,7 @@ private val roomModule = module {
 
     single {
         Room.databaseBuilder(androidContext(), LostDatabase::class.java, "playlist.db")
-            .addMigrations(MIGRATION_23_24)
+            .addMigrations(MIGRATION_23_24, MIGRATION_24_25)
             .build()
     }
 
@@ -58,8 +59,12 @@ private val roomModule = module {
         get<LostDatabase>().historyDao()
     }
 
+    factory {
+        get<LostDatabase>().similarSongDao()
+    }
+
     single {
-        RealRoomRepository(get(), get(), get())
+        RealRoomRepository(get(), get(), get(), get())
     } bind RoomRepository::class
 }
 private val autoModule = module {
