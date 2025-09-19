@@ -42,12 +42,15 @@ interface RoomRepository {
     fun checkPlaylistExists(playListId: Long): LiveData<Boolean>
     fun getPlaylist(playlistId: Long): LiveData<PlaylistWithSongs>
     suspend fun addSongsToTopOfPlaylist(playlistId: Long, songsToAdd: List<Song>) // Name is now misleading
+
+    fun similarSongDao(): SimilarSongDao // Added
 }
 
 class RealRoomRepository(
     private val playlistDao: PlaylistDao,
     private val playCountDao: PlayCountDao,
-    private val historyDao: HistoryDao
+    private val historyDao: HistoryDao,
+    private val similarSongDao: SimilarSongDao // Added
 ) : RoomRepository {
     @WorkerThread
     override suspend fun createPlaylist(playlistEntity: PlaylistEntity): Long =
@@ -214,9 +217,11 @@ class RealRoomRepository(
         playlistDao.deletePlaylistSongs(playlistId)
 
         // Insert all songs (existing ones first, then new ones)
-        // This will assign new songPrimaryKey values in ascending order
+        // This should assign new songPrimaryKey values in ascending order
         if (allSongEntitiesInNewOrder.isNotEmpty()) {
             playlistDao.insertSongsToPlaylist(allSongEntitiesInNewOrder)
         }
     }
+
+    override fun similarSongDao(): SimilarSongDao = similarSongDao // Added
 }

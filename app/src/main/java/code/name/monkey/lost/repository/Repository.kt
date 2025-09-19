@@ -1,6 +1,7 @@
 package code.name.monkey.lost.repository
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import code.name.monkey.lost.*
@@ -16,7 +17,13 @@ import code.name.monkey.lost.network.Result.Success
 import code.name.monkey.lost.network.model.LastFmAlbum
 import code.name.monkey.lost.network.model.LastFmArtist
 import code.name.monkey.lost.util.logE
+import com.metrolist.innertube.YouTube
+import com.metrolist.innertube.models.SongItem
+import kotlinx.coroutines.runBlocking
+import kotlin.collections.map
 import kotlin.random.Random
+import kotlin.text.ifEmpty
+import com.metrolist.innertube.models.WatchEndpoint
 
 interface Repository {
 
@@ -84,6 +91,15 @@ interface Repository {
     fun getPlaylist(playlistId: Long): LiveData<PlaylistWithSongs>
     suspend fun getSongsForTaste(limit: Int): List<Song>
     fun newSongs(): List<Song>
+    fun getTrendingYouTubeSongs(needed: Int): List<Song>
+
+    // Similar Songs
+    suspend fun addSimilarSong(originalSongId: Long, similarSong: Song)
+    fun getSimilarSongs(originalSongId: Long): LiveData<List<Song>>
+    suspend fun getSimilarSongsList(originalSongId: Long): List<Song>
+    suspend fun removeSimilarSong(originalSongId: Long, similarSongId: Long)
+    suspend fun clearSimilarSongsForOriginal(originalSongId: Long)
+    suspend fun isSongSimilar(originalSongId: Long, potentialSimilarSongId: Long): Boolean
 }
 
 class RealRepository(
@@ -100,6 +116,46 @@ class RealRepository(
     private val roomRepository: RoomRepository,
     private val localDataRepository: LocalDataRepository,
 ) : Repository {
+
+    // Helper to map SimilarSongEntity to Song (you should create a proper extension function)
+    private fun SimilarSongEntity.toSong(): Song {
+        return Song(
+            id = this.songId,
+            title = this.title,
+            trackNumber = this.trackNumber,
+            year = this.year,
+            duration = this.duration,
+            data = this.data,
+            dateModified = this.dateModified,
+            albumId = this.albumId,
+            albumName = this.albumName,
+            artistId = this.artistId,
+            artistName = this.artistName,
+            composer = this.composer,
+            albumArtist = this.albumArtist
+            // Add any other fields from Song model not in SimilarSongEntity directly (e.g., from your Song.kt)
+        )
+    }
+
+    // Helper to map Song to SimilarSongEntity (you should create a proper extension function)
+    private fun Song.toSimilarSongEntity(originalId: Long): SimilarSongEntity {
+        return SimilarSongEntity(
+            originalSongId = originalId,
+            songId = this.id,
+            title = this.title,
+            trackNumber = this.trackNumber,
+            year = this.year,
+            duration = this.duration,
+            data = this.data,
+            dateModified = this.dateModified,
+            albumId = this.albumId,
+            albumName = this.albumName,
+            artistId = this.artistId,
+            artistName = this.artistName,
+            composer = this.composer,
+            albumArtist = this.albumArtist
+        )
+    }
 
     override suspend fun deleteSongs(songs: List<Song>) = roomRepository.deleteSongs(songs)
 
@@ -209,7 +265,7 @@ class RealRepository(
 
     override suspend fun playlistSongs(playlistWithSongs: PlaylistWithSongs): List<Song> =
         playlistWithSongs.songs.map {
-            it.toSong()
+            it.toSong() // Assuming SongEntity.toSong() extension exists
         }
 
     override fun playlistSongs(playListId: Long): LiveData<List<SongEntity>> =
@@ -345,14 +401,13 @@ class RealRepository(
             val totalWeight = availableCandidates.sumOf { it.score }
             if (totalWeight <= 0.0) {
                 println("Total weight is zero or negative, selecting purely random from remaining.")
-                // Fallback to random if all scores are zero (should be filtered earlier)
                 if (availableCandidates.isNotEmpty()) {
                     selectedSongs.add(availableCandidates.removeAt(Random.nextInt(availableCandidates.size)).song)
                 }
                 return@repeat
             }
 
-            var randomPick = Random.nextDouble(totalWeight) // From 0.0 up to totalWeight
+            var randomPick = Random.nextDouble(totalWeight)
             var chosenSong: ScoredSong? = null
 
             for (scoredSong in availableCandidates) {
@@ -371,7 +426,7 @@ class RealRepository(
 
             chosenSong?.let {
                 selectedSongs.add(it.song)
-                availableCandidates.remove(it) // Ensure song is not picked again
+                availableCandidates.remove(it)
                 println("Selected by weight: ${it.song.title} (Score: ${it.score})")
             }
         }
@@ -382,9 +437,55 @@ class RealRepository(
     } catch (e: Exception) {
         println("An error occurred in getSongsForTaste: ${e.message}")
         e.printStackTrace()
-        val allLibrarySongs = try { songRepository.songs() } catch (_: Exception) { emptyList() }
+        val allLibrarySongsFallback = try { songRepository.songs() } catch (_: Exception) { emptyList() }
         println("Error fallback: Returning purely random songs.")
-        allLibrarySongs.shuffled().take(limit)
+        allLibrarySongsFallback.shuffled().take(limit)
+    }
+
+    override fun getTrendingYouTubeSongs(needed: Int): List<Song> {
+        if (needed <= 0) return emptyList()
+        return try {
+            val chartsResult = runBlocking { YouTube.getChartsPage() }
+            chartsResult.fold(
+                onSuccess = { chartsPage ->
+                    println("Populate: Fetched ${chartsPage.sections.size} sections of charts")
+                    val songItems = chartsPage.sections
+                        .flatMap { section -> section.items }
+                        .filterIsInstance<SongItem>()
+
+                    songItems.map { ytSongItem ->
+                        Song(
+                            id = ytSongItem.id.hashCode().toLong(),
+                            title = ytSongItem.title,
+                            trackNumber = 0,
+                            year = 0,
+                            duration = (ytSongItem.duration?.toLong() ?: 0L) * 1000L,
+                            data = "https://music.youtube.com/watch?v=${ytSongItem.id}",
+                            dateModified = System.currentTimeMillis(),
+                            albumId = ytSongItem.album?.id?.hashCode()?.toLong() ?: 0L,
+                            albumName = ytSongItem.album?.name ?: "YouTube Charts",
+                            artistId = ytSongItem.artists.firstOrNull()?.id?.hashCode()?.toLong() ?: 0L,
+                            artistName = ytSongItem.artists.joinToString { it.name }.ifEmpty { "Unknown Artist" },
+                            composer = "",
+                            albumArtist = ytSongItem.artists.firstOrNull()?.name ?: "",
+                            bpm = null,
+                            ytID = ytSongItem.id,
+                            isYTSong = true,
+                            streamUrl = null
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    println("Populate: Failed to fetch trending YouTube songs from charts: $error")
+                    Log.e("RealRepository", "Failed to fetch trending YouTube songs from charts", error)
+                    emptyList<Song>()
+                }
+            )
+        } catch (e: Exception) {
+            println("Populate: Exception in getTrendingYouTubeSongs: $e")
+            Log.e("RealRepository", "Exception in getTrendingYouTubeSongs", e)
+            emptyList()
+        }
     }
 
     private fun createUserTasteProfile(
@@ -427,7 +528,7 @@ class RealRepository(
         val maxScorePerFeature = 10.0
 
         val matchedGenres = songMeta.genre.count { profile.prominentGenres.containsKey(it.lowercase()) }
-        val profileGenreCount = profile.prominentGenres.size.coerceAtLeast(1) // Avoid division by zero
+        val profileGenreCount = profile.prominentGenres.size.coerceAtLeast(1)
         val genreScore = (matchedGenres.toDouble() / profileGenreCount) * maxScorePerFeature
         score += genreScore
 
@@ -465,7 +566,6 @@ class RealRepository(
         return score.coerceAtLeast(0.0)
     }
 
-
     override suspend fun upsertSongInPlayCount(playCountEntity: PlayCountEntity) =
         roomRepository.upsertSongInPlayCount(playCountEntity)
 
@@ -487,7 +587,7 @@ class RealRepository(
 
     override fun observableHistorySongs(): LiveData<List<Song>> =
         roomRepository.observableHistorySongs().map {
-            it.fromHistoryToSongs()
+            it.fromHistoryToSongs() // Assuming List<HistoryEntity>.fromHistoryToSongs() extension exists
         }
     override fun newSongs(): List<Song> {
         return try {
@@ -540,8 +640,36 @@ class RealRepository(
 
     override suspend fun favoritePlaylistHome(): Home {
         val songs = favoritePlaylistSongs().map {
-            it.toSong()
+            it.toSong() // Assuming SongEntity.toSong() extension exists
         }
         return Home(songs, FAVOURITES, R.string.favorites)
+    }
+
+    // Similar Songs Implementations
+    override suspend fun addSimilarSong(originalSongId: Long, similarSong: Song) {
+        val similarSongEntity = similarSong.toSimilarSongEntity(originalSongId)
+        roomRepository.similarSongDao().addSimilarSong(similarSongEntity)
+    }
+
+    override fun getSimilarSongs(originalSongId: Long): LiveData<List<Song>> {
+        return roomRepository.similarSongDao().getSimilarSongs(originalSongId).map { entities ->
+            entities.map { it.toSong() }
+        }
+    }
+
+    override suspend fun getSimilarSongsList(originalSongId: Long): List<Song> {
+        return roomRepository.similarSongDao().getSimilarSongsList(originalSongId).map { it.toSong() }
+    }
+
+    override suspend fun removeSimilarSong(originalSongId: Long, similarSongId: Long) {
+        roomRepository.similarSongDao().removeSimilarSong(originalSongId, similarSongId)
+    }
+
+    override suspend fun clearSimilarSongsForOriginal(originalSongId: Long) {
+        roomRepository.similarSongDao().clearSimilarSongsForOriginal(originalSongId)
+    }
+
+    override suspend fun isSongSimilar(originalSongId: Long, potentialSimilarSongId: Long): Boolean {
+        return roomRepository.similarSongDao().findSimilarSongEntry(originalSongId, potentialSimilarSongId) != null
     }
 }
