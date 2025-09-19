@@ -306,9 +306,14 @@ class RealRepository(
     override suspend fun isFavoriteSong(songEntity: SongEntity): List<SongEntity> =
         roomRepository.isFavoriteSong(songEntity)
 
-    override suspend fun upsertSongInHistory(currentSong: Song) =
+    override suspend fun upsertSongInHistory(currentSong: Song) = try{
+        println("player history 1: ${currentSong.title}, ${currentSong.data}")
+        println("player history" + currentSong.toString())
         roomRepository.upsertSongInHistory(currentSong)
-
+    }catch (e: Exception){
+        println("player history 2: ${currentSong.title}, ${currentSong.data}, $e")
+        roomRepository.upsertSongInHistory(currentSong)
+    }
     override suspend fun favoritePlaylistSongs(): List<SongEntity> =
         roomRepository.favoritePlaylistSongs(context.getString(R.string.favorites))
 

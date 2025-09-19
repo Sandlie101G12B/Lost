@@ -100,6 +100,15 @@ open class Song(
         return result
     }
 
+    // Inside the Song class
+    override fun toString(): String {
+        return "Song(id=$id, title='$title', trackNumber=$trackNumber, year=$year, " +
+                "duration=$duration, data='$data', dateModified=$dateModified, " +
+                "albumId=$albumId, albumName='$albumName', artistId=$artistId, " +
+                "artistName='$artistName', composer=$composer, albumArtist=$albumArtist, " +
+                "bpm=$bpm, ytID=$ytID, isYTSong=$isYTSong, streamUrl=$streamUrl, " +
+                "artistNames=$artistNames, artistIds=$artistIds)"
+    }
 
     companion object {
 
