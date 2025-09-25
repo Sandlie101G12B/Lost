@@ -615,7 +615,6 @@ class RealRepository(
         }
     }
 
-
     override fun historySong(): List<HistoryEntity> =
         roomRepository.historySongs()
 

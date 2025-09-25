@@ -3,6 +3,7 @@ package code.name.monkey.lost.helper
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.SongMetaData
 import code.name.monkey.lost.network.InternetConnection
+import code.name.monkey.lost.repository.Repository
 import code.name.monkey.lost.util.YTPlayerUtils.getSimilarContent
 import code.name.monkey.lost.util.YTPlayerUtils.searchVideos
 import com.google.gson.Gson
@@ -12,14 +13,21 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import kotlin.random.Random
 import kotlinx.coroutines.runBlocking
+import org.koin.core.component.KoinComponent // Koin import
+import org.koin.core.component.inject       // Koin import
 
-object ShuffleHelper {
+object ShuffleHelper : KoinComponent { // Implement KoinComponent
     private const val DEBUG_TAG = "ShuffleHelperDebug"
     private var metadataMap: Map<String, SongMetaData>? = null
+    
+    // Injected by Koin. Assumes Repository is defined in your Koin modules.
+    private val repository: Repository by inject()
 
     private const val CACHE_EXPIRY_MS = 5000L // 5 seconds
     private data class CachedShuffle(val list: List<Song>, val timestamp: Long)
     private val shuffleCache = mutableMapOf<String, CachedShuffle>()
+
+    // init() method is no longer needed as Koin handles injection.
 
     private fun loadMetadataMap(): Map<String, SongMetaData> {
         if (metadataMap != null) return metadataMap!!
@@ -33,6 +41,8 @@ object ShuffleHelper {
     }
 
     fun makeShuffleList(listToShuffle: MutableList<Song>, current: Int) {
+        // No need to check for repository.isInitialized with Koin injection
+        // If Koin setup is wrong, inject() would throw an error earlier.
         if (listToShuffle.isEmpty() || current !in listToShuffle.indices) return
 
         val songForCacheKey = listToShuffle[current]
@@ -49,7 +59,7 @@ object ShuffleHelper {
         }
 
         val metadata = loadMetadataMap()
-        val currentSong = listToShuffle.removeAt(current) // This is songForCacheKey, now removed
+        val currentSong = listToShuffle.removeAt(current)
 
         if (listToShuffle.isEmpty()) {
             listToShuffle.add(0, currentSong)
@@ -70,7 +80,6 @@ object ShuffleHelper {
             return
         }
 
-        // Define shuffle functions (they modify listToShuffle in place)
         fun offlineshuffle(){
             println("$DEBUG_TAG: Performing offline shuffle for key '$cacheKey'.")
             val currentArtistsSet = (currentMeta.artists ?: emptyList()).toSet()
@@ -109,8 +118,7 @@ object ShuffleHelper {
 
         suspend fun onlineShuffle() {
             var allArtists = ""
-            (currentMeta.artists ?: emptyList()).forEach {
-                    artist ->
+            (currentMeta.artists ?: emptyList()).forEach { artist ->
                 allArtists += " ${URLDecoder.decode(artist, StandardCharsets.UTF_8.toString())}"
             }
             val query = "${URLDecoder.decode(currentMeta.title, StandardCharsets.UTF_8.toString())} -$allArtists"
@@ -123,13 +131,15 @@ object ShuffleHelper {
                     if (firstVideoId == null) {
                         println("$DEBUG_TAG: No videoId found from search. Falling back to offline shuffle.")
                         offlineshuffle()
+                        shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
+                        println("$DEBUG_TAG: Cache updated for key '$cacheKey' after fallback to offline shuffle (no videoId).")
                     } else {
                         println("$DEBUG_TAG: Found videoId: $firstVideoId. Getting similar content.")
                         getSimilarContent(firstVideoId)
                             .onSuccess { recommendedYtItems ->
                                 println("$DEBUG_TAG: getSimilarContent success. Found ${recommendedYtItems.size} recommended YT items.")
                                 val orderedLocalSongs = mutableListOf<Song>()
-                                val songsToConsiderForMatching = listToShuffle.toMutableList() // currentSong is already removed from listToShuffle here
+                                val songsToConsiderForMatching = listToShuffle.toMutableList()
                                 println("$DEBUG_TAG: Initial songsToConsiderForMatching size: ${songsToConsiderForMatching.size}")
 
                                 for (ytSong in recommendedYtItems) {
@@ -137,14 +147,8 @@ object ShuffleHelper {
                                     val ytArtistNames = ytSong.artists
                                         .mapNotNull { artist -> artist.name?.trim()?.lowercase() }
                                         .filter { it.isNotEmpty() }.toSet()
-                                    println("$DEBUG_TAG: Processing YT recommendation: Title='$ytTitle', Artists=$ytArtistNames")
-
-                                    if (ytTitle == null || ytTitle.isEmpty()) {
-                                        println("$DEBUG_TAG: Skipping YT song due to empty title.")
-                                        continue
-                                    }
-
-                                    var matchedLocalSong: Song? = null
+                                    // ... (rest of matching logic) ...
+                                     var matchedLocalSong: Song? = null
                                     val iterator = songsToConsiderForMatching.iterator()
                                     while (iterator.hasNext()) {
                                         val localSong = iterator.next()
@@ -156,22 +160,18 @@ object ShuffleHelper {
                                                 .mapNotNull { artist -> artist?.trim()?.lowercase() }
                                                 .filter { it.isNotEmpty() }.toSet()
 
-                                            val titleMatches = localTitle.contains(ytTitle) || ytTitle.contains(localTitle)
+                                            val titleMatches = localTitle.contains(ytTitle ?: "") || (ytTitle?:"").contains(localTitle)
                                             val artistsMatch = ytArtistNames.isEmpty() ||
                                                              (localArtistNames.isNotEmpty() && ytArtistNames.intersect(localArtistNames).isNotEmpty())
 
                                             if (titleMatches && artistsMatch) {
-                                                println("$DEBUG_TAG:   MATCHED! YT: '$ytTitle' - $ytArtistNames WITH Local: '$localTitle' - $localArtistNames")
                                                 matchedLocalSong = localSong
                                                 iterator.remove()
                                                 break
                                             }
                                         }
                                     }
-                                    matchedLocalSong?.let { song ->
-                                        orderedLocalSongs.add(song)
-                                        println("$DEBUG_TAG: Added '${metadata[getSongKey(song)]?.title}' to orderedLocalSongs. New size: ${orderedLocalSongs.size}")
-                                    }
+                                    matchedLocalSong?.let { song -> orderedLocalSongs.add(song) }
                                 }
 
                                 println("$DEBUG_TAG: Finished processing YT recommendations. orderedLocalSongs size: ${orderedLocalSongs.size}, songsToConsiderForMatching (remaining) size: ${songsToConsiderForMatching.size}")
@@ -183,34 +183,54 @@ object ShuffleHelper {
                                 listToShuffle.addAll(orderedLocalSongs)
                                 listToShuffle.addAll(songsToConsiderForMatching)
                                 println("$DEBUG_TAG: Online shuffle complete. Final listToShuffle size: ${listToShuffle.size}")
+
+                                // START: Add similar songs logic (uses the injected repository)
+                                println("$DEBUG_TAG: Starting to add similar songs based on online shuffle results.")
+                                for (originalSong in orderedLocalSongs) {
+                                    val existingSimilarSongs = repository.getSimilarSongsList(originalSong.id)
+                                    if (existingSimilarSongs.isEmpty()) {
+                                        var similarSongsAddedCount = 0
+                                        val potentialSimilars = listToShuffle.filter { it.id != originalSong.id }
+                                        for (candidateSong in potentialSimilars) {
+                                            if (similarSongsAddedCount >= 10) break
+                                            if (!repository.isSongSimilar(originalSong.id, candidateSong.id)) {
+                                                repository.addSimilarSong(originalSong.id, candidateSong)
+                                                similarSongsAddedCount++
+                                            }
+                                        }
+                                    }
+                                }
+                                println("$DEBUG_TAG: Finished process of adding similar songs.")
+                                // END: Add similar songs logic
+                                
+                                shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
+                                println("$DEBUG_TAG: Cache updated for key '$cacheKey' after online shuffle & adding similar songs.")
                             }
                             .onFailure { exception ->
-                                println("$DEBUG_TAG: getSimilarContent failed. Exception Type: ${exception::class.java.name}")
-                                println("$DEBUG_TAG: Exception message details (if any): ${exception.message}")
-                                println("$DEBUG_TAG: Falling back to offline shuffle after getSimilarContent failure.")
+                                println("$DEBUG_TAG: getSimilarContent failed: ${exception.message}")
                                 offlineshuffle()
+                                shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
+                                println("$DEBUG_TAG: Cache updated for key '$cacheKey' after fallback (getSimilarContent failure).")
                             }
                     }
                 }
                 .onFailure { exception ->
-                    println("$DEBUG_TAG: searchVideos failed. Exception Type: ${exception::class.java.name}")
-                    println("$DEBUG_TAG: Exception message details (if any): ${exception.message}")
-                    println("$DEBUG_TAG: Falling back to offline shuffle after searchVideos failure.")
+                    println("$DEBUG_TAG: searchVideos failed: ${exception.message}")
                     offlineshuffle()
+                    shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
+                    println("$DEBUG_TAG: Cache updated for key '$cacheKey' after fallback (searchVideos failure).")
                 }
         }
 
         if (InternetConnection.hasInternetConnection(MetaDataManagerHelper.getContext())) {
             println("$DEBUG_TAG: Internet connection available. Attempting online shuffle for key '$cacheKey'.")
-            runBlocking { onlineShuffle() } // Modifies listToShuffle
+            runBlocking { onlineShuffle() } 
         } else {
             println("$DEBUG_TAG: No internet connection. Performing offline shuffle for key '$cacheKey'.")
-            offlineshuffle() // Modifies listToShuffle
+            offlineshuffle()
+            shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
+            println("$DEBUG_TAG: Cache updated for key '$cacheKey' after offline shuffle (no internet).")
         }
-
-        // Common point for cache update after any shuffle path that didn't return early
-        shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
-        println("$DEBUG_TAG: Cache updated for key '$cacheKey' after full shuffle process.")
     }
 
     private fun scoreSongs(
@@ -273,7 +293,7 @@ object ShuffleHelper {
                 (10 - (kotlin.math.abs(a.tempo - b.tempo) / 10).coerceAtMost(10.0)).toInt()
             } else 0
             val genreArtistSimilarity = getGenreBasedArtistSimilarity(a, b)
-            val currentTime = System.currentTimeMillis() // Note: This is a different currentTime than the cache logic
+            val currentTime = System.currentTimeMillis()
             val twoWeeksInMillis = java.util.concurrent.TimeUnit.DAYS.toMillis(14)
             val recentPlays = b.playTimestamps.count { (currentTime - it) < twoWeeksInMillis }
             val playHistoryPenalty = recentPlays * 2
@@ -288,16 +308,15 @@ object ShuffleHelper {
                 b.rating <= 1 && b.rating > 0 -> -Random.nextInt(5,15)
                 else -> 0
             }
-            val totalScore = artistScore + genreScore + moodScore + danceabilityScore + marketScore +
+            artistScore + genreScore + moodScore + danceabilityScore + marketScore +
                     yearScore + modernBonus + energyScore + valenceScore + tempoScore +
                     genreArtistSimilarity + likedBonus + favoritedBonus + ratingAdjustment -
                     Random.nextInt(0, (playHistoryPenalty + skipHistoryPenalty + 1))
-            totalScore
         } catch (_: Exception) {
             Random.nextInt(-5, 11)
         }
     }
-
+    
     private fun getGenreBasedArtistSimilarity(metaA: SongMetaData, metaB: SongMetaData): Int {
         val aArtists = metaA.artists ?: emptyList()
         val bArtists = metaB.artists ?: emptyList()
@@ -321,7 +340,6 @@ object ShuffleHelper {
     private fun isCorrupted(meta: SongMetaData): Boolean {
         val hasNoTitle = meta.title.isBlank()
         val hasNoArtists = (meta.artists ?: emptyList()).isEmpty() || (meta.artists ?: emptyList()).all { it.isBlank() }
-
         return hasNoTitle && hasNoArtists
     }
 }

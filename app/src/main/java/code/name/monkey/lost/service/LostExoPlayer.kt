@@ -88,17 +88,18 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
         completion: (success: Boolean) -> Unit,
     ) {
         isInitialized = false
+        coroutineScope.launch {
+            if (song.data.startsWith("https")) {
 
-        if (song.data.startsWith("https")) {
-            coroutineScope.launch {
-                val determinedSongId: String? = if(song.ytID.isNullOrEmpty()){ // Renamed to avoid confusion
-                    extractYouTubeVideoId(song.data)
-                }else{
-                    song.ytID
-                }
+                val determinedSongId: String? =
+                    if (song.ytID.isNullOrEmpty()) { // Renamed to avoid confusion
+                        extractYouTubeVideoId(song.data)
+                    } else {
+                        song.ytID
+                    }
 
                 if (determinedSongId.isNullOrBlank()) { // Check if songId is null or blank
-                    Log.e(TAG, "Could not determine a valid YouTube song ID for song: ${song.title}, data: ${song.data}, ytID: ${song.ytID}")
+                    Log.e(TAG,"Could not determine a valid YouTube song ID for song: ${song.title}, data: ${song.data}, ytID: ${song.ytID}")
                     withContext(Dispatchers.Main) {
                         context.showToast(context.getString(R.string.unable_to_play_song_no_id)) // You might want a more specific string resource
                         completion(false)
@@ -130,13 +131,14 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
                         }
                     )
                 }
-            }
-        } else {
 
-            Log.d(TAG, "Setting data source for local song: ${song.data}")
-            val mediaItem = MediaItem.fromUri(song.uri)
-            println("Setting data source for local song: ${mediaItem}")
-            preparePlayer(mediaItem, completion)
+            } else {
+
+                Log.d(TAG, "Setting data source for local song: ${song.data}")
+                val mediaItem = MediaItem.fromUri(song.uri)
+                println("Setting data source for local song: ${mediaItem}")
+                preparePlayer(mediaItem, completion)
+            }
         }
     }
 
