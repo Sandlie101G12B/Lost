@@ -30,6 +30,7 @@ import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
 import code.name.monkey.lost.helper.getApiKeys
 import code.name.monkey.lost.helper.addApiKey
 import code.name.monkey.lost.helper.initialiseMetaDataProcess
+import code.name.monkey.lost.util.YTPlayerUtils
 
 class MainActivity : AbsCastActivity() {
     companion object {
@@ -44,6 +45,7 @@ class MainActivity : AbsCastActivity() {
 
         lifecycleScope.launch(IO) {
             MetaDataManagerHelper.saveContext(applicationContext)
+            YTPlayerUtils.giveContext(applicationContext)
         }
         AppRater.appLaunched(this)
         SongDataManager.loadDefaultSongsJson(this@MainActivity)
