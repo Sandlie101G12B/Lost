@@ -59,6 +59,7 @@ ksp = "2.2.10-2.0.2"
 devTools_ksp_version = "2.1.21-2.0.1"
 ben_manes_versoin = "0.46.0"
 slidableactivity = "2.1.0"
+lifecycleService = "2.9.4"
 
 
 [libraries]
@@ -175,6 +176,7 @@ room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
 
 [plugins]
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

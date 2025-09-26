@@ -7,7 +7,7 @@ plugins {
     id 'kotlin-parcelize'
     alias(libs.plugins.compose.compiler)
     id 'kotlin-kapt'
-    alias(libs.plugins.kotlin.ksp) // Corrected KSP plugin alias
+    alias(libs.plugins.kotlin.ksp)
 }
 
 def localProperties = new Properties()
@@ -17,7 +17,7 @@ android {
     namespace = "code.name.monkey.lost"
 
     defaultConfig {
-        minSdk = 23 // Changed from 21 to 23
+        minSdk = 26 // Changed from 23 to 26
         targetSdk = 36
 
         vectorDrawables.useSupportLibrary = true
@@ -101,8 +101,8 @@ android {
     kotlinOptions {
         jvmTarget = "21"
         freeCompilerArgs += [
-            "-P",
-            "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
+                "-P",
+                "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
         ]
     }
 
@@ -168,6 +168,7 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.serialization.json)
     implementation(libs.timber)
+    implementation libs.androidx.lifecycle.service
     // Cast Dependencies
     normalImplementation(libs.google.play.services.cast.framework)
     implementation(libs.coil)
@@ -225,6 +226,7 @@ dependencies {
 
     implementation(libs.org.eclipse.egit.github.core)
     implementation(libs.jaudiotagger)
+    implementation 'org.slf4j:slf4j-nop:1.7.32' // Added to resolve SLF4J warning
     normalImplementation(libs.android.lab.library)
     implementation(libs.slidableactivity)
     implementation(libs.material.intro)
