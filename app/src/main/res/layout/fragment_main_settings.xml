@@ -102,6 +102,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingListItemIcon="@drawable/ic_palette"
+            android:textColor="?android:attr/textColorPrimary"
             app:settingListItemIconColor="@color/md_blue_A400"
             app:settingListItemText="@string/general_settings_summary"
             app:settingListItemTitle="@string/general_settings_title" />
@@ -111,6 +112,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingListItemIcon="@drawable/ic_play_circle_filled"
+            android:textColor="?android:attr/textColorPrimary"
             app:settingListItemIconColor="@color/md_red_A400"
             app:settingListItemText="@string/now_playing_summary"
             app:settingListItemTitle="@string/now_playing" />
@@ -120,6 +122,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingListItemIcon="@drawable/ic_volume_up"
+            android:textColor="?android:attr/textColorPrimary"
             app:settingListItemIconColor="@color/md_deep_purple_A400"
             app:settingListItemText="@string/audio_settings_summary"
             app:settingListItemTitle="@string/pref_header_audio" />
@@ -129,6 +132,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingListItemIcon="@drawable/ic_hdr_strong"
+            android:textColor="?android:attr/textColorPrimary"
             app:settingListItemIconColor="@color/md_teal_A400"
             app:settingListItemText="@string/personalize_settings_summary"
             app:settingListItemTitle="@string/personalize" />
@@ -139,6 +143,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingListItemIcon="@drawable/ic_image"
+            android:textColor="?android:attr/textColorPrimary"
             app:settingListItemIconColor="@color/md_deep_orange_A400"
             app:settingListItemText="@string/image_settings_summary"
             app:settingListItemTitle="@string/pref_header_images" />
@@ -148,6 +153,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             app:settingListItemIcon="@drawable/ic_notifications_active"
+            android:textColor="?android:attr/textColorPrimary"
             app:settingListItemIconColor="@color/md_yellow_A400"
             app:settingListItemText="@string/notification_settings_summary"
             app:settingListItemTitle="@string/notification" />
@@ -157,6 +163,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingListItemIcon="@drawable/ic_testing"
+            android:textColor="?android:attr/textColorPrimary"
             app:settingListItemIconColor="@color/md_indigo_A400"
             app:settingListItemText="@string/other_settings_summary"
             app:settingListItemTitle="@string/others" />
@@ -166,6 +173,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingListItemIcon="@drawable/ic_restore"
+            android:textColor="?android:attr/textColorPrimary"
             app:settingListItemIconColor="@color/md_cyan_400"
             app:settingListItemText="@string/backup_restore_settings_summary"
             app:settingListItemTitle="@string/backup_restore_title" />
@@ -175,6 +183,7 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             app:settingListItemIcon="@drawable/ic_info_outline"
+            android:textColor="?android:attr/textColorPrimary"
             app:settingListItemIconColor="@color/md_light_green_A400"
             app:settingListItemText="@string/about_settings_summary"
             app:settingListItemTitle="@string/action_about" />
