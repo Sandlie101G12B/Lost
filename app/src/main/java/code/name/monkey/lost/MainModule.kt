@@ -17,6 +17,7 @@ import code.name.monkey.lost.network.provideDefaultCache
 import code.name.monkey.lost.network.provideLastFmRest
 import code.name.monkey.lost.network.provideLastFmRetrofit
 import code.name.monkey.lost.network.provideOkHttp
+import code.name.monkey.lost.util.DownloadManager
 import code.name.monkey.lost.repository.*
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -190,4 +191,8 @@ private val viewModules = module {
     }
 }
 
-val appModules = listOf(mainModule, dataModule, autoModule, viewModules, networkModule, roomModule)
+val downloadModule = module {
+    single { DownloadManager(androidContext()) }
+}
+
+val appModules = listOf(mainModule, dataModule, autoModule, viewModules, networkModule, roomModule, downloadModule)
