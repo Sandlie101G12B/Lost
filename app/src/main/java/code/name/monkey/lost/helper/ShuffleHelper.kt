@@ -41,8 +41,6 @@ object ShuffleHelper : KoinComponent { // Implement KoinComponent
     }
 
     fun makeShuffleList(listToShuffle: MutableList<Song>, current: Int) {
-        // No need to check for repository.isInitialized with Koin injection
-        // If Koin setup is wrong, inject() would throw an error earlier.
         if (listToShuffle.isEmpty() || current !in listToShuffle.indices) return
 
         val songForCacheKey = listToShuffle[current]
@@ -224,7 +222,8 @@ object ShuffleHelper : KoinComponent { // Implement KoinComponent
 
         if (InternetConnection.hasInternetConnection(MetaDataManagerHelper.getContext())) {
             println("$DEBUG_TAG: Internet connection available. Attempting online shuffle for key '$cacheKey'.")
-            runBlocking { onlineShuffle() } 
+//            runBlocking { onlineShuffle() }
+            offlineshuffle()
         } else {
             println("$DEBUG_TAG: No internet connection. Performing offline shuffle for key '$cacheKey'.")
             offlineshuffle()
@@ -241,7 +240,7 @@ object ShuffleHelper : KoinComponent { // Implement KoinComponent
         return songs.map { song ->
             val meta = metadata[getSongKey(song)]
             if (meta == null || isCorrupted(meta)) {
-                Pair(song, Random.nextInt(-10, 10000))
+                Pair(song, Random.nextInt(-20, 0))
             } else {
                 val score = calculateSimilarity(currentMeta, meta)
                 Pair(song, score)
@@ -280,7 +279,7 @@ object ShuffleHelper : KoinComponent { // Implement KoinComponent
             } catch (_: Exception) { 0 }
             val modernBonus = try {
                 val bYear = b.year.toIntOrNull()
-                val normalized = (((bYear?.coerceIn(1990, 2025) ?: 0) - 1990) / 35.0)
+                val normalized = (((bYear?.coerceIn(1990, 2025) ?: 0) - 1990) / 30.0)
                 (normalized * Random.nextInt(0, 5)).toInt()
             } catch (_: Exception) { 0 }
             val energyScore = if (a.energy != null && b.energy != null) {
@@ -313,7 +312,7 @@ object ShuffleHelper : KoinComponent { // Implement KoinComponent
                     genreArtistSimilarity + likedBonus + favoritedBonus + ratingAdjustment -
                     Random.nextInt(0, (playHistoryPenalty + skipHistoryPenalty + 1))
         } catch (_: Exception) {
-            Random.nextInt(-5, 11)
+            Random.nextInt(-2, 4)
         }
     }
     
