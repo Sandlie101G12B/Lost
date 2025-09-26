@@ -340,7 +340,6 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
     if (newEntries.isNotEmpty()) {
         val myApiKeys = getApiKeys(context)
         if (myApiKeys.isEmpty()) {
-            notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
             return
         }
 
@@ -355,7 +354,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
         notificationBuilder
             .setContentText("Processing 0 of $totalSongsToProcess songs.")
             .setProgress(totalSongsToProcess, 0, false)
-        notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
+        
 
         for (song in newEntries) {
             var processedThisSong = false
@@ -387,7 +386,7 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                         notificationBuilder
                             .setContentText("Processing $songsProcessedCount of $totalSongsToProcess songs.")
                             .setProgress(totalSongsToProcess, songsProcessedCount, false)
-                        notificationManager.notify(ENHANCEMENT_NOTIFICATION_ID, notificationBuilder.build())
+                        
                     } catch (_: Exception) {
                         if (!InternetConnection.hasInternetConnection(context)){
                             processedThisSong // This likely needs to be 'false' or handled differently
@@ -418,9 +417,6 @@ suspend fun enhanceSongsData(inputPath: String, outputPath: String, deviceSongs:
                 }
             }
         }
-        notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
-    } else {
-        notificationManager.cancel(ENHANCEMENT_NOTIFICATION_ID)
     }
 }
 
@@ -545,7 +541,6 @@ fun mergeSongDataFiles(
         emptyList()
     }
 
-    // Create a map of output songs, keyed by their 'file' field for efficient lookup
     val outputSongsMap = outputSongsList.mapNotNull { songJson ->
         songJson.get("file")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString?.let { fileKey ->
             fileKey to songJson
@@ -555,14 +550,11 @@ fun mergeSongDataFiles(
     val mergedSongsResult = mutableListOf<JsonObject>()
 
     for (inputSongJson in inputSongsList) {
-        // Start with a deep copy of the input song
         val currentSongData = inputSongJson.deepCopy()
         val fileKey = inputSongJson.get("file")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
 
         if (fileKey != null && outputSongsMap.containsKey(fileKey)) {
             val outputSongJson = outputSongsMap[fileKey]!!
-            // Iterate over fields in the corresponding outputSongJson
-            // and add/overwrite them in currentSongData
             for ((key, value) in outputSongJson.entrySet()) {
                 currentSongData.add(key, value)
             }
@@ -572,6 +564,4 @@ fun mergeSongDataFiles(
 
     val finalJsonString = gson.toJson(mergedSongsResult)
     writeToInternalStorage(context, resultFileName, finalJsonString)
-    // You might want to add a log statement here indicating completion
-    // Log.d("MetaDataMerger", "Merged $inputFileName and $outputFileName into $resultFileName")
 }
