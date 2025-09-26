@@ -578,5 +578,6 @@
     <string name="selected_for_your_taste">Selected for your taste</string>
     <string name="unable_to_stream_youtube_song">Unable to stream online song</string>
     <string name="unable_to_play_song_no_id">Unable to play song ID</string>
-
+    <string name="download_notification_channel_name">Downloads</string>
+    <string name="download_notification_channel_description">Notifications for active and completed downloads</string>
 </resources>

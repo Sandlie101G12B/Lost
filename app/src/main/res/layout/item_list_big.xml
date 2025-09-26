@@ -56,7 +56,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:paddingHorizontal="16dp"
-        android:textColor="#dddddd"
+        android:textColor="?android:attr/textColorPrimary"
         android:textStyle="bold|normal"
         android:textAppearance="@style/TextViewSubtitle1"
         app:layout_constraintBottom_toTopOf="@+id/text"

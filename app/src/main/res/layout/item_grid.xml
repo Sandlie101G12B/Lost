@@ -50,7 +50,7 @@
             android:singleLine="true"
             android:textAppearance="@style/TextViewSubtitle1"
             android:textStyle="bold"
-            android:textColor="#dddddd"
+            android:textColor="?android:attr/textColorPrimary"
             tools:text="@tools:sample/full_names" />
 
         <com.google.android.material.textview.MaterialTextView

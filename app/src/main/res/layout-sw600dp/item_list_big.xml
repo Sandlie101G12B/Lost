@@ -88,7 +88,7 @@
         android:maxLines="1"
         android:paddingHorizontal="16dp"
         android:textAppearance="@style/TextViewBody2"
-        android:textColor="#dddddd"
+        android:textColor="?android:attr/textColorPrimary"
         app:layout_constraintBottom_toBottomOf="@id/title"
         app:layout_constraintEnd_toStartOf="@id/text2"
         app:layout_constraintStart_toEndOf="@id/title"

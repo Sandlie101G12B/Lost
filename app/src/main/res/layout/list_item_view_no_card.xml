@@ -30,7 +30,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:textStyle="bold|normal"
-        android:textColor="#dddddd"
+        android:textColor="?android:attr/textColorPrimary"
         android:textAppearance="@style/TextViewSubtitle1"
         app:layout_constrainedWidth="true"
         app:layout_constraintEnd_toEndOf="parent"

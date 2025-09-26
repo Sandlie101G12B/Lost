@@ -31,7 +31,7 @@
         android:layout_height="wrap_content"
         android:textAppearance="@style/TextViewSubtitle1"
         android:textStyle="bold|normal"
-        android:textColor="#dddddd"
+        android:textColor="?android:attr/textColorPrimary"
         app:layout_constrainedWidth="true"
         app:layout_constraintEnd_toStartOf="@id/circle"
         app:layout_constraintStart_toStartOf="@+id/guideline_front_margin"

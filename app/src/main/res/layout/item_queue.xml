@@ -84,10 +84,9 @@
                 android:maxLines="1"
                 android:paddingHorizontal="16dp"
                 android:textAppearance="@style/TextViewSubtitle1"
-                android:textColor="#dddddd"
-                android:textStyle="bold|normal"
+                android:textColor="?android:attr/textColorPrimary"
                 app:layout_constraintBottom_toTopOf="@+id/text"
-                app:layout_constraintEnd_toStartOf="@id/menu"
+                app:layout_constraintEnd_toStartOf="@+id/download_button"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageContainer"
                 app:layout_constraintTop_toTopOf="parent"
@@ -101,16 +100,27 @@
                 android:layout_marginTop="5dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textSize="11sp"
                 android:paddingHorizontal="16dp"
                 android:textAppearance="@style/TextViewBody2"
                 android:textColor="?android:attr/textColorSecondary"
+                android:textSize="13sp"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/menu"
+                app:layout_constraintEnd_toStartOf="@+id/download_button"
                 app:layout_constraintHorizontal_bias="0.5"
                 app:layout_constraintStart_toEndOf="@id/imageContainer"
                 app:layout_constraintTop_toBottomOf="@+id/title"
                 tools:text="@tools:sample/full_names" />
+
+            <ImageView
+                android:id="@+id/download_button"
+                android:layout_width="33dp"
+                android:layout_height="33dp"
+                android:padding="5dp"
+                android:src="@drawable/ic_download"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="@+id/menu"
+                app:layout_constraintEnd_toStartOf="@+id/menu"
+                app:layout_constraintTop_toTopOf="@+id/menu" />
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/menu"
