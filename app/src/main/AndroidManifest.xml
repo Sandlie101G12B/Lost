@@ -306,6 +306,7 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
+        <service android:name=".util.DownloadService" />
 
         <meta-data
             android:name="android.max_aspect"
