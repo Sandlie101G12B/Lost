@@ -1,14 +1,19 @@
 package code.name.monkey.lost.adapter
 
 import android.annotation.SuppressLint
+import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.core.os.bundleOf
 import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope // Added import
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import code.name.monkey.appthemehelper.ThemeStore
@@ -28,7 +33,9 @@ import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.network.InternetConnection
 import code.name.monkey.lost.util.MusicUtil
 import code.name.monkey.lost.util.YTPlayerUtils.getSimilarContent
+import code.name.monkey.lost.util.YTPlayerUtils.initiateVideoDownload // Added import
 import com.bumptech.glide.Glide
+import kotlinx.coroutines.launch // Added import
 import kotlinx.coroutines.runBlocking
 import java.util.*
 
@@ -76,7 +83,11 @@ class SearchAdapter(
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        // Default state for download button
+        holder.downloadButton?.isGone = true
+
         when (getItemViewType(position)) {
             ALBUM -> {
                 holder.imageTextContainer?.isVisible = true
@@ -116,6 +127,21 @@ class SearchAdapter(
                     // It's a local song, load using existing method
                     glideRequest.load(LostGlideExtension.getSongModel(song)).into(holder.image!!)
                 }
+
+                // Handle download button visibility and action for YTSongs
+                if (song.data.startsWith("https")) {
+                    holder.downloadButton?.isVisible = true
+                    holder.downloadButton?.setImageResource(R.drawable.ic_download) // Ensure icon is set
+                    holder.downloadButton?.setOnClickListener {
+                        activity.lifecycleScope.launch {
+                            holder.downloadButton?.isVisible = false
+                            initiateVideoDownload(song)
+                        }
+                        Toast.makeText(activity, "Downloading ${song.title}", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    holder.downloadButton?.isGone = true // Explicitly hide for non-YTSongs (local songs)
+                }
             }
 
             GENRE -> {
@@ -147,9 +173,11 @@ class SearchAdapter(
                 ).into(holder.image!!)
             }
 
-            else -> {
+            else -> { // HEADER or other types
                 holder.title?.text = dataSet[position].toString()
                 holder.title?.setTextColor(ThemeStore.accentColor(activity))
+                // Ensure download button is hidden for headers too
+                holder.downloadButton?.isGone = true 
             }
         }
     }
@@ -159,11 +187,14 @@ class SearchAdapter(
     }
 
     inner class ViewHolder(itemView: View, itemViewType: Int) : MediaEntryViewHolder(itemView) {
+        val downloadButton: ImageView? = itemView.findViewById(R.id.download_button)
+
         init {
             itemView.setOnLongClickListener(null)
-            imageTextContainer?.isInvisible = true
+            imageTextContainer?.isInvisible = true // Default state from your existing code
+            
             if (itemViewType == SONG) {
-                imageTextContainer?.isGone = true
+                imageTextContainer?.isGone = true // For SONG type, this container is not used for main image
                 menu?.isVisible = true
                 menu?.setOnClickListener(object : SongMenuHelper.OnClickSongMenu(activity) {
                     override val song: Song
@@ -176,9 +207,10 @@ class SearchAdapter(
             when (itemViewType) {
                 ALBUM -> setImageTransitionName(activity.getString(R.string.transition_album_art))
                 ARTIST -> setImageTransitionName(activity.getString(R.string.transition_artist_image))
+                // For other types like SONG, GENRE, PLAYLIST, HEADER etc., imageContainer might be hidden
                 else -> {
                     val container = itemView.findViewById<View>(R.id.imageContainer)
-                    container?.isVisible = false
+                    container?.isVisible = false 
                 }
             }
         }
