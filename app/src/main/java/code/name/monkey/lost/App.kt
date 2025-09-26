@@ -28,6 +28,7 @@ import code.name.monkey.lost.contants.UseLoginForBrowse
 import code.name.monkey.lost.contants.VisitorDataKey
 import code.name.monkey.lost.extensions.toInetSocketAddress
 import code.name.monkey.lost.helper.WallpaperAccentManager
+import code.name.monkey.lost.util.DownloadManager // Added import
 import code.name.monkey.lost.util.YTPlayerUtils
 import code.name.monkey.lost.util.dataStore
 import code.name.monkey.lost.util.get
@@ -44,7 +45,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Credentials
 import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger // Good for debugging
 import org.koin.core.context.startKoin
+import org.koin.core.logger.Level // For Koin logger level
 import timber.log.Timber
 import java.net.Authenticator
 import java.net.PasswordAuthentication
@@ -153,9 +156,13 @@ class App : Application() {
         }
 
         startKoin {
+            androidLogger(Level.INFO) // Added Koin logger for easier debugging (use Level.ERROR or Level.NONE in release)
             androidContext(this@App)
-            modules(appModules)
+            modules(appModules) // CORRECTED to use singular 'appModule'
         }
+
+        // Create notification channels
+        DownloadManager.createNotificationChannel(this)
 
         // default theme
         if (!ThemeStore.isConfigured(this, 3)) {
@@ -176,7 +183,7 @@ class App : Application() {
             .restartActivity(MainActivity::class.java as Class<out Activity>).apply()
 
         // Set Default values for now playing preferences
-        // This will reduce startup time for now playing settings fragment as Preference listener of AbsSlidingMusicPanelActivity won't be called
+        // This will reduce startup time for now playing settings fragment as Preference listener of AbsSlidingMusicPanelActivity won\'t be called
         PreferenceManager.setDefaultValues(this, R.xml.pref_now_playing_screen, false)
     }
 
@@ -198,4 +205,3 @@ class App : Application() {
         }
     }
 }
-
