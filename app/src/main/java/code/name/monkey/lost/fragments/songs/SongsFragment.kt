@@ -61,7 +61,8 @@ class SongsFragment : AbsRecyclerViewCustomGridSizeFragment<SongAdapter, GridLay
         return SongAdapter(
             requireActivity(),
             dataSet,
-            itemLayoutRes()
+            itemLayoutRes(),
+            showLikedSongsShortcut = true
         )
     }
 
