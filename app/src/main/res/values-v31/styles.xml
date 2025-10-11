@@ -19,7 +19,6 @@
     </style>
 
     <style name="Theme.Lost.SplashScreen" parent="Theme.SplashScreen">
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/avd_splash</item>
         <item name="android:windowSplashScreenAnimationDuration">1000</item>
     </style>
 </resources>
