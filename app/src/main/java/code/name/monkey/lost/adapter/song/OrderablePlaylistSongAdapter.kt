@@ -25,7 +25,7 @@ class OrderablePlaylistSongAdapter(
     activity: FragmentActivity,
     dataSet: MutableList<Song>,
     itemLayoutRes: Int,
-) : SongAdapter(activity, dataSet, itemLayoutRes),
+) : SongAdapter(activity, dataSet, itemLayoutRes, showLikedSongsShortcut = false),
     DraggableItemAdapter<OrderablePlaylistSongAdapter.ViewHolder> {
 
     val libraryViewModel: LibraryViewModel by activity.viewModel()
@@ -44,12 +44,6 @@ class OrderablePlaylistSongAdapter(
         super.swapDataSet(dataSet)
         fullDataSet = dataSet.toMutableList()
         onFilter(filter)
-    }
-
-    override fun getItemId(position: Int): Long {
-        // requires static value, it means need to keep the same value
-        // even if the item position has been changed.
-        return dataSet[position].id
     }
 
     override fun createViewHolder(view: View): SongAdapter.ViewHolder {
@@ -92,7 +86,7 @@ class OrderablePlaylistSongAdapter(
             if (isInQuickSelectMode || !filtered) {
                 super.onClick(v)
             } else {
-                val position = fullDataSet.indexOf(dataSet.get(layoutPosition))
+                val position = fullDataSet.indexOf(dataSet[layoutPosition])
                 MusicPlayerRemote.openQueueKeepShuffleMode(fullDataSet, position, true)
             }
         }
