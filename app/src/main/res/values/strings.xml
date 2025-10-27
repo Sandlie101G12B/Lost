@@ -580,4 +580,8 @@
     <string name="unable_to_play_song_no_id">Unable to play song ID</string>
     <string name="download_notification_channel_name">Downloads</string>
     <string name="download_notification_channel_description">Notifications for active and completed downloads</string>
+    <string name="foreground_notification_channel_name">Background Services</string>
+    <string name="foreground_notification_channel_description">Keeps the download service running in the background until all tasks are complete.</string>
+    <string name="download_service_running">Download Service Running</string>
+    <string name="download_service_background_message">Processing downloads in the background.</string>
 </resources>

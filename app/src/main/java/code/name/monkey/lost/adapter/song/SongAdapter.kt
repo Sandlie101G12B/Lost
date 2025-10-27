@@ -12,7 +12,6 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.findNavController
 import code.name.monkey.lost.EXTRA_ALBUM_ID
-import code.name.monkey.lost.FAVOURITES
 import code.name.monkey.lost.R
 import code.name.monkey.lost.adapter.base.AbsMultiSelectAdapter
 import code.name.monkey.lost.adapter.base.MediaEntryViewHolder
@@ -32,12 +31,15 @@ import code.name.monkey.lost.util.color.MediaNotificationProcessor
 import com.bumptech.glide.Glide
 import me.zhanghai.android.fastscroll.PopupTextProvider
 
+/**
+ * Created by hemanths on 13/08/17.
+ */
+
 open class SongAdapter(
     override val activity: FragmentActivity,
     var dataSet: MutableList<Song>,
     protected var itemLayoutRes: Int,
-    showSectionName: Boolean = true,
-    private val showLikedSongsShortcut: Boolean = false
+    showSectionName: Boolean = true
 ) : AbsMultiSelectAdapter<SongAdapter.ViewHolder, Song>(
     activity,
     R.menu.menu_media_selection
@@ -55,24 +57,14 @@ open class SongAdapter(
         notifyDataSetChanged()
     }
 
-    override fun getItemViewType(position: Int): Int {
-        return if (showLikedSongsShortcut && position == 0) LIKED_SONGS_ITEM else SONG_ITEM
-    }
-
     override fun getItemId(position: Int): Long {
-        if (showLikedSongsShortcut && position == 0) return -1L
-        return dataSet[position - if (showLikedSongsShortcut) 1 else 0].id
+        return dataSet[position].id
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val layoutRes = if (viewType == LIKED_SONGS_ITEM) {
-            R.layout.item_liked_songs
-        } else {
-            itemLayoutRes
-        }
         val view =
             try {
-                LayoutInflater.from(activity).inflate(layoutRes, parent, false)
+                LayoutInflater.from(activity).inflate(itemLayoutRes, parent, false)
             } catch (e: Resources.NotFoundException) {
                 LayoutInflater.from(activity).inflate(R.layout.item_list, parent, false)
             }
@@ -84,19 +76,17 @@ open class SongAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        if (getItemViewType(position) == SONG_ITEM) {
-            val song = dataSet[position - if (showLikedSongsShortcut) 1 else 0]
-            val isChecked = isChecked(song)
-            holder.itemView.isActivated = isChecked
-            holder.menu?.isGone = isChecked
-            holder.title?.text = getSongTitle(song)
-            holder.text?.text = getSongText(song)
-            holder.text2?.text = getSongText2(song)
-            loadAlbumCover(song, holder)
-            val landscape = LostUtil.isLandscape
-            if ((PreferenceUtil.songGridSize > 2 && !landscape) || (PreferenceUtil.songGridSizeLand > 5 && landscape)) {
-                holder.menu?.isVisible = false
-            }
+        val song = dataSet[position]
+        val isChecked = isChecked(song)
+        holder.itemView.isActivated = isChecked
+        holder.menu?.isGone = isChecked
+        holder.title?.text = getSongTitle(song)
+        holder.text?.text = getSongText(song)
+        holder.text2?.text = getSongText(song)
+        loadAlbumCover(song, holder)
+        val landscape = LostUtil.isLandscape
+        if ((PreferenceUtil.songGridSize > 2 && !landscape) || (PreferenceUtil.songGridSizeLand > 5 && landscape)) {
+            holder.menu?.isVisible = false
         }
     }
 
@@ -138,12 +128,11 @@ open class SongAdapter(
     }
 
     override fun getItemCount(): Int {
-        return dataSet.size + if (showLikedSongsShortcut) 1 else 0
+        return dataSet.size
     }
 
     override fun getIdentifier(position: Int): Song? {
-        if (showLikedSongsShortcut && position == 0) return null
-        return dataSet[position - if (showLikedSongsShortcut) 1 else 0]
+        return dataSet[position]
     }
 
     override fun getName(model: Song): String {
@@ -155,20 +144,18 @@ open class SongAdapter(
     }
 
     override fun getPopupText(position: Int): String {
-        if (showLikedSongsShortcut && position == 0) return ""
-        val adjustedPosition = position - if (showLikedSongsShortcut) 1 else 0
         val sectionName: String? = when (PreferenceUtil.songSortOrder) {
             SortOrder.SongSortOrder.SONG_DEFAULT -> return MusicUtil.getSectionName(
-                dataSet[adjustedPosition].title,
+                dataSet[position].title,
                 true
             )
 
-            SortOrder.SongSortOrder.SONG_A_Z, SortOrder.SongSortOrder.SONG_Z_A -> dataSet[adjustedPosition].title
-            SortOrder.SongSortOrder.SONG_ALBUM -> dataSet[adjustedPosition].albumName
-            SortOrder.SongSortOrder.SONG_ARTIST -> dataSet[adjustedPosition].artistName
-            SortOrder.SongSortOrder.SONG_YEAR -> return MusicUtil.getYearString(dataSet[adjustedPosition].year)
-            SortOrder.SongSortOrder.COMPOSER -> dataSet[adjustedPosition].composer
-            SortOrder.SongSortOrder.SONG_ALBUM_ARTIST -> dataSet[adjustedPosition].albumArtist
+            SortOrder.SongSortOrder.SONG_A_Z, SortOrder.SongSortOrder.SONG_Z_A -> dataSet[position].title
+            SortOrder.SongSortOrder.SONG_ALBUM -> dataSet[position].albumName
+            SortOrder.SongSortOrder.SONG_ARTIST -> dataSet[position].artistName
+            SortOrder.SongSortOrder.SONG_YEAR -> return MusicUtil.getYearString(dataSet[position].year)
+            SortOrder.SongSortOrder.COMPOSER -> dataSet[position].composer
+            SortOrder.SongSortOrder.SONG_ALBUM_ARTIST -> dataSet[position].albumArtist
             else -> {
                 return ""
             }
@@ -179,22 +166,20 @@ open class SongAdapter(
     open inner class ViewHolder(itemView: View) : MediaEntryViewHolder(itemView) {
         protected open var songMenuRes = SongMenuHelper.MENU_RES
         protected open val song: Song
-            get() = dataSet[layoutPosition - if (showLikedSongsShortcut) 1 else 0]
+            get() = dataSet[layoutPosition]
 
         init {
-            if (itemViewType == SONG_ITEM) {
-                menu?.setOnClickListener(object : SongMenuHelper.OnClickSongMenu(activity) {
-                    override val song: Song
-                        get() = this@ViewHolder.song
+            menu?.setOnClickListener(object : SongMenuHelper.OnClickSongMenu(activity) {
+                override val song: Song
+                    get() = this@ViewHolder.song
 
-                    override val menuRes: Int
-                        get() = songMenuRes
+                override val menuRes: Int
+                    get() = songMenuRes
 
-                    override fun onMenuItemClick(item: MenuItem): Boolean {
-                        return onSongMenuItemClick(item) || super.onMenuItemClick(item)
-                    }
-                })
-            }
+                override fun onMenuItemClick(item: MenuItem): Boolean {
+                    return onSongMenuItemClick(item) || super.onMenuItemClick(item)
+                }
+            })
         }
 
         protected open fun onSongMenuItemClick(item: MenuItem): Boolean {
@@ -214,27 +199,19 @@ open class SongAdapter(
         }
 
         override fun onClick(v: View?) {
-            if (itemViewType == LIKED_SONGS_ITEM) {
-                v?.findNavController()
-                    ?.navigate(R.id.detailListFragment, bundleOf("type" to FAVOURITES))
-                return
-            }
             if (isInQuickSelectMode) {
                 toggleChecked(layoutPosition)
             } else {
-                MusicPlayerRemote.openQueueKeepShuffleMode(dataSet, layoutPosition - if (showLikedSongsShortcut) 1 else 0, true)
+                MusicPlayerRemote.openQueueKeepShuffleMode(dataSet, layoutPosition, true)
             }
         }
 
         override fun onLongClick(v: View?): Boolean {
-            if (itemViewType == LIKED_SONGS_ITEM) return false
             return toggleChecked(layoutPosition)
         }
     }
 
     companion object {
         val TAG: String = SongAdapter::class.java.simpleName
-        const val LIKED_SONGS_ITEM = 0
-        const val SONG_ITEM = 1
     }
 }

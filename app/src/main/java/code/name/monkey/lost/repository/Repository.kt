@@ -4,11 +4,30 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
-import code.name.monkey.lost.*
-import code.name.monkey.lost.db.*
+import code.name.monkey.lost.FAVOURITES
+import code.name.monkey.lost.GENRES
+import code.name.monkey.lost.PLAYLISTS
+import code.name.monkey.lost.R
+import code.name.monkey.lost.TOP_ARTISTS
+import code.name.monkey.lost.db.HistoryEntity
+import code.name.monkey.lost.db.PlayCountEntity
+import code.name.monkey.lost.db.PlaylistEntity
+import code.name.monkey.lost.db.PlaylistWithSongs
+import code.name.monkey.lost.db.SimilarSongEntity
+import code.name.monkey.lost.db.SongEntity
+import code.name.monkey.lost.db.fromHistoryToSongs
+import code.name.monkey.lost.db.toSong
 import code.name.monkey.lost.fragments.search.Filter
-import code.name.monkey.lost.model.*
 import code.name.monkey.lost.helper.MetaDataManagerHelper
+import code.name.monkey.lost.model.AbsCustomPlaylist
+import code.name.monkey.lost.model.Album
+import code.name.monkey.lost.model.Artist
+import code.name.monkey.lost.model.Contributor
+import code.name.monkey.lost.model.Genre
+import code.name.monkey.lost.model.Home
+import code.name.monkey.lost.model.Playlist
+import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.model.SongMetaData
 import code.name.monkey.lost.model.smartplaylist.NotPlayedPlaylist
 import code.name.monkey.lost.network.LastFMService
 import code.name.monkey.lost.network.Result
@@ -19,11 +38,10 @@ import code.name.monkey.lost.network.model.LastFmArtist
 import code.name.monkey.lost.util.logE
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
-import kotlin.collections.map
+import timber.log.Timber
 import kotlin.random.Random
-import kotlin.text.ifEmpty
-import com.metrolist.innertube.models.WatchEndpoint
 
 interface Repository {
 
@@ -450,45 +468,64 @@ class RealRepository(
     override fun getTrendingYouTubeSongs(needed: Int): List<Song> {
         if (needed <= 0) return emptyList()
         return try {
-            val chartsResult = runBlocking { YouTube.getChartsPage() }
-            chartsResult.fold(
-                onSuccess = { chartsPage ->
-                    println("Populate: Fetched ${chartsPage.sections.size} sections of charts")
-                    val songItems = chartsPage.sections
-                        .flatMap { section -> section.items }
-                        .filterIsInstance<SongItem>()
-
-                    songItems.map { ytSongItem ->
-                        Song(
-                            id = ytSongItem.id.hashCode().toLong(),
-                            title = ytSongItem.title,
-                            trackNumber = 0,
-                            year = 0,
-                            duration = (ytSongItem.duration?.toLong() ?: 0L) * 1000L,
-                            data = "https://music.youtube.com/watch?v=${ytSongItem.id}",
-                            dateModified = System.currentTimeMillis(),
-                            albumId = ytSongItem.album?.id?.hashCode()?.toLong() ?: 0L,
-                            albumName = ytSongItem.album?.name ?: "YouTube Charts",
-                            artistId = ytSongItem.artists.firstOrNull()?.id?.hashCode()?.toLong() ?: 0L,
-                            artistName = ytSongItem.artists.joinToString { it.name }.ifEmpty { "Unknown Artist" },
-                            composer = "",
-                            albumArtist = ytSongItem.artists.firstOrNull()?.name ?: "",
-                            bpm = null,
-                            ytID = ytSongItem.id,
-                            isYTSong = true,
-                            streamUrl = null
-                        )
-                    }
-                },
-                onFailure = { error ->
-                    println("Populate: Failed to fetch trending YouTube songs from charts: $error")
-                    Log.e("RealRepository", "Failed to fetch trending YouTube songs from charts", error)
-                    emptyList<Song>()
+            runBlocking {
+                val trendingSongsDeferred = async {
+                    YouTube.getChartsPage().fold(
+                        onSuccess = { it },
+                        onFailure = {
+                            println("Populate: Failed to fetch trending YouTube songs from charts: $it")
+                            Timber.tag("RealRepository")
+                                .e(it, "Failed to fetch trending YouTube songs from charts")
+                            null
+                        }
+                    )
                 }
-            )
+
+                val homeSongsDeferred = async {
+                    YouTube.getHomeSongs().getOrElse {
+                        println("Populate: Failed to fetch home songs: $it")
+                        Timber.tag("RealRepository").e(it, "Failed to fetch home songs")
+                        emptyList()
+                    }
+                }
+
+                val chartsPage = trendingSongsDeferred.await()
+                val homeSongItems = homeSongsDeferred.await()
+
+                val trendingSongItems = chartsPage?.sections
+                    ?.flatMap { section -> section.items }
+                    ?.filterIsInstance<SongItem>() ?: emptyList()
+
+                println("Populate: Fetched ${trendingSongItems.size} trending songs and ${homeSongItems.size} home songs.")
+
+                val combinedItems = (trendingSongItems + homeSongItems).distinctBy { it.id }
+                println("Populate: Combined and filtered to ${combinedItems.size} unique songs.")
+
+                combinedItems.map { ytSongItem ->
+                    Song(
+                        id = ytSongItem.id.hashCode().toLong(),
+                        title = ytSongItem.title,
+                        trackNumber = 0,
+                        year = 0,
+                        duration = (ytSongItem.duration?.toLong() ?: 0L) * 1000L,
+                        data = "https://music.youtube.com/watch?v=${ytSongItem.id}",
+                        dateModified = System.currentTimeMillis(),
+                        albumId = ytSongItem.album?.id?.hashCode()?.toLong() ?: 0L,
+                        albumName = ytSongItem.album?.name ?: "YouTube Charts",
+                        artistId = ytSongItem.artists.firstOrNull()?.id?.hashCode()?.toLong() ?: 0L,
+                        artistName = ytSongItem.artists.joinToString { it.name }.ifEmpty { "Unknown Artist" },
+                        composer = "",
+                        albumArtist = ytSongItem.artists.firstOrNull()?.name ?: "",
+                        bpm = null,
+                        ytID = ytSongItem.id,
+                        isYTSong = true,
+                        streamUrl = null
+                    )
+                }.shuffled().take(needed)
+            }
         } catch (e: Exception) {
             println("Populate: Exception in getTrendingYouTubeSongs: $e")
-            Log.e("RealRepository", "Exception in getTrendingYouTubeSongs", e)
+            Timber.tag("RealRepository").e(e, "Exception in getTrendingYouTubeSongs")
             emptyList()
         }
     }

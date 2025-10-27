@@ -7,6 +7,7 @@ import android.provider.MediaStore
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.contains
 import androidx.navigation.ui.setupWithNavController
+import code.name.monkey.lost.BuildConfig
 import code.name.monkey.lost.R
 import code.name.monkey.lost.activities.base.AbsCastActivity
 import code.name.monkey.lost.extensions.*
@@ -31,6 +32,7 @@ import code.name.monkey.lost.helper.getApiKeys
 import code.name.monkey.lost.helper.addApiKey
 import code.name.monkey.lost.helper.initialiseMetaDataProcess
 import code.name.monkey.lost.util.YTPlayerUtils
+import timber.log.Timber
 
 class MainActivity : AbsCastActivity() {
     companion object {
@@ -38,31 +40,57 @@ class MainActivity : AbsCastActivity() {
         const val EXPAND_PANEL = "expand_panel"
     }
     override fun onCreate(savedInstanceState: Bundle?) {
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
         super.onCreate(savedInstanceState)
+        Timber.tag(TAG).d("onCreate started")
         setTaskDescriptionColorAuto()
         hideStatusBar()
         updateTabs()
 
         lifecycleScope.launch(IO) {
-            MetaDataManagerHelper.saveContext(applicationContext)
-            YTPlayerUtils.giveContext(applicationContext)
+            try {
+                Timber.tag(TAG).d("Setting up context for helpers.")
+                MetaDataManagerHelper.saveContext(this@MainActivity)
+                YTPlayerUtils.giveContext(this@MainActivity)
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "Error setting up context for helpers.")
+            }
         }
         AppRater.appLaunched(this)
         SongDataManager.loadDefaultSongsJson(this@MainActivity)
+        Timber.tag(TAG).d("Checking for API keys.")
         val apiKeys = getApiKeys(this)
+        Timber.tag(TAG).d("API Keys: ${apiKeys.joinToString(",")}")
         if (apiKeys.isEmpty()) {
+            Timber.tag(TAG).w("No API keys found, adding them now.")
             addApiKey(this)
         } else {
+            Timber.tag(TAG).d("API keys found. Initializing data.")
             lifecycleScope.launch(IO) {
-                SongStatisticsManager.load(this@MainActivity)
-                initialiseMetaDataProcess(this@MainActivity)
+                try {
+                    Timber.tag(TAG).d("Loading song statistics and metadata.")
+                    SongStatisticsManager.load(this@MainActivity)
+                    initialiseMetaDataProcess(this@MainActivity)
+                } catch (e: Exception) {
+                    Timber.tag(TAG).e(e, "Error loading song statistics and metadata.")
+                }
             }
             lifecycleScope.launch(IO) {
-                LyricsGetter.downloadLyrics(this@MainActivity)
+                try {
+                    Timber.tag(TAG).d("Downloading lyrics.")
+                    LyricsGetter.downloadLyrics(this@MainActivity)
+                } catch (e: Exception) {
+                    Timber.tag(TAG).e(e, "Error downloading lyrics.")
+                }
             }
         }
+        Timber.tag(TAG).d("Setting up navigation controller.")
         setupNavigationController()
+        Timber.tag(TAG).d("Showing changelog.")
         WhatsNewFragment.showChangeLog(this)
+        Timber.tag(TAG).d("onCreate finished.")
     }
 
     private fun setupNavigationController() {

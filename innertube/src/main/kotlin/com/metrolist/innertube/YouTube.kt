@@ -187,6 +187,10 @@ object YouTube {
         )
     }
 
+    suspend fun getHomeSongs(): Result<List<SongItem>> = runCatching {
+        home().getOrThrow().sections.flatMap { it.items }.filterIsInstance<SongItem>()
+    }
+
     suspend fun album(browseId: String, withSongs: Boolean = true): Result<AlbumPage> = runCatching {
         val response = innerTube.browse(WEB_REMIX, browseId).body<BrowseResponse>()
         val playlistId = response.microformat?.microformatDataRenderer?.urlCanonical?.substringAfterLast('=')!!

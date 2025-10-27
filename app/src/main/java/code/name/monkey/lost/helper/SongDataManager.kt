@@ -2,8 +2,8 @@ package code.name.monkey.lost.helper
 
 import android.content.Context
 import android.os.Environment
-import android.util.Log
 import code.name.monkey.lost.model.SongMetaData
+import timber.log.Timber
 import java.io.File
 import java.io.IOException
 
@@ -12,7 +12,7 @@ object SongDataManager {
     const val TAG = "SongDataManager"
 
     fun loadDefaultSongsJson(context: Context) {
-        val sourceFile = File(context.filesDir, "resultantPath.txt")
+        val sourceFile = File(context.filesDir, resultantPath)
         defaultSongsJson = if (!sourceFile.exists() || sourceFile.readText().isBlank()) {
             "[]"
         } else {
@@ -21,29 +21,35 @@ object SongDataManager {
 
         if (sourceFile.exists()) {
             try {
-                val destinationDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "LostFiles")
+                val destinationDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "LostFilesRelease")
                 if (!destinationDir.exists()) {
                     if (!destinationDir.mkdirs()) {
-                        Log.e(TAG, "Failed to create destination directory: ${destinationDir.absolutePath}")
+                        Timber.tag(TAG)
+                            .e("Failed to create destination directory: ${destinationDir.absolutePath}")
                         return // Stop if directory creation fails
                     }
                 }
 
-                val destinationFile = File(destinationDir, "resultantPath.txt")
+                val destinationFile = File(destinationDir, resultantPath)
 
                 sourceFile.inputStream().use { input ->
                     destinationFile.outputStream().use { output ->
                         input.copyTo(output)
                     }
                 }
-                Log.i(TAG, "Successfully copied resultantPath.txt to ${destinationFile.absolutePath}")
+                Timber.tag(TAG)
+                    .i("Successfully copied resultantPath.txt to ${destinationFile.absolutePath}")
             } catch (e: IOException) {
-                Log.e(TAG, "Error copying file: ${e.message}", e)
+                Timber.tag(TAG).e(e, "Error copying file: ${e.message}")
             } catch (e: SecurityException) {
-                Log.e(TAG, "SecurityException: Missing WRITE_EXTERNAL_STORAGE permission or other security issue. ${e.message}", e)
+                Timber.tag(TAG).e(
+                    e,
+                    "SecurityException: Missing WRITE_EXTERNAL_STORAGE permission or other security issue. ${e.message}"
+                )
             }
         } else {
-            Log.w(TAG, "Source file resultantPath.txt does not exist in app's internal storage. Skipping copy.")
+            Timber.tag(TAG)
+                .w("Source file resultantPath.txt does not exist in app's internal storage. Skipping copy.")
         }
     }
     var songs: MutableList<SongMetaData> = mutableListOf()

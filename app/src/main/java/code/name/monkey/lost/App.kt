@@ -62,6 +62,7 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Timber.plant(Timber.DebugTree())
         instance = this
         YTPlayerUtils.giveContext(this)
         val locale = Locale.getDefault()
@@ -162,7 +163,7 @@ class App : Application() {
         }
 
         // Create notification channels
-        DownloadManager.createNotificationChannel(this)
+        DownloadManager.createNotificationChannel(this, "downloads_manager_channel")
 
         // default theme
         if (!ThemeStore.isConfigured(this, 3)) {

@@ -1,7 +1,6 @@
 package code.name.monkey.lost.helper
 
 import android.content.Context
-import android.util.Log
 import code.name.monkey.lost.model.SongMetaData
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.UserSongInputByNameAndArtists
@@ -15,12 +14,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
+import timber.log.Timber
 import java.io.File
 import java.io.IOException
 import java.util.Locale
 
 object MetaDataManagerHelper : KoinComponent {
-    private const val OUTPUT_FILE_NAME = "outputile.txt"
+    private const val TAG = "MetaDataManagerHelper"
+    private const val OUTPUT_FILE_NAME = outputPath
     private var appContext: Context? = null
     @Volatile
     private var cachedSongMetaDataList: List<SongMetaData>? = null
@@ -71,7 +72,7 @@ object MetaDataManagerHelper : KoinComponent {
         val userSongsToFavorite: List<UserSongInputByNameAndArtists> = try {
             gson.fromJson<List<UserSongInputByNameAndArtists>>(userSongsJsonString, userSongListType) ?: emptyList()
         } catch (e: Exception) {
-            Log.e("MetaDataManagerHelper", "Error parsing userSongsJsonString", e)
+            Timber.tag(TAG).e(e, "Error parsing userSongsJsonString")
             emptyList()
         }
         synchronized(cacheLock) {
@@ -135,7 +136,7 @@ object MetaDataManagerHelper : KoinComponent {
                         songsToFavoriteInDb.add(matchedDeviceSong)
                     }
                 } else {
-                    Log.w("MetaDataManagerHelper", "Song '${userSongInput.name}' (from JSON) not found in device library for favoriting by path.")
+                    Timber.tag(TAG).w("Song '${userSongInput.name}' (from JSON) not found in device library for favoriting by path.")
                 }
             }
 
@@ -154,9 +155,9 @@ object MetaDataManagerHelper : KoinComponent {
             if (operationsMadeOverallInCache) {
                 cachedSongMetaDataList = mutableMetaDataList.toList()
                 saveSongMetaDataList(cachedSongMetaDataList!!)
-                Log.d("MetaDataManagerHelper", "Favorites reset and new list from JSON applied to cache. DB sync launched.")
+                Timber.tag(TAG).d("Favorites reset and new list from JSON applied to cache. DB sync launched.")
             } else {
-                Log.d("MetaDataManagerHelper", "No changes to favorites cache were necessary after processing JSON input. DB sync for consistency still launched if needed.")
+                Timber.tag(TAG).d("No changes to favorites cache were necessary after processing JSON input. DB sync for consistency still launched if needed.")
             }
         }
     }
@@ -190,7 +191,7 @@ object MetaDataManagerHelper : KoinComponent {
                 val text = file.readText()
                 text
             } catch (e: IOException) {
-                Log.e("MetaDataManagerHelper", "Error reading output file", e)
+                Timber.tag(TAG).e(e, "Error reading output file")
                 "[]"
             }
         } else {
@@ -204,7 +205,7 @@ object MetaDataManagerHelper : KoinComponent {
             val file = getOutputFile()
             file.writeText(content)
         } catch (e: IOException) {
-            Log.e("MetaDataManagerHelper", "Error writing output file", e)
+            Timber.tag(TAG).e(e, "Error writing output file")
         }
     }
 
@@ -215,8 +216,8 @@ object MetaDataManagerHelper : KoinComponent {
         val step4FilteredWords = step3SplitWords.filter { it.isNotBlank() }
         val step5MappedWords = step4FilteredWords.map { word ->
             val lowercasedWord = word.lowercase(Locale.ROOT)
-            lowercasedWord.replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
+            lowercasedWord.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase(Locale.ROOT) else char.toString()
             }
         }
         val finalResult = step5MappedWords.joinToString("-")
@@ -267,13 +268,13 @@ object MetaDataManagerHelper : KoinComponent {
                         likedTimestamp = (rawMap["likedTimestamp"] as? Number)?.toLong()
                     )
                 } catch (e: Exception) {
-                    Log.e("MetaDataManagerHelper", "Error parsing individual SongMetaData object from map: $rawMap", e)
+                    Timber.tag(TAG).e(e, "Error parsing individual SongMetaData object from map: $rawMap")
                     null
                 }
             } ?: emptyList()
             resultList
         } catch (e: Exception) {
-            Log.e("MetaDataManagerHelper", "Error parsing SongMetaData list from JSON", e)
+            Timber.tag(TAG).e(e, "Error parsing SongMetaData list from JSON")
             emptyList()
         }
     }
@@ -308,7 +309,7 @@ object MetaDataManagerHelper : KoinComponent {
                 val jsonString = Gson().toJson(listToSave)
                 internalWriteRawOutputFile(jsonString)
             } catch (e: Exception) {
-                Log.e("MetaDataManagerHelper", "Error saving SongMetaData list in background", e)
+                Timber.tag(TAG).e(e, "Error saving SongMetaData list in background")
             }
         }
     }

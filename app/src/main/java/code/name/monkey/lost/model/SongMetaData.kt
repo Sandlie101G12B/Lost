@@ -5,9 +5,9 @@ import com.google.gson.annotations.SerializedName
 data class SongMetaData(
     val title: String,
     val artists: List<String> = emptyList(),
-    var file: String,
-    val mood: List<String> = emptyList(),
-    val genre: List<String> = emptyList(),
+    val file: String,
+    var mood: List<String> = emptyList(),
+    var genre: List<String> = emptyList(),
     val playlist: List<String> = emptyList(),
     val year: String = "",
     var liked: Boolean = false,
@@ -26,7 +26,33 @@ data class SongMetaData(
     val ytID: String? = null,
     val isYTSong: Boolean = false,
     val streamUrl: String? = null,
-)
+    val moodPercentages: Map<String, Double>? = null,
+    val genrePercentages: Map<String, Double>? = null
+) {
+
+    init {
+        // Just in case JSON deserialization order works in our favor
+        mood = emptyList()
+        genre = emptyList()
+        if (!moodPercentages.isNullOrEmpty()) {
+            mood = moodPercentages.keys.toList()
+        }
+        if (!genrePercentages.isNullOrEmpty()) {
+            genre = genrePercentages.keys.toList()
+        }
+    }
+
+    // ✅ Call this after parsing to ensure lists are filled
+    fun normalize(): SongMetaData {
+        if (mood.isEmpty() && !moodPercentages.isNullOrEmpty()) {
+            mood = moodPercentages.keys.toList()
+        }
+        if (genre.isEmpty() && !genrePercentages.isNullOrEmpty()) {
+            genre = genrePercentages.keys.toList()
+        }
+        return this
+    }
+}
 
 data class SongTMPContainer(
     val title: String,
@@ -45,15 +71,6 @@ data class SongStatistics(
     var rating: Int = 0,
     var lastPlayed: Long = 0L
 )
-
-data class DataStatistics(
-    val songStats: Map<String, Map<String, Any>>? = null,
-    val sequences: List<Pair<String, Int>>? = null,
-    val genres: List<Pair<String, Int>>? = null,
-    val artists: List<Pair<String, Int>>? = null
-)
-
-enum class FlowType { RollerCoaster, WindDown, MoodLift, Pulse, Wave }
 
 // Ensure this data class is defined, e.g., in the same file or a common models package
 data class UserSongInputByNameAndArtists(
