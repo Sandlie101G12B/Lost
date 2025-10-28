@@ -19,7 +19,6 @@ import code.name.monkey.lost.extensions.showToast
 import code.name.monkey.lost.model.CategoryInfo
 import code.name.monkey.lost.util.PreferenceUtil
 
-
 class LibraryPreference @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,

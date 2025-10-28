@@ -37,7 +37,7 @@ import kotlinx.coroutines.withContext
 
 class LostExoPlayer @OptIn(UnstableApi::class) constructor
     (context: Context) : AudioManagerPlayback(context), Player.Listener { // Added private val to context
-    private lateinit var player: ExoPlayer // Changed to lateinit
+    private var player: ExoPlayer // Changed to lateinit
     override var callbacks: PlaybackCallbacks? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 

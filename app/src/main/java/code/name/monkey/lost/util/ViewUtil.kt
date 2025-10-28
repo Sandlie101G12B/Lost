@@ -3,7 +3,6 @@ package code.name.monkey.lost.util
 import android.content.res.ColorStateList
 import android.content.res.Resources
 import android.graphics.drawable.LayerDrawable
-import android.os.Build
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.SeekBar
@@ -22,14 +21,7 @@ object ViewUtil {
         if (thumbTint) {
             progressSlider.thumbTintList = ColorStateList.valueOf(newColor)
         }
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1) {
-            val layerDrawable = progressSlider.progressDrawable as LayerDrawable
-            val progressDrawable = layerDrawable.findDrawableByLayerId(android.R.id.progress)
-            progressDrawable.colorFilter =
-                BlendModeColorFilterCompat.createBlendModeColorFilterCompat(newColor, SRC_IN)
-        } else {
-            progressSlider.progressTintList = ColorStateList.valueOf(newColor)
-        }
+        progressSlider.progressTintList = ColorStateList.valueOf(newColor)
     }
 
 

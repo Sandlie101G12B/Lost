@@ -3,7 +3,7 @@ package code.name.monkey.lost.util
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
-import android.util.Log
+import timber.log.Timber
 import java.io.File
 import java.io.IOException
 
@@ -41,9 +41,9 @@ object FileUtils {
                 // create a new file and write text in it.
                 file.createNewFile()
                 file.writeText(body)
-                Log.d(FileUtils::class.java.name, "File has been created and saved")
+                Timber.tag(FileUtils::class.java.name).d("File has been created and saved")
             } catch (e: IOException) {
-                Log.d(FileUtils::class.java.name, e.message.toString())
+                Timber.tag(FileUtils::class.java.name).d(e.message.toString())
             }
         }
         return file

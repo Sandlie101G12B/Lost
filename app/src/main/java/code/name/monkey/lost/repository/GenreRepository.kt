@@ -2,7 +2,6 @@ package code.name.monkey.lost.repository
 
 import android.content.ContentResolver
 import android.database.Cursor
-import android.provider.BaseColumns
 import android.provider.MediaStore.Audio.Genres
 import code.name.monkey.lost.Constants.IS_MUSIC
 import code.name.monkey.lost.Constants.baseProjection
@@ -278,39 +277,6 @@ class RealGenreRepository(
         return songs(genreId).firstOrNull() ?: Song.emptySong
     }
 
-    private fun getSongCount(mediaStoreGenreId: Long): Int {
-        contentResolver.query(
-            Genres.Members.getContentUri("external", mediaStoreGenreId),
-            arrayOf(BaseColumns._ID),
-            IS_MUSIC,
-            null,
-            null
-        )?.use {
-            return it.count
-        }
-        return 0
-    }
-
-    private fun getGenreFromCursor(cursor: Cursor): Genre {
-        val originalMediaStoreId = cursor.getLong(Genres._ID)
-        val nameString = cursor.getStringOrNull(Genres.NAME)
-        val representativeName = splitGenreString(nameString).firstOrNull() ?: "Unknown Genre"
-        val displayFormattedName = formatGenreNameForDisplay(representativeName)
-        val processedNameForId = processGenreNameForId(displayFormattedName)
-        val derivedId = generateIdFromProcessedName(processedNameForId)
-        val songCount = getSongCount(originalMediaStoreId)
-        return Genre(derivedId, displayFormattedName, songCount)
-    }
-
-    private fun getSongsWithNoMediaStoreGenre(): List<Song> {
-        val selection = BaseColumns._ID + " NOT IN (SELECT DISTINCT " + Genres.Members.AUDIO_ID + " FROM audio_genres_map)"
-        val cursor = songRepository.makeSongCursor(
-            selection = selection,
-            selectionValues = null
-        )
-        return songRepository.songs(cursor)
-    }
-
     fun makeGenreSongCursor(mediaStoreGenreId: Long): Cursor? {
         if (mediaStoreGenreId <= 0) return null
         return try {
@@ -334,22 +300,6 @@ class RealGenreRepository(
                 projection,
                 null,
                 null,
-                PreferenceUtil.genreSortOrder
-            )
-        } catch (_: SecurityException) {
-            null
-        }
-    }
-
-    private fun makeGenreCursor(query: String): Cursor? {
-        if (query.isEmpty()) return makeGenreCursor()
-        val projection = arrayOf(Genres._ID, Genres.NAME)
-        return try {
-            contentResolver.query(
-                Genres.EXTERNAL_CONTENT_URI,
-                projection,
-                Genres.NAME + " LIKE ?",
-                arrayOf("%$query%"),
                 PreferenceUtil.genreSortOrder
             )
         } catch (_: SecurityException) {

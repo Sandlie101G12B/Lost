@@ -7,7 +7,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 
 /**
@@ -22,10 +21,8 @@ public class SortedLongCursor extends AbstractCursor {
   private ArrayList<Integer> mOrderedPositions;
   // this contains the ids that weren't found in the underlying cursor
   private final ArrayList<Long> mMissingIds;
-  // this contains the mapped cursor positions and afterwards the extra ids that weren't found
-  private HashMap<Long, Integer> mMapCursorPositions;
 
-  /**
+    /**
    * @param cursor to wrap
    * @param order the list of unique ids in sorted order to display
    * @param columnName the column name of the id to look up in the internal cursor
@@ -50,7 +47,8 @@ public class SortedLongCursor extends AbstractCursor {
 
     mOrderedPositions = new ArrayList<>(mCursor.getCount());
 
-    mMapCursorPositions = new HashMap<>(mCursor.getCount());
+      // this contains the mapped cursor positions and afterwards the extra ids that weren't found
+      HashMap<Long, Integer> mMapCursorPositions = new HashMap<>(mCursor.getCount());
     final int idPosition = mCursor.getColumnIndex(columnName);
 
     if (mCursor.moveToFirst()) {
@@ -80,12 +78,6 @@ public class SortedLongCursor extends AbstractCursor {
   /** @return the list of ids that weren't found in the underlying cursor */
   public ArrayList<Long> getMissingIds() {
     return mMissingIds;
-  }
-
-  /** @return the list of ids that were in the underlying cursor but not part of the ordered list */
-  @NonNull
-  public Collection<Long> getExtraIds() {
-    return mMapCursorPositions.keySet();
   }
 
   @Override

@@ -79,7 +79,7 @@ public class HistoryStore extends SQLiteOpenHelper {
               null,
               RecentStoreColumns.TIME_PLAYED + " ASC")) {
 
-        if (oldest != null && oldest.getCount() > MAX_ITEMS_IN_DB) {
+        if (oldest.getCount() > MAX_ITEMS_IN_DB) {
           oldest.moveToPosition(oldest.getCount() - MAX_ITEMS_IN_DB);
           long timeOfRecordToKeep = oldest.getLong(0);
 
@@ -121,23 +121,9 @@ public class HistoryStore extends SQLiteOpenHelper {
             null,
             null);
 
-    boolean containsId = cursor != null && cursor.moveToFirst();
-    if (cursor != null) {
-      cursor.close();
-    }
+    boolean containsId = cursor.moveToFirst();
+    cursor.close();
     return containsId;
-  }
-
-  public Cursor queryRecentIds() {
-    final SQLiteDatabase database = getReadableDatabase();
-    return database.query(
-        RecentStoreColumns.NAME,
-        new String[] {RecentStoreColumns.ID},
-        null,
-        null,
-        null,
-        null,
-        RecentStoreColumns.TIME_PLAYED + " DESC");
   }
 
   public Cursor queryRecentIds(long cutoff) {

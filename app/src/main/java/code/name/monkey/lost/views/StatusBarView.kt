@@ -1,5 +1,6 @@
 package code.name.monkey.lost.views
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Resources
 import android.util.AttributeSet
@@ -20,6 +21,7 @@ class StatusBarView @JvmOverloads constructor(
     }
 
     companion object {
+        @SuppressLint("InternalInsetResource", "DiscouragedApi")
         fun getStatusBarHeight(r: Resources): Int {
             var result = 0
             val resourceId = r.getIdentifier("status_bar_height", "dimen", "android")

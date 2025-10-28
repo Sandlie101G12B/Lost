@@ -117,11 +117,9 @@ public class BlacklistStore extends SQLiteOpenHelper {
             null,
             null);
 
-    boolean containsPath = cursor != null && cursor.moveToFirst();
-    if (cursor != null) {
+    boolean containsPath = cursor.moveToFirst();
       cursor.close();
-    }
-    return containsPath;
+      return containsPath;
   }
 
   public void removePath(File file) {
@@ -159,13 +157,13 @@ public class BlacklistStore extends SQLiteOpenHelper {
                 null);
 
     ArrayList<String> paths = new ArrayList<>();
-    if (cursor != null && cursor.moveToFirst()) {
+    if (cursor.moveToFirst()) {
       do {
         paths.add(cursor.getString(0));
       } while (cursor.moveToNext());
     }
 
-    if (cursor != null) cursor.close();
+    cursor.close();
     return paths;
   }
 

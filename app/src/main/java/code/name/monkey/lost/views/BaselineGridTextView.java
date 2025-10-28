@@ -6,8 +6,6 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 
-import androidx.annotation.FontRes;
-
 import com.google.android.material.textview.MaterialTextView;
 
 import code.name.monkey.lost.R;
@@ -20,9 +18,7 @@ public class BaselineGridTextView extends MaterialTextView {
 
   private int extraTopPadding = 0;
 
-  private @FontRes int fontResId = 0;
-
-  private float lineHeightHint = 0f;
+    private float lineHeightHint = 0f;
 
   private float lineHeightMultiplierHint = 1f;
 
@@ -77,37 +73,6 @@ public class BaselineGridTextView extends MaterialTextView {
     return super.getCompoundPaddingTop() + extraTopPadding;
   }
 
-  public @FontRes int getFontResId() {
-    return fontResId;
-  }
-
-  public float getLineHeightHint() {
-    return lineHeightHint;
-  }
-
-  public void setLineHeightHint(float lineHeightHint) {
-    this.lineHeightHint = lineHeightHint;
-    computeLineHeight();
-  }
-
-  public float getLineHeightMultiplierHint() {
-    return lineHeightMultiplierHint;
-  }
-
-  public void setLineHeightMultiplierHint(float lineHeightMultiplierHint) {
-    this.lineHeightMultiplierHint = lineHeightMultiplierHint;
-    computeLineHeight();
-  }
-
-  public boolean getMaxLinesByHeight() {
-    return maxLinesByHeight;
-  }
-
-  public void setMaxLinesByHeight(boolean maxLinesByHeight) {
-    this.maxLinesByHeight = maxLinesByHeight;
-    requestLayout();
-  }
-
   @Override
   protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     extraTopPadding = 0;
@@ -130,7 +95,7 @@ public class BaselineGridTextView extends MaterialTextView {
     }
 
     int textHeight = height - getCompoundPaddingTop() - getCompoundPaddingBottom();
-    int completeLines = (int) Math.floor(textHeight / getLineHeight());
+    int completeLines = (int) Math.floor((double) textHeight / getLineHeight());
     setMaxLines(completeLines);
   }
 
@@ -172,9 +137,6 @@ public class BaselineGridTextView extends MaterialTextView {
     }
     if (a.hasValue(R.styleable.BaselineGridTextView_lineHeightHint)) {
       lineHeightHint = a.getDimensionPixelSize(R.styleable.BaselineGridTextView_lineHeightHint, 0);
-    }
-    if (a.hasValue(R.styleable.BaselineGridTextView_android_fontFamily)) {
-      fontResId = a.getResourceId(R.styleable.BaselineGridTextView_android_fontFamily, 0);
     }
   }
 }

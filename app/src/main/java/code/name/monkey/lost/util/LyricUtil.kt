@@ -1,10 +1,10 @@
 package code.name.monkey.lost.util
 
-import android.util.Log
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.lyrics.AbsSynchronizedLyrics
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
+import timber.log.Timber
 import java.io.*
 
 /**
@@ -13,30 +13,6 @@ import java.io.*
 object LyricUtil {
     private val lrcRootPath =
         getExternalStorageDirectory().toString() + "/Lost/lyrics/"
-    private const val TAG = "LyricUtil"
-    fun writeLrcToLoc(
-        title: String, artist: String, lrcContext: String
-    ): File? {
-        var writer: FileWriter? = null
-        return try {
-            val file = File(getLrcPath(title, artist))
-            if (file.parentFile?.exists() != true) {
-                file.parentFile?.mkdirs()
-            }
-            writer = FileWriter(getLrcPath(title, artist))
-            writer.write(lrcContext)
-            file
-        } catch (e: IOException) {
-            e.printStackTrace()
-            null
-        } finally {
-            try {
-                writer?.close()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
-    }
 
     //So in Lost, Lrc file can be same folder as Music File or in Lost Folder
     // In this case we pass location of the file and Contents to write to file
@@ -65,11 +41,6 @@ object LyricUtil {
                 e.printStackTrace()
             }
         }
-    }
-
-    fun deleteLrcFile(title: String, artist: String): Boolean {
-        val file = File(getLrcPath(title, artist))
-        return file.delete()
     }
 
     private fun isLrcFileExist(title: String, artist: String): Boolean {
@@ -108,19 +79,6 @@ object LyricUtil {
         return filePath.replace(filePath.substring(filePath.lastIndexOf(".") + 1), "lrc")
     }
 
-    @Throws(Exception::class)
-    fun getStringFromFile(title: String, artist: String): String {
-        val file = File(getLrcPath(title, artist))
-        val fin = FileInputStream(file)
-        val ret = convertStreamToString(fin)
-        fin.close()
-        return ret
-    }
-
-    @Throws(Exception::class)
-    private fun convertStreamToString(inputStream: InputStream): String {
-        return inputStream.bufferedReader().readLines().joinToString(separator = "\n")
-    }
     fun removeHtmlTags(input: String): String {
         return input.replace("v1:", "").replace(Regex("<.*?>"), "\n")
     }
@@ -128,8 +86,8 @@ object LyricUtil {
         try {
             val reader = BufferedReader(FileReader(file))
             return removeHtmlTags(reader.readLines().joinToString(separator = "\n"))
-        } catch (e: Exception) {
-            Log.i("Error", "Error Occurred")
+        } catch (_: Exception) {
+            Timber.tag("Error").i("Error Occurred")
         }
         return ""
     }
@@ -151,7 +109,7 @@ object LyricUtil {
     fun getEmbeddedSyncedLyrics(data: String): String? {
         val embeddedLyrics = try {
             AudioFileIO.read(File(data)).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return null
         }
         return if (AbsSynchronizedLyrics.isSynchronized(embeddedLyrics)) {

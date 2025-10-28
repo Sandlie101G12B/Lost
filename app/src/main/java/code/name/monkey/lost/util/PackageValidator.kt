@@ -12,15 +12,15 @@ import android.content.res.XmlResourceParser
 import android.os.Process
 import android.support.v4.media.session.MediaSessionCompat
 import android.util.Base64
-import android.util.Log
 import androidx.annotation.XmlRes
 import androidx.media.MediaBrowserServiceCompat
 import code.name.monkey.lost.BuildConfig
 import org.xmlpull.v1.XmlPullParserException
+import timber.log.Timber
 import java.io.IOException
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.util.*
+import java.util.Locale
 
 /**
  * Validates that the calling package is authorized to browse a [MediaBrowserServiceCompat].
@@ -141,7 +141,8 @@ class PackageValidator(
      */
     private fun logUnknownCaller(callerPackageInfo: CallerPackageInfo) {
         if (BuildConfig.DEBUG && callerPackageInfo.signature != null) {
-            Log.i(TAG, "PackageValidator call" + callerPackageInfo.name + callerPackageInfo.packageName + callerPackageInfo.signature)
+            Timber.tag(TAG)
+                .i("%s%s", "PackageValidator call" + callerPackageInfo.name + callerPackageInfo.packageName, callerPackageInfo.signature)
         }
     }
 
@@ -231,9 +232,9 @@ class PackageValidator(
                 eventType = parser.next()
             }
         } catch (xmlException: XmlPullParserException) {
-            Log.e(TAG, "Could not read allowed callers from XML.", xmlException)
+            Timber.tag(TAG).e(xmlException, "Could not read allowed callers from XML.")
         } catch (ioException: IOException) {
-            Log.e(TAG, "Could not read allowed callers from XML.", ioException)
+            Timber.tag(TAG).e(ioException, "Could not read allowed callers from XML.")
         }
 
         return certificateWhitelist
@@ -297,7 +298,7 @@ class PackageValidator(
         try {
             md = MessageDigest.getInstance("SHA256")
         } catch (noSuchAlgorithmException: NoSuchAlgorithmException) {
-            Log.e(TAG, "No such algorithm: $noSuchAlgorithmException")
+            Timber.tag(TAG).e("No such algorithm: $noSuchAlgorithmException")
             throw RuntimeException("Could not find SHA256 hash algorithm", noSuchAlgorithmException)
         }
         md.update(certificate)

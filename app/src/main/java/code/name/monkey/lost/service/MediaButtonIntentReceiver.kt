@@ -1,4 +1,3 @@
-
 package code.name.monkey.lost.service
 
 import android.content.Context
@@ -8,7 +7,6 @@ import android.os.Looper
 import android.os.Message
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
-import android.util.Log
 import android.view.KeyEvent
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
@@ -21,6 +19,7 @@ import code.name.monkey.lost.service.MusicService.Companion.ACTION_REWIND
 import code.name.monkey.lost.service.MusicService.Companion.ACTION_SKIP
 import code.name.monkey.lost.service.MusicService.Companion.ACTION_STOP
 import code.name.monkey.lost.service.MusicService.Companion.ACTION_TOGGLE_PAUSE
+import timber.log.Timber
 
 
 /**
@@ -32,7 +31,7 @@ import code.name.monkey.lost.service.MusicService.Companion.ACTION_TOGGLE_PAUSE
 class MediaButtonIntentReceiver : MediaButtonReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (DEBUG) Log.v(TAG, "Received intent: $intent")
+        if (DEBUG) Timber.tag(TAG).v("Received intent: %s", intent)
         if (handleIntent(context, intent) && isOrderedBroadcast) {
             abortBroadcast()
         }
@@ -40,7 +39,6 @@ class MediaButtonIntentReceiver : MediaButtonReceiver() {
 
     companion object {
         val TAG: String = MediaButtonIntentReceiver::class.java.simpleName
-        private val DEBUG = BuildConfig.DEBUG
         private const val MSG_HEADSET_DOUBLE_CLICK_TIMEOUT = 2
 
         private const val DOUBLE_CLICK = 400
@@ -48,6 +46,7 @@ class MediaButtonIntentReceiver : MediaButtonReceiver() {
         private var wakeLock: WakeLock? = null
         private var mClickCounter = 0
         private var mLastClickTime: Long = 0
+        private val DEBUG = BuildConfig.DEBUG
 
         private val mHandler = object : Handler(Looper.getMainLooper()) {
 
@@ -56,7 +55,7 @@ class MediaButtonIntentReceiver : MediaButtonReceiver() {
                     MSG_HEADSET_DOUBLE_CLICK_TIMEOUT -> {
                         val clickCount = msg.arg1
 
-                        if (DEBUG) Log.v(TAG, "Handling headset click, count = $clickCount")
+                        if (DEBUG) Timber.tag(TAG).v("Handling headset click, count = %s", clickCount)
                         val command = when (clickCount) {
                             1 -> ACTION_TOGGLE_PAUSE
                             2 -> ACTION_SKIP
@@ -114,7 +113,8 @@ class MediaButtonIntentReceiver : MediaButtonReceiver() {
                                 }
 
                                 mClickCounter++
-                                if (DEBUG) Log.v(TAG, "Got headset click, count = $mClickCounter")
+                                if (DEBUG) Timber.tag(TAG)
+                                    .v("Got headset click, count = %s", mClickCounter)
                                 mHandler.removeMessages(MSG_HEADSET_DOUBLE_CLICK_TIMEOUT)
 
                                 val msg = mHandler.obtainMessage(
@@ -143,7 +143,7 @@ class MediaButtonIntentReceiver : MediaButtonReceiver() {
             intent.action = command
             try {
                 context.startService(intent)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 ContextCompat.startForegroundService(context, intent)
             }
         }
@@ -158,7 +158,7 @@ class MediaButtonIntentReceiver : MediaButtonReceiver() {
                 )
                 wakeLock!!.setReferenceCounted(false)
             }
-            if (DEBUG) Log.v(TAG, "Acquiring wake lock and sending " + msg.what)
+            if (DEBUG) Timber.tag(TAG).v("Acquiring wake lock and sending %s", msg.what)
             // Make sure we don't indefinitely hold the wake lock under any circumstances
             wakeLock!!.acquire(10000)
 
@@ -167,12 +167,13 @@ class MediaButtonIntentReceiver : MediaButtonReceiver() {
 
         private fun releaseWakeLockIfHandlerIdle() {
             if (mHandler.hasMessages(MSG_HEADSET_DOUBLE_CLICK_TIMEOUT)) {
-                if (DEBUG) Log.v(TAG, "Handler still has messages pending, not releasing wake lock")
+                if (DEBUG) Timber.tag(TAG)
+                    .v("Handler still has messages pending, not releasing wake lock")
                 return
             }
 
             if (wakeLock != null) {
-                if (DEBUG) Log.v(TAG, "Releasing wake lock")
+                if (DEBUG) Timber.tag(TAG).v("Releasing wake lock")
                 wakeLock!!.release()
                 wakeLock = null
             }

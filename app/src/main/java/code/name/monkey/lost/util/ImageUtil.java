@@ -4,9 +4,6 @@ import android.graphics.Bitmap;
 
 import androidx.annotation.NonNull;
 
-/**
- * Created on : June 18, 2016 Author : zetbaitsu Name : Zetra GitHub : https://github.com/zetbaitsu
- */
 public class ImageUtil {
 
   private ImageUtil() {}

@@ -27,7 +27,11 @@ public class LastFmAlbum {
     @Expose private Tags tags;
     @Expose private Wiki wiki;
 
-    public List<Image> getImage() {
+      public Album(Tags tags) {
+          this.tags = tags;
+      }
+
+      public List<Image> getImage() {
       return image;
     }
 
@@ -51,24 +55,12 @@ public class LastFmAlbum {
       this.name = name;
     }
 
-    public String getPlaycount() {
-      return playcount;
-    }
-
-    public void setPlaycount(final String playcount) {
-      this.playcount = playcount;
-    }
-
     public Tags getTags() {
       return tags;
     }
 
     public Wiki getWiki() {
       return wiki;
-    }
-
-    public void setWiki(Wiki wiki) {
-      this.wiki = wiki;
     }
 
     public static class Image {
@@ -96,23 +88,24 @@ public class LastFmAlbum {
       }
     }
 
-    public class Tags {
+    public static class Tags {
 
-      @Expose
-      private final List<Tag> tag = null;
-
-      public List<Tag> getTag() {
-        return tag;
+        public List<Tag> getTag() {
+        return null;
       }
     }
 
-    public class Tag {
+    public static class Tag {
 
       @Expose private String name;
 
       @Expose private String url;
 
-      public String getName() {
+        public Tag(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
         return name;
       }
 
@@ -121,7 +114,7 @@ public class LastFmAlbum {
       }
     }
 
-    public class Wiki {
+    public static class Wiki {
 
       @Expose private String content;
 

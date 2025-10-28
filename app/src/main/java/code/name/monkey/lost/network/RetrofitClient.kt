@@ -3,7 +3,6 @@ package code.name.monkey.lost.network
 import android.content.Context
 import code.name.monkey.lost.App
 import code.name.monkey.lost.BuildConfig
-import code.name.monkey.lost.network.conversion.LyricsConverterFactory
 import com.google.gson.GsonBuilder
 import okhttp3.Cache
 import okhttp3.Interceptor
@@ -70,19 +69,4 @@ fun provideLastFmRetrofit(client: OkHttpClient): Retrofit {
 
 fun provideLastFmRest(retrofit: Retrofit): LastFMService {
     return retrofit.create(LastFMService::class.java)
-}
-
-fun provideDeezerRest(retrofit: Retrofit): DeezerService {
-    val newBuilder = retrofit.newBuilder()
-        .baseUrl("https://api.deezer.com/")
-        .build()
-    return newBuilder.create(DeezerService::class.java)
-}
-
-fun provideLyrics(retrofit: Retrofit): LyricsRestService {
-    val newBuilder = retrofit.newBuilder()
-        .baseUrl("https://makeitpersonal.co")
-        .addConverterFactory(LyricsConverterFactory())
-        .build()
-    return newBuilder.create(LyricsRestService::class.java)
 }

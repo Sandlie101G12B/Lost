@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2017 wangchenyan
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
- * except in compliance with the License. You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the
- * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- */
 package code.name.monkey.lost.lyrics
 
 import android.animation.ValueAnimator
@@ -75,7 +62,7 @@ class CoverLrcView @JvmOverloads constructor(
     private var isShowTimeline = false
     private var isTouching = false
     private var isFling = false
-    private var mTextGravity // 歌词显示位置，靠左/居中/靠右
+    private var mTextGravity
             = 0
     private val hideTimelineRunnable = Runnable {
         if (hasLrc() && isShowTimeline) {

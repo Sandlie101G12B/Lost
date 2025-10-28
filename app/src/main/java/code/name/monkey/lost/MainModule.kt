@@ -120,7 +120,7 @@ private val dataModule = module {
     } bind AlbumRepository::class
 
     single {
-        RealArtistRepository(get(), get())
+        RealArtistRepository(get())
     } bind ArtistRepository::class
 
     single {

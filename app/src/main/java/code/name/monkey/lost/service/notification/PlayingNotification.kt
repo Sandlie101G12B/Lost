@@ -4,7 +4,6 @@ package code.name.monkey.lost.service.notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import code.name.monkey.lost.R
 import code.name.monkey.lost.model.Song
@@ -22,12 +21,10 @@ abstract class PlayingNotification(context: Context) :
     abstract fun clear(context: Context)
 
     companion object {
-        const val NOTIFICATION_CONTROLS_SIZE_MULTIPLIER = 1.0f
         internal const val NOTIFICATION_CHANNEL_ID = "playing_notification"
         const val NOTIFICATION_ID = 1
 
 
-        @RequiresApi(26)
         fun createNotificationChannel(
             context: Context,
             notificationManager: NotificationManager

@@ -1,14 +1,15 @@
 package code.name.monkey.lost.util
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Point
 import code.name.monkey.lost.App.Companion.getContext
+import timber.log.Timber
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.text.DecimalFormat
-import java.util.*
-import android.util.Log
+import java.util.Collections
 
 object LostUtil {
     fun formatValue(numValue: Float): String {
@@ -33,19 +34,8 @@ object LostUtil {
         return Point(x, y)
     }
 
-    val statusBarHeight: Int
-        get() {
-            var result = 0
-            val resourceId = getContext()
-                .resources
-                .getIdentifier("status_bar_height", "dimen", "android")
-            if (resourceId > 0) {
-                result = getContext().resources.getDimensionPixelSize(resourceId)
-            }
-            return result
-        }
-
     val navigationBarHeight: Int
+        @SuppressLint("InternalInsetResource", "DiscouragedApi")
         get() {
             var result = 0
             val resourceId = getContext()
@@ -82,7 +72,7 @@ object LostUtil {
                                 // Skip local and link-local addresses
                                 if (isIPv4 && !addr.isLinkLocalAddress && !addr.isSiteLocalAddress) continue
                                 if (isIPv4) {
-                                    Log.d("LostUtil", "Using IP address: $sAddr")
+                                    Timber.tag("LostUtil").d("Using IP address: %s", sAddr)
                                     return sAddr
                                 }
                             } else {
@@ -93,7 +83,7 @@ object LostUtil {
                                     } else {
                                         sAddr.substring(0, delim).uppercase()
                                     }
-                                    Log.d("LostUtil", "Using IPv6 address: $processedAddr")
+                                    Timber.tag("LostUtil").d("Using IPv6 address: %s", processedAddr)
                                     return processedAddr
                                 }
                             }
@@ -101,9 +91,9 @@ object LostUtil {
                     }
                 }
             }
-            Log.e("LostUtil", "No suitable network interface found")
+            Timber.tag("LostUtil").e("No suitable network interface found")
         } catch (e: Exception) {
-            Log.e("LostUtil", "Error getting IP address: ${e.message}")
+            Timber.tag("LostUtil").e("Error getting IP address: %s", e.message)
         }
         return null
     }

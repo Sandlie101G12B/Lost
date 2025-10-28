@@ -20,8 +20,7 @@ interface ArtistRepository {
 }
 
 class RealArtistRepository(
-    private val songRepository: RealSongRepository,
-    private val albumRepository: RealAlbumRepository // Commented out as album.albumArtist is not used
+    private val songRepository: RealSongRepository
 ) : ArtistRepository {
 
     private fun getSongLoaderSortOrder(): String {

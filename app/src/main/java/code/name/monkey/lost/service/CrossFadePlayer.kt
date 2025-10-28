@@ -7,27 +7,33 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.PowerManager
-import android.util.Log
 import androidx.core.net.toUri
 import code.name.monkey.appthemehelper.util.VersionUtils.hasMarshmallow
 import code.name.monkey.lost.R
 import code.name.monkey.lost.extensions.showToast
-import code.name.monkey.lost.extensions.uri
-import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.helper.MetaDataManagerHelper
+import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.service.AudioFader.Companion.createFadeAnimator
 import code.name.monkey.lost.service.playback.Playback.PlaybackCallbacks
+import code.name.monkey.lost.util.AudioQuality
 import code.name.monkey.lost.util.PreferenceUtil
 import code.name.monkey.lost.util.PreferenceUtil.playbackPitch
 import code.name.monkey.lost.util.PreferenceUtil.playbackSpeed
-import code.name.monkey.lost.util.logE
 import code.name.monkey.lost.util.YTPlayerUtils
-import code.name.monkey.lost.util.AudioQuality
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import timber.log.Timber
 
 class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener {
-    private val TAG = "CrossFadePlayer"
+    private val tag = "CrossFadePlayer"
 
     private var currentPlayer: CurrentPlayer = CurrentPlayer.NOT_SET
     private var player1 = MediaPlayer()
@@ -41,7 +47,6 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     private var durationListener = DurationListener()
     private var mIsInitialized = false
     private var hasDataSourceForCurrentPlayer: Boolean = false
-    private var nextSongToPrepare: Song? = null // Store the next Song object
 
     private var crossFadeAnimator: Animator? = null
     override var callbacks: PlaybackCallbacks? = null
@@ -76,7 +81,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
             }
             true
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Error starting player(s)", e)
+            Timber.tag(tag).e(e, "Error starting player(s)")
             false
         }
     }
@@ -108,7 +113,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
             getCurrentPlayer()?.let { if (it.isPlaying) it.pause() }
             getNextPlayer()?.let { if (it.isPlaying) it.pause() }
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Error pausing player(s)", e)
+            Timber.tag(tag).e(e, "Error pausing player(s)")
             return false
         }
         return true
@@ -124,7 +129,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
             getCurrentPlayer()?.seekTo(whereto)
             return whereto
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Error seeking", e)
+            Timber.tag(tag).e(e, "Error seeking")
             return -1
         }
     }
@@ -135,7 +140,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
             getCurrentPlayer()?.setVolume(vol, vol)
             true
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Error setting volume", e)
+            Timber.tag(tag).e(e, "Error setting volume")
             false
         }
     }
@@ -148,7 +153,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         force: Boolean,
         completion: (success: Boolean) -> Unit,
     ) {
-        Log.d(TAG, "setDataSource called for song: ${song.title}, isYTSong: ${song.isYTSong}, force: $force")
+        Timber.tag(tag).d("setDataSource called for song: ${song.title}, isYTSong: ${song.isYTSong}, force: $force")
         if (force) hasDataSourceForCurrentPlayer = false
         mIsInitialized = false
 
@@ -161,12 +166,12 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
 
             if (song.isYTSong && !song.ytID.isNullOrEmpty()) {
                 ioScope.launch {
-                    Log.d(TAG, "Fetching stream URL for current YT song: ${song.ytID}")
+                    Timber.tag(tag).d("Fetching stream URL for current YT song: ${song.ytID}")
                     val result = YTPlayerUtils.getPlaybackData(song.ytID!!, audioQuality = AudioQuality.AUTO)
                     withContext(Dispatchers.Main) {
                         result.fold(
                             onSuccess = {
-                                Log.d(TAG, "Stream URL for current: ${it.streamUrl}")
+                                Timber.tag(tag).d("Stream URL for current: ${it.streamUrl}")
                                 setDataSourceImpl(player, it.streamUrl, true) { success ->
                                     mIsInitialized = success
                                     if(success) hasDataSourceForCurrentPlayer = true
@@ -174,7 +179,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                                 }
                             },
                             onFailure = {
-                                Log.e(TAG, "Failed to get stream for current YT song ${song.ytID}", it)
+                                Timber.tag(tag).e(it, "Failed to get stream for current YT song ${song.ytID}")
                                 context.showToast(R.string.unable_to_stream_youtube_song)
                                 completion(false)
                             }
@@ -182,24 +187,26 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                     }
                 }
             } else if (!song.isYTSong) {
-                 Log.d(TAG, "Setting data source for local current song: ${song.data}")
+                Timber.tag(tag).d("Setting data source for local current song: ${song.data}")
                 setDataSourceImpl(player, song.data, false) { success -> // Use song.data for local files
                     mIsInitialized = success
                     if(success) hasDataSourceForCurrentPlayer = true
                     completion(success)
                 }
             } else {
-                Log.w(TAG, "YTSong with no ytID or invalid local song data: ${song.title}")
+                Timber.tag(tag).w("YTSong with no ytID or invalid local song data: ${song.title}")
                 completion(false)
             }
         } else {
-            Log.d(TAG, "DataSource already set for current player, mIsInitialized: $mIsInitialized")
+            Timber.tag(tag)
+                .d("DataSource already set for current player, mIsInitialized: $mIsInitialized")
             completion(mIsInitialized) // If datasource was already set, rely on current init state
         }
     }
 
     override fun setNextDataSource(path: Uri?) {
-        Log.d(TAG, "setNextDataSource(Uri) called with: $path. This is NOT used for YT Song preparation if MusicPlayerRemote.nextSong is available.")
+        Timber.tag(tag)
+            .d("setNextDataSource(Uri) called with: $path. This is NOT used for YT Song preparation if MusicPlayerRemote.nextSong is available.")
     }
 
 
@@ -208,7 +215,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
             getCurrentPlayer()?.audioSessionId = sessionId
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Error setting audio session ID", e)
+            Timber.tag(tag).e(e, "Error setting audio session ID")
             false
         }
     }
@@ -219,7 +226,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         return if (!mIsInitialized) -1 else try {
             getCurrentPlayer()?.duration ?: -1
         } catch (e: IllegalStateException) {
-            Log.w(TAG, "Error getting duration", e); -1
+            Timber.tag(tag).w(e, "Error getting duration"); -1
         }
     }
 
@@ -227,12 +234,13 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         return if (!mIsInitialized) -1 else try {
             getCurrentPlayer()?.currentPosition ?: -1
         } catch (e: IllegalStateException) {
-            Log.w(TAG, "Error getting position", e); -1
+            Timber.tag(tag).w(e, "Error getting position"); -1
         }
     }
 
     override fun onCompletion(mp: MediaPlayer?) {
-        Log.d(TAG, "onCompletion for player: ${if (mp == player1) "P1" else if (mp == player2) "P2" else "Unknown"}")
+        Timber.tag(tag)
+            .d("onCompletion for player: ${if (mp == player1) "P1" else if (mp == player2) "P2" else "Unknown"}")
         if (mp == getCurrentPlayer() && !isCrossFading) { // Only call onTrackEnded if not in middle of crossfade
             callbacks?.onTrackEnded()
         }
@@ -251,11 +259,11 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     }
 
     private fun crossFade(fadeInMp: MediaPlayer, fadeOutMp: MediaPlayer) {
-        Log.d(TAG, "Starting crossfade.")
+        Timber.tag(tag).d("Starting crossfade.")
         isCrossFading = true
         crossFadeAnimator?.cancel()
         crossFadeAnimator = createFadeAnimator(context, fadeInMp, fadeOutMp) {
-            Log.d(TAG, "Crossfade animation ended.")
+            Timber.tag(tag).d("Crossfade animation ended.")
             crossFadeAnimator = null
             mainScope.launch { 
                  durationListener.start() 
@@ -274,7 +282,8 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     private fun resumeFade() { if (crossFadeAnimator?.isPaused == true) crossFadeAnimator?.resume() }
 
     override fun onError(mp: MediaPlayer?, what: Int, extra: Int): Boolean {
-        Log.e(TAG, "MediaPlayer Error - what: $what, extra: $extra on player: ${if (mp == player1) "P1" else if (mp == player2) "P2" else "Unknown"}")
+        Timber.tag(tag)
+            .e("MediaPlayer Error - what: $what, extra: $extra on player: ${if (mp == player1) "P1" else if (mp == player2) "P2" else "Unknown"}")
         mIsInitialized = false 
         hasDataSourceForCurrentPlayer = false 
 
@@ -309,53 +318,59 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         val timeLeftSeconds = (total - progress) / 1000
 
         if (timeLeftSeconds == crossFadeDuration && !isCrossFading) {
-            Log.d(TAG, "Crossfade triggered by onDurationUpdated")
+            Timber.tag(tag).d("Crossfade triggered by onDurationUpdated")
             val nextMediaPlayer = getNextPlayer()
             if (nextMediaPlayer == null) {
-                Log.w(TAG, "Next player is null, cannot crossfade.")
+                Timber.tag(tag).w("Next player is null, cannot crossfade.")
                 return
             }
 
             val songToFadeIn = MusicPlayerRemote.nextSong
             if (songToFadeIn == null || songToFadeIn == Song.emptySong) {
-                Log.d(TAG, "No next song available from MusicPlayerRemote to crossfade to.")
+                Timber.tag(tag).d("No next song available from MusicPlayerRemote to crossfade to.")
                 return
             }
-            Log.d(TAG, "Preparing next song for crossfade: ${songToFadeIn.title}, isYT: ${songToFadeIn.isYTSong}")
+            Timber.tag(tag)
+                .d("Preparing next song for crossfade: ${songToFadeIn.title}, isYT: ${songToFadeIn.isYTSong}")
 
             if (songToFadeIn.isYTSong && !songToFadeIn.ytID.isNullOrEmpty()) {
                 ioScope.launch {
-                    Log.d(TAG, "Fetching stream URL for next YT song: ${songToFadeIn.ytID}")
+                    Timber.tag(tag).d("Fetching stream URL for next YT song: ${songToFadeIn.ytID}")
                     val result = YTPlayerUtils.getPlaybackData(songToFadeIn.ytID!!, audioQuality = AudioQuality.AUTO)
                     withContext(Dispatchers.Main) {
                         result.fold(
                             onSuccess = {
-                                Log.d(TAG, "Stream URL for next: ${it.streamUrl}")
+                                Timber.tag(tag).d("Stream URL for next: ${it.streamUrl}")
                                 setDataSourceImpl(nextMediaPlayer, it.streamUrl, true) { success ->
                                     if (success) {
                                         prepareAndSwitchPlayer(nextMediaPlayer, songToFadeIn)
                                     } else {
-                                        Log.e(TAG, "Failed to setDataSourceImpl for next YT song ${songToFadeIn.ytID}")
+                                        Timber.tag(tag)
+                                            .e("Failed to setDataSourceImpl for next YT song ${songToFadeIn.ytID}")
                                     }
                                 }
                             },
                             onFailure = {
-                                Log.e(TAG, "Failed to get stream for next YT song ${songToFadeIn.ytID}", it)
+                                Timber.tag(tag).e(
+                                    it,
+                                    "Failed to get stream for next YT song ${songToFadeIn.ytID}"
+                                )
                             }
                         )
                     }
                 }
             } else if (!songToFadeIn.isYTSong) {
-                 Log.d(TAG, "Preparing next local song: ${songToFadeIn.data}")
+                Timber.tag(tag).d("Preparing next local song: ${songToFadeIn.data}")
                 setDataSourceImpl(nextMediaPlayer, songToFadeIn.data, false) { success -> 
                     if (success) {
                         prepareAndSwitchPlayer(nextMediaPlayer, songToFadeIn)
                     } else {
-                        Log.e(TAG, "Failed to setDataSourceImpl for next local song ${songToFadeIn.data}")
+                        Timber.tag(tag)
+                            .e("Failed to setDataSourceImpl for next local song ${songToFadeIn.data}")
                     }
                 }
             } else {
-                 Log.w(TAG, "Next YTSong with no ytID or invalid local song: ${songToFadeIn.title}")
+                Timber.tag(tag).w("Next YTSong with no ytID or invalid local song: ${songToFadeIn.title}")
             }
         }
     }
@@ -373,11 +388,11 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         initialSpeedForFadingInSong = initialSpeedForFadingInSong.takeIf { it.isFinite() && it > 0 } ?: userSpeedPref
         
         playerToStart.setPlaybackSpeedPitch(initialSpeedForFadingInSong, playbackPitch)
-        switchPlayer(songFadingIn, initialSpeedForFadingInSong)
+        switchPlayer(initialSpeedForFadingInSong)
     }
 
-    private fun switchPlayer(songThatIsFadingIn: Song, initialSpeedForFadingInSong: Float) {
-        Log.d(TAG, "Executing switchPlayer.")
+    private fun switchPlayer(initialSpeedForFadingInSong: Float) {
+        Timber.tag(tag).d("Executing switchPlayer.")
         val fadeInMediaPlayer = getNextPlayer() ?: return
         val fadeOutMediaPlayer = getCurrentPlayer() ?: return
 
@@ -420,7 +435,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                  getNextPlayer()?.setPlaybackSpeedPitch(safeSpeed, safePitch) 
             }
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Error in setPlaybackSpeedPitch", e)
+            Timber.tag(tag).e(e, "Error in setPlaybackSpeedPitch")
         }
     }
 
@@ -432,7 +447,8 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
     ) {
         player.reset()
         try {
-            Log.d(TAG, "setDataSourceImpl for player: ${if (player == player1) "P1" else "P2"}, pathOrUrl: $pathOrUrl, isUrl: $isUrl")
+            Timber.tag(tag)
+                .d("setDataSourceImpl for player: ${if (player == player1) "P1" else "P2"}, pathOrUrl: $pathOrUrl, isUrl: $isUrl")
             if (!isUrl && pathOrUrl.startsWith("content://")) {
                 player.setDataSource(context, pathOrUrl.toUri())
             } else {
@@ -445,19 +461,20 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                     .build()
             )
             player.setOnPreparedListener { mp ->
-                Log.d(TAG, "MediaPlayer prepared for $pathOrUrl")
+                Timber.tag(tag).d("MediaPlayer prepared for $pathOrUrl")
                 mp.setOnPreparedListener(null) 
                 completion(true)
             }
             player.setOnErrorListener { _, what, extra ->
-                Log.e(TAG, "MediaPlayer error in setDataSourceImpl for $pathOrUrl - what: $what, extra: $extra")
+                Timber.tag(tag)
+                    .e("MediaPlayer error in setDataSourceImpl for $pathOrUrl - what: $what, extra: $extra")
                 completion(false)
                 true 
             }
             player.setOnCompletionListener(this) 
             player.prepareAsync()
         } catch (e: Exception) {
-            Log.e(TAG, "Exception in setDataSourceImpl for $pathOrUrl", e)
+            Timber.tag(tag).e(e, "Exception in setDataSourceImpl for $pathOrUrl")
             completion(false)
         }
     }
@@ -476,9 +493,11 @@ fun MediaPlayer.setPlaybackSpeedPitch(speed: Float, pitch: Float) {
                  this.playbackParams = params.setSpeed(safeSpeed).setPitch(safePitch)
             }
         } catch (e: IllegalStateException) {
-            Log.w("setPlaybackSpeedPitch", "Failed to set speed/pitch, player likely not in valid state", e)
+            Timber.tag("setPlaybackSpeedPitch")
+                .w(e, "Failed to set speed/pitch, player likely not in valid state")
         } catch (e: Exception) {
-            Log.e("setPlaybackSpeedPitch", "Generic error setting playback speed and pitch", e)
+            Timber.tag("setPlaybackSpeedPitch")
+                .e(e, "Generic error setting playback speed and pitch")
         }
     }
 }

@@ -19,6 +19,7 @@ import code.name.monkey.lost.model.SongMetaData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -81,7 +82,7 @@ class RealPlaylistRepository(
     }
 
     init {
-        // repositoryScope.launch { ensureDailyAutomaticPlaylistsInDb() } // Consider calling this strategically
+        repositoryScope.launch { ensureDailyAutomaticPlaylistsInDb() } // Consider calling this strategically
     }
 
     private fun getCurrentDateString(): String = DATE_FORMATTER.format(Date())
@@ -328,7 +329,7 @@ class RealPlaylistRepository(
             makePlaylistSongCursor(playlistId).use { cursor ->
                 if (cursor != null && cursor.moveToFirst()) {
                     do {
-                        songs.add(getPlaylistSongFromMediaStoreCursorImpl(cursor, playlistId))
+                        songs.add(getPlaylistSongFromMediaStoreCursorImpl(cursor))
                     } while (cursor.moveToNext())
                     return@withContext songs
                 }
@@ -343,7 +344,7 @@ class RealPlaylistRepository(
         return Playlist(id, name ?: "Unknown MediaStore Playlist")
     }
 
-    private fun getPlaylistSongFromMediaStoreCursorImpl(cursor: Cursor, playlistIdForContext: Long): Song {
+    private fun getPlaylistSongFromMediaStoreCursorImpl(cursor: Cursor): Song {
         val id = cursor.getLong(cursor.getColumnIndexOrThrow(Members.AUDIO_ID))
         val title = cursor.getString(cursor.getColumnIndexOrThrow(TITLE))
         val trackNumber = cursor.getInt(cursor.getColumnIndexOrThrow(AudioColumns.TRACK))

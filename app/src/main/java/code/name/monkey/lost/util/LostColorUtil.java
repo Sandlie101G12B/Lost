@@ -1,26 +1,18 @@
 package code.name.monkey.lost.util;
 
-import android.content.Context;
-import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.palette.graphics.Palette;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import code.name.monkey.appthemehelper.ThemeStore;
 import code.name.monkey.appthemehelper.util.ColorUtil;
-import code.name.monkey.appthemehelper.util.VersionUtils;
 
 public class LostColorUtil {
   public static int desaturateColor(int color, float ratio) {
@@ -67,23 +59,6 @@ public class LostColorUtil {
     return getBestPaletteSwatchFrom(palette.getSwatches());
   }
 
-  public static int getMatColor(Context context, String typeColor) {
-    int returnColor = Color.BLACK;
-    int arrayId =
-        context
-            .getResources()
-            .getIdentifier(
-                "md_" + typeColor, "array", context.getApplicationContext().getPackageName());
-
-    if (arrayId != 0) {
-      TypedArray colors = context.getResources().obtainTypedArray(arrayId);
-      int index = (int) (Math.random() * colors.length());
-      returnColor = colors.getColor(index, Color.BLACK);
-      colors.recycle();
-    }
-    return returnColor;
-  }
-
   @ColorInt
   public static int getColor(@Nullable Palette palette, int fallback) {
     if (palette != null) {
@@ -106,17 +81,6 @@ public class LostColorUtil {
     return fallback;
   }
 
-  private static Palette.Swatch getTextSwatch(@Nullable Palette palette) {
-    if (palette == null) {
-      return new Palette.Swatch(Color.BLACK, 1);
-    }
-    if (palette.getVibrantSwatch() != null) {
-      return palette.getVibrantSwatch();
-    } else {
-      return new Palette.Swatch(Color.BLACK, 1);
-    }
-  }
-
   @ColorInt
   public static int getBackgroundColor(@Nullable Palette palette) {
     return getProperBackgroundSwatch(palette).getRgb();
@@ -137,27 +101,6 @@ public class LostColorUtil {
     }
   }
 
-  private static Palette.Swatch getBestPaletteSwatchFrom(Palette palette) {
-    if (palette != null) {
-      if (palette.getVibrantSwatch() != null) {
-        return palette.getVibrantSwatch();
-      } else if (palette.getMutedSwatch() != null) {
-        return palette.getMutedSwatch();
-      } else if (palette.getDarkVibrantSwatch() != null) {
-        return palette.getDarkVibrantSwatch();
-      } else if (palette.getDarkMutedSwatch() != null) {
-        return palette.getDarkMutedSwatch();
-      } else if (palette.getLightVibrantSwatch() != null) {
-        return palette.getLightVibrantSwatch();
-      } else if (palette.getLightMutedSwatch() != null) {
-        return palette.getLightMutedSwatch();
-      } else if (!palette.getSwatches().isEmpty()) {
-        return getBestPaletteSwatchFrom(palette.getSwatches());
-      }
-    }
-    return null;
-  }
-
   private static Palette.Swatch getBestPaletteSwatchFrom(List<Palette.Swatch> swatches) {
     if (swatches == null) {
       return null;
@@ -169,50 +112,6 @@ public class LostColorUtil {
           int b = opt2 == null ? 0 : opt2.getPopulation();
           return a - b;
         });
-  }
-
-  public static int getDominantColor(Bitmap bitmap, int defaultFooterColor) {
-    List<Palette.Swatch> swatchesTemp = Palette.from(bitmap).generate().getSwatches();
-    List<Palette.Swatch> swatches = new ArrayList<>(swatchesTemp);
-    Collections.sort(
-        swatches, (swatch1, swatch2) -> swatch2.getPopulation() - swatch1.getPopulation());
-    return swatches.size() > 0 ? swatches.get(0).getRgb() : defaultFooterColor;
-  }
-
-  @ColorInt
-  public static int shiftBackgroundColorForLightText(@ColorInt int backgroundColor) {
-    while (ColorUtil.INSTANCE.isColorLight(backgroundColor)) {
-      backgroundColor = ColorUtil.INSTANCE.darkenColor(backgroundColor);
-    }
-    return backgroundColor;
-  }
-
-  @ColorInt
-  public static int shiftBackgroundColorForDarkText(@ColorInt int backgroundColor) {
-    int color = backgroundColor;
-    while (!ColorUtil.INSTANCE.isColorLight(backgroundColor)) {
-      color = ColorUtil.INSTANCE.lightenColor(backgroundColor);
-    }
-    return color;
-  }
-
-  @ColorInt
-  public static int shiftBackgroundColor(@ColorInt int backgroundColor) {
-    int color = backgroundColor;
-    if (ColorUtil.INSTANCE.isColorLight(color)) {
-      color = ColorUtil.INSTANCE.shiftColor(color, 0.5F);
-    } else {
-      color = ColorUtil.INSTANCE.shiftColor(color, 1.5F);
-    }
-    return color;
-  }
-
-  public static int getMD3AccentColor(@NotNull Context context) {
-    if (VersionUtils.hasS()) {
-      return ContextCompat.getColor(context, code.name.monkey.appthemehelper.R.color.m3_accent_color);
-    } else {
-      return ThemeStore.Companion.accentColor(context);
-    }
   }
 
   private static class SwatchComparator implements Comparator<Palette.Swatch> {

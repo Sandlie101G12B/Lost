@@ -1,12 +1,11 @@
 package code.name.monkey.lost.glide
 
-import android.content.Context
 import android.net.Uri
 import code.name.monkey.lost.extensions.uri
 import code.name.monkey.lost.model.Song
 
 class SongGlideRequest {
-    class Builder internal constructor(private val context: Context, private val song: Song) {
+    class Builder internal constructor(private val song: Song) {
         /**
          * Prepares the request to be loaded by Glide.
          * Currently, it returns the song's main URI.
@@ -23,9 +22,9 @@ class SongGlideRequest {
             /**
              * Creates a new Builder instance for the given song and context.
              */
-            fun from(context: Context, song: Song): Builder {
+            fun from(song: Song): Builder {
                 // Using applicationContext to avoid potential memory leaks with Activity/Fragment contexts
-                return Builder(context.applicationContext, song)
+                return Builder(song)
             }
         }
     }

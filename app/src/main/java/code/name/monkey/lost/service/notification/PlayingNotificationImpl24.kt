@@ -16,7 +16,6 @@ import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.lost.R
 import code.name.monkey.lost.activities.MainActivity
 import code.name.monkey.lost.glide.LostGlideExtension
-import code.name.monkey.lost.glide.LostGlideExtension.songCoverOptions
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.service.MusicService
 import code.name.monkey.lost.service.MusicService.Companion.ACTION_QUIT

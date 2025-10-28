@@ -8,7 +8,6 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.BaseColumns
 import android.provider.MediaStore
-import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
@@ -16,10 +15,10 @@ import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.lost.Constants
 import code.name.monkey.lost.R
 import code.name.monkey.lost.db.PlaylistEntity
-import code.name.monkey.lost.db.SongEntity
 import code.name.monkey.lost.db.toSongEntity
 import code.name.monkey.lost.extensions.getLong
 import code.name.monkey.lost.extensions.showToast
+import code.name.monkey.lost.helper.MetaDataManagerHelper
 import code.name.monkey.lost.helper.MusicPlayerRemote.removeFromQueue
 import code.name.monkey.lost.model.Artist
 import code.name.monkey.lost.model.Song
@@ -33,12 +32,13 @@ import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
+import timber.log.Timber
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Locale
 import java.util.regex.Pattern
-import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
 
 
 object MusicUtil : KoinComponent {
@@ -68,16 +68,16 @@ object MusicUtil : KoinComponent {
 
             val files = ArrayList<Uri>()
 
-            for (song_item in songs) { // Changed song to song_item to avoid conflict
+            for (songItem in songs) { // Changed song to songItem to avoid conflict
                 files.add(
                     try {
                         FileProvider.getUriForFile(
                             context,
                             context.applicationContext.packageName,
-                            File(song_item.data)
+                            File(songItem.data)
                         )
                     } catch (_: IllegalArgumentException) {
-                        getSongFileUri(song_item.id)
+                        getSongFileUri(songItem.id)
                     }
                 )
             }
@@ -89,7 +89,7 @@ object MusicUtil : KoinComponent {
         if (string1.isNullOrEmpty()) {
             return if (string2.isNullOrEmpty()) "" else string2
         }
-        return if (string2.isNullOrEmpty()) if (string1.isEmpty()) "" else string1 else "$string1  •  $string2"
+        return if (string2.isNullOrEmpty()) string1.ifEmpty { "" } else "$string1  •  $string2"
     }
 
     fun createAlbumArtFile(context: Context): File {
@@ -236,13 +236,6 @@ object MusicUtil : KoinComponent {
         )
     }
 
-    fun playlistInfoString(
-        context: Context,
-        songs: List<SongEntity>,
-    ): String {
-        return getSongCountString(context, songs.size)
-    }
-
     fun getReadableDurationString(songDurationMillis: Long): String {
         var minutes = songDurationMillis / 1000 / 60
         val seconds = songDurationMillis / 1000 % 60
@@ -354,7 +347,7 @@ object MusicUtil : KoinComponent {
             contentResolver.insert(artworkUri, values)
             contentResolver.notifyChange(artworkUri, null)
         } catch (e: IllegalArgumentException) {
-           Log.e("MusicUtil", "Failed to insert album art", e)
+            Timber.tag("MusicUtil").e(e, "Failed to insert album art")
         }
     }
 
@@ -369,30 +362,17 @@ object MusicUtil : KoinComponent {
         return tempName == "unknown" || tempName == "<unknown>"
     }
 
-    fun isVariousArtists(artistName: String?): Boolean {
-        if (artistName.isNullOrEmpty()) {
-            return false
-        }
-        if (artistName == Artist.VARIOUS_ARTISTS_DISPLAY_NAME) {
-            return true
-        }
-        return false
-    }
-
     private val repository = get<Repository>()
     
     suspend fun toggleFavorite(song: Song) { // Removed context parameter
-        var newIsFavoriteStatus = false
         withContext(IO) {
             val playlist: PlaylistEntity = repository.favoritePlaylist()
             val songEntity = song.toSongEntity(playlist.playListId)
             val isCurrentlyFavorite = repository.isFavoriteSong(songEntity).isNotEmpty()
             if (isCurrentlyFavorite) {
                 repository.removeSongFromPlaylist(songEntity)
-                newIsFavoriteStatus = false
             } else {
                 repository.insertSongs(listOf(song.toSongEntity(playlist.playListId)))
-                newIsFavoriteStatus = true
             }
         }
     }
@@ -411,7 +391,8 @@ object MusicUtil : KoinComponent {
                 try {
                     File(it.file).nameWithoutExtension.lowercase() == songKey
                 } catch (e: Exception) {
-                    Log.e("MusicUtil", "Error processing metadata file key for: ${it.title}", e)
+                    Timber.tag("MusicUtil")
+                        .e(e, "Error processing metadata file key for: ${it.title}")
                     false
                 }
             }
@@ -424,9 +405,11 @@ object MusicUtil : KoinComponent {
                 )
                 metaDataList[songMetaIndex] = updatedMetaData
                 MetaDataManagerHelper.saveSongMetaDataList(metaDataList) // No context needed
-                Log.d("MusicUtil", "Updated liked status for ${song.title} to $isLiked with timestamp ${updatedMetaData.likedTimestamp}")
+                Timber.tag("MusicUtil")
+                    .d("Updated liked status for ${song.title} to $isLiked with timestamp ${updatedMetaData.likedTimestamp}")
             } else {
-                Log.w("MusicUtil", "SongMetaData not found for song: ${song.title} (key: $songKey) to update liked status.")
+                Timber.tag("MusicUtil")
+                    .w("SongMetaData not found for song: ${song.title} (key: $songKey) to update liked status.")
             }
         }
     }
@@ -480,8 +463,8 @@ object MusicUtil : KoinComponent {
                     cursor.moveToFirst()
                     while (!cursor.isAfterLast) {
                         val id = cursor.getLong(BaseColumns._ID)
-                        val song_item: Song = songRepository.song(id) // Changed song to song_item
-                        removeFromQueue(song_item)
+                        val songItem: Song = songRepository.song(id) // Changed song to songItem
+                        removeFromQueue(songItem)
                         cursor.moveToNext()
                     }
 
@@ -553,13 +536,13 @@ object MusicUtil : KoinComponent {
                         } else {
                             // I'm not sure if we'd ever get here (deletion would
                             // have to fail, but no exception thrown)
-                            Log.e("MusicUtils", "Failed to delete file $name")
+                            Timber.tag("MusicUtils").e("Failed to delete file $name")
                         }
                         cursor.moveToNext()
                     } catch (_: SecurityException) {
                         cursor.moveToNext()
                     } catch (_: NullPointerException) {
-                        Log.e("MusicUtils", "Failed to find file $name")
+                        Timber.tag("MusicUtils").e("Failed to find file $name")
                     }
                 }
                 cursor.close()

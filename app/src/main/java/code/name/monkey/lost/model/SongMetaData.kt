@@ -42,16 +42,6 @@ data class SongMetaData(
         }
     }
 
-    // ✅ Call this after parsing to ensure lists are filled
-    fun normalize(): SongMetaData {
-        if (mood.isEmpty() && !moodPercentages.isNullOrEmpty()) {
-            mood = moodPercentages.keys.toList()
-        }
-        if (genre.isEmpty() && !genrePercentages.isNullOrEmpty()) {
-            genre = genrePercentages.keys.toList()
-        }
-        return this
-    }
 }
 
 data class SongTMPContainer(

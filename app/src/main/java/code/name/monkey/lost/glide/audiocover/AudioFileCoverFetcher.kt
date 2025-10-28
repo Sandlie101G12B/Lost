@@ -34,7 +34,7 @@ class AudioFileCoverFetcher(private val model: AudioFileCover) : DataFetcher<Inp
         if (stream != null) {
             try {
                 stream?.close()
-            } catch (ignore: IOException) {
+            } catch (_: IOException) {
                 // can't do much about it
             }
         }

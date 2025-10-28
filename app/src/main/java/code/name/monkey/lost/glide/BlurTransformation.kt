@@ -50,15 +50,6 @@ class BlurTransformation private constructor(builder: Builder) : BitmapTransform
             return this
         }
 
-        /**
-         * @param bitmapPool The BitmapPool to use.
-         * @return the same Builder
-         */
-        fun bitmapPool(bitmapPool: BitmapPool?): Builder {
-            this.bitmapPool = bitmapPool
-            return this
-        }
-
         fun build(): BlurTransformation {
             return if (bitmapPool != null) {
                 BlurTransformation(this)

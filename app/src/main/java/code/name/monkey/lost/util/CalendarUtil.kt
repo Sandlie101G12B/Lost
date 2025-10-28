@@ -54,7 +54,7 @@ class CalendarUtil {
         // Previous numMonths months
         var month = calendar[Calendar.MONTH]
         var year = calendar[Calendar.YEAR]
-        for (i in 0 until numMonths) {
+        repeat(numMonths) {
             month--
             if (month < Calendar.JANUARY) {
                 month = Calendar.DECEMBER

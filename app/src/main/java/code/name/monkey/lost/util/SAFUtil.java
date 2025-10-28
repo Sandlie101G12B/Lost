@@ -8,16 +8,12 @@ import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import android.text.TextUtils;
-import android.util.Log;
 import android.widget.Toast;
-
 import androidx.annotation.Nullable;
 import androidx.documentfile.provider.DocumentFile;
-
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.exceptions.CannotWriteException;
 import org.jaudiotagger.audio.generic.Utils;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -25,9 +21,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-
 import code.name.monkey.lost.R;
 import code.name.monkey.lost.model.Song;
+import timber.log.Timber;
 
 public class SAFUtil {
 
@@ -67,7 +63,7 @@ public class SAFUtil {
   }
 
   public static boolean isTreeUriSaved(Context context) {
-    return !TextUtils.isEmpty(PreferenceUtil.INSTANCE.getSafSdCardUri());
+      return !TextUtils.isEmpty(PreferenceUtil.INSTANCE.getSafSdCardUri());
   }
 
   public static boolean isSDCardAccessGranted(Context context) {
@@ -110,9 +106,9 @@ public class SAFUtil {
       writeSAF(context, audio, safUri);
     } else {
       try {
-        writeFile(audio);
+          writeFile(audio);
       } catch (CannotWriteException e) {
-        Log.e(TAG, "Error writing file", e);
+        Timber.tag(TAG).e(e, "Error writing file");
       }
     }
   }
@@ -122,10 +118,10 @@ public class SAFUtil {
   }
 
   public static void writeSAF(Context context, AudioFile audio, Uri safUri) {
-    Uri uri = null;
+      Uri uri = null;
 
     if (context == null) {
-      Log.e(TAG, "writeSAF: context == null");
+      Timber.tag(TAG).e("writeSAF: context == null");
       return;
     }
 
@@ -141,8 +137,8 @@ public class SAFUtil {
     }
 
     if (uri == null) {
-      Log.e(TAG, "writeSAF: Can't get SAF URI");
-      toast(context, context.getString(R.string.saf_error_uri));
+      Timber.tag(TAG).e("writeSAF: Can't get SAF URI");
+        toast(context, context.getString(R.string.saf_error_uri));
       return;
     }
 
@@ -157,7 +153,7 @@ public class SAFUtil {
 
       ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(uri, "rw");
       if (pfd == null) {
-        Log.e(TAG, "writeSAF: SAF provided incorrect URI: " + uri);
+        Timber.tag(TAG).e("writeSAF: SAF provided incorrect URI: %s", uri);
         return;
       }
 
@@ -165,12 +161,12 @@ public class SAFUtil {
       FileInputStream fis = new FileInputStream(temp);
       byte[] audioContent = FileUtil.readBytes(fis);
       FileOutputStream fos = new FileOutputStream(pfd.getFileDescriptor());
-      fos.write(audioContent);
-      fos.close();
+        fos.write(audioContent);
+        fos.close();
 
-      temp.delete();
+        temp.delete();
     } catch (final Exception e) {
-      Log.e(TAG, "writeSAF: Failed to write to file descriptor provided by SAF", e);
+      Timber.tag(TAG).e(e, "writeSAF: Failed to write to file descriptor provided by SAF");
 
       toast(
           context,
@@ -185,9 +181,9 @@ public class SAFUtil {
       try {
         deleteFile(path);
       } catch (NullPointerException e) {
-        Log.e("MusicUtils", "Failed to find file " + path);
+          Timber.tag("MusicUtils").e("Failed to find file %s", path);
       } catch (Exception e) {
-        Log.e(TAG, "Error deleting file $e");
+          Timber.tag(TAG).e("Error deleting file $e");
       }
     }
   }
@@ -195,15 +191,15 @@ public class SAFUtil {
   public static void deleteFile(String path) {
     File fileToDelete = new File(path);
     if (!fileToDelete.delete()) {
-      Log.w(TAG, "Failed to delete file: " + path);
+        Timber.tag(TAG).w("Failed to delete file: %s", path);
     }
   }
 
   public static void deleteSAF(Context context, String path, Uri safUri) {
     Uri uri = null;
 
-    if (context == null) {
-      Log.e(TAG, "deleteSAF: context == null");
+      if (context == null) {
+          Timber.tag(TAG).e("deleteSAF: context == null");
       return;
     }
 
@@ -214,11 +210,11 @@ public class SAFUtil {
     }
 
     if (uri == null) {
-      uri = safUri;
+        uri = safUri;
     }
 
-    if (uri == null) {
-      Log.e(TAG, "deleteSAF: Can't get SAF URI");
+      if (uri == null) {
+          Timber.tag(TAG).e("deleteSAF: Can't get SAF URI");
       toast(context, context.getString(R.string.saf_error_uri));
       return;
     }
@@ -226,7 +222,7 @@ public class SAFUtil {
     try {
       DocumentsContract.deleteDocument(context.getContentResolver(), uri);
     } catch (final Exception e) {
-      Log.e(TAG, "deleteSAF: Failed to delete a file descriptor provided by SAF", e);
+      Timber.tag(TAG).e(e, "deleteSAF: Failed to delete a file descriptor provided by SAF");
 
       toast(
           context,

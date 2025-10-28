@@ -808,12 +808,12 @@ object ShuffleHelper : KoinComponent {
         if (genreOverlap.isNotEmpty()) {
             // Stage 1: Dominant Genre Match Found
             // Give a massive, non-random bonus to ensure genre continuity is heavily favored.
-            val GENRE_MATCH_BONUS = 500
+            val genreMatchBonus = 500
 
             // Add a minor component of the old cosine similarity to break ties *within* the same dominant genre.
             val minorGenreSimilarityScore = mapSimilarity(a.genrePercentages, b.genrePercentages, randomWeight(10, rand))
 
-            finalGenreScore = GENRE_MATCH_BONUS + minorGenreSimilarityScore
+            finalGenreScore = genreMatchBonus + minorGenreSimilarityScore
 
             Timber.tag(TAG).d("  - Genre Score (Stage 1 - Match): $finalGenreScore (MASSIVE BONUS applied)")
 

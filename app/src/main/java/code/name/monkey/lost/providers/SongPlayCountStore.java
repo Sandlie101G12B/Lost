@@ -218,7 +218,7 @@ public class SongPlayCountStore extends SQLiteOpenHelper {
             null);
 
     // if we have a result
-    if (cursor != null && cursor.moveToFirst()) {
+    if (cursor.moveToFirst()) {
       // figure how many weeks since we last updated
       int lastUpdatedIndex = cursor.getColumnIndex(SongPlayCountColumns.LAST_UPDATED_WEEK_INDEX);
       int lastUpdatedWeek = cursor.getInt(lastUpdatedIndex);
@@ -362,7 +362,7 @@ public class SongPlayCountStore extends SQLiteOpenHelper {
             null,
             null);
 
-    if (cursor != null && cursor.moveToFirst()) {
+    if (cursor.moveToFirst()) {
       // for each row, update it
       do {
         updateExistingRow(database, cursor.getLong(0), false);

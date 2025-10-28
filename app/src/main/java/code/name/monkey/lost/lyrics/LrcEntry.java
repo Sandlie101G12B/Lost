@@ -14,7 +14,6 @@
 
 package code.name.monkey.lost.lyrics;
 
-import android.os.Build; // Added import
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -39,12 +38,6 @@ class LrcEntry implements Comparable<LrcEntry> {
     this.text = text;
   }
 
-  LrcEntry(long time, String text, String secondText) {
-    this.time = time;
-    this.text = text;
-    this.secondText = secondText;
-  }
-
   void init(TextPaint paint, int width, int gravity) {
     Layout.Alignment align = switch (gravity) {
         case GRAVITY_LEFT -> Layout.Alignment.ALIGN_NORMAL;
@@ -53,18 +46,13 @@ class LrcEntry implements Comparable<LrcEntry> {
     };
 
       String currentText = getShowText();
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        staticLayout = StaticLayout.Builder.obtain(currentText, 0, currentText.length(), paint, width)
-                .setAlignment(align)
-                .setLineSpacing(0f, 1f) // spacingadd, spacingmult
-                .setIncludePad(false)
-                .build();
-    } else {
-        //noinspection deprecation
-        staticLayout = new StaticLayout(currentText, paint, width, align, 1f, 0f, false);
-    }
+      staticLayout = StaticLayout.Builder.obtain(currentText, 0, currentText.length(), paint, width)
+              .setAlignment(align)
+              .setLineSpacing(0f, 1f) // spacingadd, spacingmult
+              .setIncludePad(false)
+              .build();
 
-    offset = Float.MIN_VALUE;
+      offset = Float.MIN_VALUE;
   }
 
   long getTime() {

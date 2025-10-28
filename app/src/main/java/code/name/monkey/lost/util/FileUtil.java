@@ -33,6 +33,7 @@ import code.name.monkey.lost.adapter.Storage;
 import code.name.monkey.lost.model.Song;
 import code.name.monkey.lost.repository.RealSongRepository;
 import code.name.monkey.lost.repository.SortedCursor;
+import timber.log.Timber;
 
 public final class FileUtil {
 
@@ -59,7 +60,7 @@ public final class FileUtil {
     try {
       return file.getCanonicalPath();
     } catch (IOException e) {
-      e.printStackTrace();
+      Timber.e(e);
       return file.getAbsolutePath();
     }
   }
@@ -73,7 +74,7 @@ public final class FileUtil {
     if (files != null) {
       paths = toPathArray(files);
 
-      if (files.size() > 0
+      if (!files.isEmpty()
           && files.size() < 999) { // 999 is the max amount Androids SQL implementation can handle.
         selection =
             Constants.DATA + " IN (" + makePlaceholders(files.size()) + ")";
@@ -189,10 +190,7 @@ public final class FileUtil {
         return false;
       }
       String fileTypeMainType = fileType.substring(0, fileTypeDelimiter);
-      if (fileTypeMainType.equals(mimeTypeMainType)) {
-        return true;
-      }
-      return fileTypeMainType.equals(mimeTypeMainType);
+        return fileTypeMainType.equals(mimeTypeMainType);
     }
   }
 
@@ -228,21 +226,11 @@ public final class FileUtil {
     return ret;
   }
 
-  public static boolean isExternalMemoryAvailable() {
-    Boolean isSDPresent =
-        Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED);
-    Boolean isSDSupportedDevice = Environment.isExternalStorageRemovable();
-
-    // yes SD-card is present
-    // Sorry
-    return isSDSupportedDevice && isSDPresent;
-  }
-
   public static File safeGetCanonicalFile(File file) {
     try {
       return file.getCanonicalFile();
     } catch (IOException e) {
-      e.printStackTrace();
+      Timber.e(e);
       return file.getAbsoluteFile();
     }
   }
@@ -265,57 +253,47 @@ public final class FileUtil {
       paths.add(defaultPath);
     }
 
-    BufferedReader bufferedReader = null;
-    try {
-      bufferedReader = new BufferedReader(new FileReader("/proc/mounts"));
-      String line;
-      while ((line = bufferedReader.readLine()) != null) {
-        if (line.contains("vfat") || line.contains("/mnt")) {
-          StringTokenizer tokens = new StringTokenizer(line, " ");
-          tokens.nextToken();
-          String path = tokens.nextToken();
-          if (paths.contains(path)) {
-            continue;
-          }
-          if (line.contains("/dev/block/vold")) {
-            if (!line.contains("/mnt/secure") && !line.contains("/mnt/asec") && !line.contains("/mnt/obb") && !line.contains("/dev/mapper") && !line.contains("tmpfs")) {
-              if (!new File(path).isDirectory()) {
-                int index = path.lastIndexOf('/');
-                if (index != -1) {
-                  String newPath = "/storage/" + path.substring(index + 1);
-                  if (new File(newPath).isDirectory()) {
-                    path = newPath;
+      try (BufferedReader bufferedReader = new BufferedReader(new FileReader("/proc/mounts"))) {
+          String line;
+          while ((line = bufferedReader.readLine()) != null) {
+              if (line.contains("vfat") || line.contains("/mnt")) {
+                  StringTokenizer tokens = new StringTokenizer(line, " ");
+                  tokens.nextToken();
+                  String path = tokens.nextToken();
+                  if (paths.contains(path)) {
+                      continue;
                   }
-                }
+                  if (line.contains("/dev/block/vold")) {
+                      if (!line.contains("/mnt/secure") && !line.contains("/mnt/asec") && !line.contains("/mnt/obb") && !line.contains("/dev/mapper") && !line.contains("tmpfs")) {
+                          if (!new File(path).isDirectory()) {
+                              int index = path.lastIndexOf('/');
+                              if (index != -1) {
+                                  String newPath = "/storage/" + path.substring(index + 1);
+                                  if (new File(newPath).isDirectory()) {
+                                      path = newPath;
+                                  }
+                              }
+                          }
+                          paths.add(path);
+                          try {
+                              Storage item = new Storage();
+                              if (path.toLowerCase(Locale.ROOT).contains("sd")) {
+                                  item.title = "SD Card";
+                              } else {
+                                  item.title = "External Storage";
+                              }
+                              item.file = new File(path);
+                              storageItems.add(item);
+                          } catch (Exception e) {
+                              Timber.e(e);
+                          }
+                      }
+                  }
               }
-              paths.add(path);
-              try {
-                Storage item = new Storage();
-                if (path.toLowerCase(Locale.ROOT).contains("sd")) {
-                  item.title = "SD Card";
-                } else {
-                  item.title = "External Storage";
-                }
-                item.file = new File(path);
-                storageItems.add(item);
-              } catch (Exception e) {
-                e.printStackTrace();
-              }
-            }
           }
-        }
+      } catch (Exception e) {
+          Timber.e(e);
       }
-    } catch (Exception e) {
-      e.printStackTrace();
-    } finally {
-      if (bufferedReader != null) {
-        try {
-          bufferedReader.close();
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-    }
     return storageItems;
   }
 }

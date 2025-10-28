@@ -99,10 +99,6 @@ android {
 
     kotlinOptions {
         jvmTarget = "21"
-        freeCompilerArgs += [
-                "-P",
-                "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
-        ]
     }
 
     composeOptions {
@@ -127,8 +123,8 @@ kapt {
     correctErrorTypes = true
     useBuildCache = true
     arguments {
-        arg("dagger.fastInit", "enabled")
-        arg("dagger.formatGeneratedSource", "disabled")
+        // arg("dagger.fastInit", "enabled")
+        // arg("dagger.formatGeneratedSource", "disabled")
         // dagger.gradle.incremental is deprecated in newer versions
     }
 }

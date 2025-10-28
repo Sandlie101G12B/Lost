@@ -11,9 +11,9 @@ class AudioVolumeContentObserver internal constructor(
     audioStreamType: Int,
     listener: OnAudioVolumeChangedListener
 ) : ContentObserver(handler) {
-    private val mListener: OnAudioVolumeChangedListener?
-    private val mAudioManager: AudioManager?
-    private val mAudioStreamType: Int
+    private val mListener: OnAudioVolumeChangedListener? = listener
+    private val mAudioManager: AudioManager? = audioManager
+    private val mAudioStreamType: Int = audioStreamType
     private var mLastVolume: Float
 
     /** Depending on the handler this method may be executed on the UI thread  */
@@ -29,9 +29,6 @@ class AudioVolumeContentObserver internal constructor(
     }
 
     init {
-        mAudioManager = audioManager
-        mAudioStreamType = audioStreamType
-        mListener = listener
         mLastVolume = audioManager.getStreamVolume(mAudioStreamType).toFloat()
     }
 }

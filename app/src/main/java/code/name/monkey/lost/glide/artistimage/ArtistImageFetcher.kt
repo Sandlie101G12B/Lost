@@ -74,7 +74,7 @@ class ArtistImageFetcher(
                             } else {
                                 callback.onDataReady(getFallbackAlbumImage())
                             }
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             callback.onDataReady(getFallbackAlbumImage())
                         }
                     }
@@ -95,9 +95,9 @@ class ArtistImageFetcher(
                 val imageUri = MusicUtil.getMediaStoreAlbumCoverUri(model.artist.safeGetFirstAlbum().id)
                 try {
                     context.contentResolver.openInputStream(imageUri)
-                } catch (e: FileNotFoundException){
+                } catch (_: FileNotFoundException){
                     null
-                } catch (e: UnsupportedOperationException) {
+                } catch (_: UnsupportedOperationException) {
                     null
                 }
             } else {

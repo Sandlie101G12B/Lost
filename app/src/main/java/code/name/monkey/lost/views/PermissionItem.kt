@@ -18,11 +18,11 @@ class PermissionItem @JvmOverloads constructor(
     defStyleAttr: Int = -1,
     defStyleRes: Int = -1
 ) : FrameLayout(context, attrs, defStyleAttr, defStyleRes) {
-    private var binding: ItemPermissionBinding
+    private var binding: ItemPermissionBinding =
+        ItemPermissionBinding.inflate(LayoutInflater.from(context), this, true)
     val checkImage get() = binding.checkImage
 
     init {
-        binding = ItemPermissionBinding.inflate(LayoutInflater.from(context), this, true)
 
         context.withStyledAttributes(attrs, R.styleable.PermissionItem, 0, 0) {
             binding.title.text = getText(R.styleable.PermissionItem_permissionTitle)

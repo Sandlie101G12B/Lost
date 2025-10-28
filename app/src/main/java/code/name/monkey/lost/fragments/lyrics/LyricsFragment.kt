@@ -122,7 +122,7 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
 
         Glide.with(requireContext())
             .asBitmapPalette()
-            .load(SongGlideRequest.Builder.from(requireContext(), song).build())
+            .load(SongGlideRequest.Builder.from(song).build())
             .into(object : CustomTarget<BitmapPaletteWrapper>() {
                 override fun onResourceReady(
                     resource: BitmapPaletteWrapper,

@@ -1,7 +1,5 @@
 package code.name.monkey.lost.util;
 
-import android.graphics.Bitmap;
-
 import androidx.annotation.ColorInt;
 import androidx.annotation.Nullable;
 import androidx.palette.graphics.Palette;
@@ -10,12 +8,6 @@ import java.util.Collections;
 import java.util.Comparator;
 
 public class ColorUtil {
-
-  @Nullable
-  public static Palette generatePalette(Bitmap bitmap) {
-    if (bitmap == null) return null;
-    return Palette.from(bitmap).generate();
-  }
 
   @ColorInt
   public static int getColor(@Nullable Palette palette, int fallback) {

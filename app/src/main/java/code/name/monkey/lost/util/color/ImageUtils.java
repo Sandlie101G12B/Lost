@@ -21,8 +21,6 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 
 /**
  * Utility class for image analysis and processing.
@@ -59,37 +57,6 @@ public class ImageUtils {
     return Math.abs(r - g) < TOLERANCE
         && Math.abs(r - b) < TOLERANCE
         && Math.abs(g - b) < TOLERANCE;
-  }
-
-  /** Convert a drawable to a bitmap, scaled to fit within maxWidth and maxHeight. */
-  public static Bitmap buildScaledBitmap(Drawable drawable, int maxWidth, int maxHeight) {
-    if (drawable == null) {
-      return null;
-    }
-    int originalWidth = drawable.getIntrinsicWidth();
-    int originalHeight = drawable.getIntrinsicHeight();
-    if ((originalWidth <= maxWidth)
-        && (originalHeight <= maxHeight)
-        && (drawable instanceof BitmapDrawable)) {
-      return ((BitmapDrawable) drawable).getBitmap();
-    }
-    if (originalHeight <= 0 || originalWidth <= 0) {
-      return null;
-    }
-    // create a new bitmap, scaling down to fit the max dimensions of
-    // a large notification icon if necessary
-    float ratio =
-        Math.min(
-            (float) maxWidth / (float) originalWidth, (float) maxHeight / (float) originalHeight);
-    ratio = Math.min(1.0f, ratio);
-    int scaledWidth = (int) (ratio * originalWidth);
-    int scaledHeight = (int) (ratio * originalHeight);
-    Bitmap result = Bitmap.createBitmap(scaledWidth, scaledHeight, Config.ARGB_8888);
-    // and paint our app bitmap on it
-    Canvas canvas = new Canvas(result);
-    drawable.setBounds(0, 0, scaledWidth, scaledHeight);
-    drawable.draw(canvas);
-    return result;
   }
 
   /**

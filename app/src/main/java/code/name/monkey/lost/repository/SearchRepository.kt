@@ -13,6 +13,7 @@ import code.name.monkey.lost.network.InternetConnection
 import code.name.monkey.lost.util.YTPlayerUtils.searchVideos
 import code.name.monkey.lost.util.YouTubeSearchItem
 import kotlinx.coroutines.runBlocking
+import kotlin.collections.emptyList
 import kotlin.let
 
 class RealSearchRepository(
@@ -63,7 +64,7 @@ class RealSearchRepository(
                                 }
                             },
                             onFailure = { _ -> // Can log exception if needed
-                                emptyList<Song>()
+                                emptyList()
                             }
                         )
                 }
@@ -101,18 +102,6 @@ class RealSearchRepository(
             if (albums.isNotEmpty()) {
                 results.add(context.resources.getString(R.string.albums))
                 results.addAll(albums)
-            }
-
-            /** Album-Artists **/
-            val albumArtists: List<Artist> =
-                if (filter == Filter.ALBUM_ARTISTS || filter == Filter.NO_FILTER) {
-                    emptyList() // Placeholder: Implement actual search if needed
-                } else {
-                    emptyList()
-                }
-            if (albumArtists.isNotEmpty()) {
-                results.add(context.resources.getString(R.string.album_artist))
-                results.addAll(albumArtists)
             }
 
             /** Genres **/

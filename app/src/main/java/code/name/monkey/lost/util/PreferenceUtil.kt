@@ -362,20 +362,13 @@ object PreferenceUtil {
         }
     }
 
-
-    var lyricsOption
-        get() = sharedPreferences.getInt(LYRICS_OPTIONS, 1)
-        set(value) = sharedPreferences.edit {
-            putInt(LYRICS_OPTIONS, value)
-        }
-
     var songGridStyle: GridStyle
         get() {
             val id: Int = sharedPreferences.getInt(SONG_GRID_STYLE, 0)
             // We can directly use "first" kotlin extension function here but
             // there maybe layout id stored in this so to avoid a crash we use
             // "firstOrNull"
-            return GridStyle.values().firstOrNull { gridStyle ->
+            return GridStyle.entries.firstOrNull { gridStyle ->
                 gridStyle.id == id
             } ?: GridStyle.Grid
         }
@@ -386,7 +379,7 @@ object PreferenceUtil {
     var albumGridStyle: GridStyle
         get() {
             val id: Int = sharedPreferences.getInt(ALBUM_GRID_STYLE, 0)
-            return GridStyle.values().firstOrNull { gridStyle ->
+            return GridStyle.entries.firstOrNull { gridStyle ->
                 gridStyle.id == id
             } ?: GridStyle.Grid
         }
@@ -397,7 +390,7 @@ object PreferenceUtil {
     var artistGridStyle: GridStyle
         get() {
             val id: Int = sharedPreferences.getInt(ARTIST_GRID_STYLE, 3)
-            return GridStyle.values().firstOrNull { gridStyle ->
+            return GridStyle.entries.firstOrNull { gridStyle ->
                 gridStyle.id == id
             } ?: GridStyle.Circular
         }
@@ -411,7 +404,7 @@ object PreferenceUtil {
         // This was stored as an integer before now it's a long, so avoid a ClassCastException
         get() = try {
             sharedPreferences.getLong(LAST_CHANGELOG_VERSION, 0)
-        } catch (e: ClassCastException) {
+        } catch (_: ClassCastException) {
             sharedPreferences.edit { remove(LAST_CHANGELOG_VERSION) }
             0
         }
@@ -570,7 +563,7 @@ object PreferenceUtil {
     var albumCoverStyle: AlbumCoverStyle
         get() {
             val id: Int = sharedPreferences.getInt(ALBUM_COVER_STYLE, 0)
-            for (albumCoverStyle in AlbumCoverStyle.values()) {
+            for (albumCoverStyle in AlbumCoverStyle.entries) {
                 if (albumCoverStyle.id == id) {
                     return albumCoverStyle
                 }
@@ -583,7 +576,7 @@ object PreferenceUtil {
     var nowPlayingScreen: NowPlayingScreen
         get() {
             val id: Int = sharedPreferences.getInt(NOW_PLAYING_SCREEN_ID, 0)
-            for (nowPlayingScreen in NowPlayingScreen.values()) {
+            for (nowPlayingScreen in NowPlayingScreen.entries) {
                 if (nowPlayingScreen.id == id) {
                     return nowPlayingScreen
                 }

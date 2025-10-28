@@ -1,7 +1,7 @@
 package code.name.monkey.lost.util
 
-import android.util.Log
 import code.name.monkey.lost.BuildConfig
+import timber.log.Timber
 
 fun Any.logD(message: Any?) {
     logD(message.toString())
@@ -9,16 +9,16 @@ fun Any.logD(message: Any?) {
 
 fun Any.logD(message: String) {
     if (BuildConfig.DEBUG) {
-        Log.d(name, message)
+        Timber.tag(name).d(message)
     }
 }
 
 fun Any.logE(message: String) {
-    Log.e(name, message)
+    Timber.tag(name).e(message)
 }
 
 fun Any.logE(e: Exception) {
-    Log.e(name, e.message ?: "Error")
+    Timber.tag(name).e(e.message ?: "Error")
 }
 
 private val Any.name: String get() = this::class.java.simpleName

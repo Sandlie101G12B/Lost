@@ -18,7 +18,6 @@ import androidx.annotation.NonNull;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -93,19 +92,6 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
     }
   }
 
-  public void clearHistory() {
-    mHistory.clear();
-  }
-
-  public Crumb findCrumb(@NonNull File forDir) {
-    for (int i = 0; i < mCrumbs.size(); i++) {
-      if (mCrumbs.get(i).getFile().equals(forDir)) {
-        return mCrumbs.get(i);
-      }
-    }
-    return null;
-  }
-
   public int getActiveIndex() {
     return mActive;
   }
@@ -118,12 +104,8 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
     return new SavedStateWrapper(this);
   }
 
-  public int historySize() {
-    return mHistory.size();
-  }
-
   public Crumb lastHistory() {
-    if (mHistory.size() == 0) {
+    if (mHistory.isEmpty()) {
       return null;
     }
     return mHistory.get(mHistory.size() - 1);
@@ -138,11 +120,11 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
   }
 
   public boolean popHistory() {
-    if (mHistory.size() == 0) {
+    if (mHistory.isEmpty()) {
       return false;
     }
     mHistory.remove(mHistory.size() - 1);
-    return mHistory.size() != 0;
+    return !mHistory.isEmpty();
   }
 
   public void restoreFromStateWrapper(SavedStateWrapper mSavedState) {
@@ -154,10 +136,6 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
       requestLayout();
       setVisibility(mSavedState.mVisibility);
     }
-  }
-
-  public void reverseHistory() {
-    Collections.reverse(mHistory);
   }
 
   public void setActivatedContentColor(@ColorInt int contentColorActivated) {
@@ -233,10 +211,10 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
       }
       if (mChildFrame.getChildCount() > 0) {
         int lastIndex = mCrumbs.size() - 1;
-        invalidateActivated(mChildFrame.getChildAt(lastIndex), mActive == lastIndex, false, false);
+        invalidateActivated(mChildFrame.getChildAt(lastIndex), mActive == lastIndex, false);
       }
     }
-    return removedActive || mCrumbs.size() == 0;
+    return removedActive || mCrumbs.isEmpty();
   }
 
   public boolean trim(File file) {
@@ -259,7 +237,6 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
       invalidateActivated(
               mChildFrame.getChildAt(i),
               mActive == mCrumbs.indexOf(crumb),
-              false,
               i < mCrumbs.size() - 1)
           .setText(crumb.getTitle());
     }
@@ -268,12 +245,6 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
   void removeCrumbAt(int index) {
     mCrumbs.remove(index);
     mChildFrame.removeViewAt(index);
-  }
-
-  void updateIndices() {
-    for (int i = 0; i < mChildFrame.getChildCount(); i++) {
-      mChildFrame.getChildAt(i).setTag(i);
-    }
   }
 
   private void init() {
@@ -296,7 +267,6 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
   private TextView invalidateActivated(
       View view,
       final boolean isActive,
-      final boolean noArrowIfAlone,
       final boolean allowArrowVisible) {
     int contentColor = isActive ? contentColorActivated : contentColorDeactivated;
     LinearLayout child = (LinearLayout) view;
@@ -304,13 +274,11 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
     tv.setTextColor(contentColor);
     ImageView iv = (ImageView) child.getChildAt(1);
     iv.setColorFilter(contentColor, PorterDuff.Mode.SRC_IN);
-    if (noArrowIfAlone && getChildCount() == 1) {
-      iv.setVisibility(View.GONE);
-    } else if (allowArrowVisible) {
-      iv.setVisibility(View.VISIBLE);
-    } else {
-      iv.setVisibility(View.GONE);
-    }
+      if (allowArrowVisible) {
+        iv.setVisibility(View.VISIBLE);
+      } else {
+        iv.setVisibility(View.GONE);
+      }
     return tv;
   }
 
@@ -332,17 +300,17 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
   public static class Crumb implements Parcelable {
 
     public static final Creator<Crumb> CREATOR =
-        new Creator<Crumb>() {
-          @Override
-          public Crumb createFromParcel(Parcel source) {
-            return new Crumb(source);
-          }
+            new Creator<>() {
+                @Override
+                public Crumb createFromParcel(Parcel source) {
+                    return new Crumb(source);
+                }
 
-          @Override
-          public Crumb[] newArray(int size) {
-            return new Crumb[size];
-          }
-        };
+                @Override
+                public Crumb[] newArray(int size) {
+                    return new Crumb[size];
+                }
+            };
 
     private final File file;
 
@@ -401,15 +369,15 @@ public class BreadCrumbLayout extends HorizontalScrollView implements View.OnCli
   public static class SavedStateWrapper implements Parcelable {
 
     public static final Creator<SavedStateWrapper> CREATOR =
-        new Creator<SavedStateWrapper>() {
-          public SavedStateWrapper createFromParcel(Parcel source) {
-            return new SavedStateWrapper(source);
-          }
+            new Creator<>() {
+                public SavedStateWrapper createFromParcel(Parcel source) {
+                    return new SavedStateWrapper(source);
+                }
 
-          public SavedStateWrapper[] newArray(int size) {
-            return new SavedStateWrapper[size];
-          }
-        };
+                public SavedStateWrapper[] newArray(int size) {
+                    return new SavedStateWrapper[size];
+                }
+            };
 
     public final int mActive;
 

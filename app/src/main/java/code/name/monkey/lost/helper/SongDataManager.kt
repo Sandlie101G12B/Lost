@@ -2,6 +2,7 @@ package code.name.monkey.lost.helper
 
 import android.content.Context
 import android.os.Environment
+import code.name.monkey.lost.BuildConfig
 import code.name.monkey.lost.model.SongMetaData
 import timber.log.Timber
 import java.io.File
@@ -21,7 +22,12 @@ object SongDataManager {
 
         if (sourceFile.exists()) {
             try {
-                val destinationDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "LostFilesRelease")
+                val lostFilesRelease = if (BuildConfig.DEBUG) {
+                    "LostFiles"
+                } else {
+                    "LostFilesRelease"
+                }
+                val destinationDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), lostFilesRelease)
                 if (!destinationDir.exists()) {
                     if (!destinationDir.mkdirs()) {
                         Timber.tag(TAG)

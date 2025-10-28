@@ -33,9 +33,6 @@ import androidx.palette.graphics.Palette;
 
 import java.util.List;
 
-import code.name.monkey.appthemehelper.util.ATHUtil;
-import code.name.monkey.appthemehelper.util.ColorUtil;
-
 /** A class the processes media notifications and extracts the right text and background colors. */
 public class MediaNotificationProcessor {
 
@@ -76,7 +73,7 @@ public class MediaNotificationProcessor {
 
   private float[] mFilteredBackgroundHsl = null;
   private final Palette.Filter mBlackWhiteFilter =
-          (rgb, hsl) -> !isWhiteOrBlack(hsl);
+          (rgb, hsl) -> isWhiteOrBlack(hsl);
   private int backgroundColor;
   private int secondaryTextColor;
   private int primaryTextColor;
@@ -219,10 +216,6 @@ public class MediaNotificationProcessor {
     }
   }
 
-  public boolean isLight() {
-    return isColorLight(backgroundColor);
-  }
-
   private int selectForegroundColorForSwatches(
       Palette.Swatch moreVibrant,
       Palette.Swatch vibrant,
@@ -326,7 +319,7 @@ public class MediaNotificationProcessor {
       return Color.WHITE;
     }
 
-    if (!isWhiteOrBlack(dominantSwatch.getHsl())) {
+    if (isWhiteOrBlack(dominantSwatch.getHsl())) {
       mFilteredBackgroundHsl = dominantSwatch.getHsl();
       return dominantSwatch.getRgb();
     }
@@ -337,7 +330,7 @@ public class MediaNotificationProcessor {
     for (Palette.Swatch swatch : swatches) {
       if (swatch != dominantSwatch
           && swatch.getPopulation() > highestNonWhitePopulation
-          && !isWhiteOrBlack(swatch.getHsl())) {
+          && isWhiteOrBlack(swatch.getHsl())) {
         second = swatch;
         highestNonWhitePopulation = swatch.getPopulation();
       }
@@ -360,7 +353,7 @@ public class MediaNotificationProcessor {
   }
 
   private boolean isWhiteOrBlack(float[] hsl) {
-    return isBlack(hsl) || isWhite(hsl);
+    return !isBlack(hsl) && !isWhite(hsl);
   }
 
   /** @return true if the color represents a color which is close to black. */
@@ -438,35 +431,8 @@ public class MediaNotificationProcessor {
     return secondaryTextColor;
   }
 
-  public int getActionBarColor() {
-    return actionBarColor;
-  }
-
   public int getBackgroundColor() {
     return backgroundColor;
-  }
-
-  boolean isWhiteColor(int color) {
-    return calculateLuminance(color) > 0.6f;
-  }
-
-  public int getMightyColor() {
-    boolean isDarkBg =
-        ColorUtil.INSTANCE.isColorLight(
-            ATHUtil.INSTANCE.resolveColor(context, com.google.android.material.R.attr.colorSurface));
-    if (isDarkBg) {
-      if (isColorLight(backgroundColor)) {
-        return primaryTextColor;
-      } else {
-        return backgroundColor;
-      }
-    } else {
-      if (isColorLight(backgroundColor)) {
-        return backgroundColor;
-      } else {
-        return primaryTextColor;
-      }
-    }
   }
 
   public interface OnPaletteLoadedListener {

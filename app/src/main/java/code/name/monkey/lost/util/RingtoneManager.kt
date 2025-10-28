@@ -29,12 +29,11 @@ object RingtoneManager {
                 if (cursorSong != null && cursorSong.count == 1) {
                     cursorSong.moveToFirst()
                     Settings.System.putString(resolver, Settings.System.RINGTONE, uri.toString())
-                    val message = context
-                        .getString(R.string.x_has_been_set_as_ringtone, cursorSong.getString(0))
+                    val message = cursorSong.getString(0) + " " + context.getString(R.string.x_has_been_set_as_ringtone)
                     context.showToast(message)
                 }
             }
-        } catch (ignored: SecurityException) {
+        } catch (_: SecurityException) {
         }
     }
 

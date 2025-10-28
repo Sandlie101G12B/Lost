@@ -265,7 +265,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
         val newSelection = StringBuilder(
             if (selection != null && selection.trim { it <= ' ' } != "") "$selection AND " else "")
         newSelection.append(Constants.DATA + " NOT LIKE ?")
-        for (i in 0 until pathCount - 1) {
+        repeat(pathCount - 1) {
             newSelection.append(" AND " + Constants.DATA + " NOT LIKE ?")
         }
         return newSelection.toString()

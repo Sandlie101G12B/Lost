@@ -110,8 +110,8 @@ object MetaDataManagerHelper : KoinComponent {
                     val titleMatches = deviceSong.title.equals(userSongInput.name, ignoreCase = true)
                     if (!titleMatches) false
                     else {
-                        val userInputArtistsLower = userSongInput.artists?.mapNotNull { it?.lowercase(Locale.ROOT) }?.toSet() ?: emptySet()
-                        val deviceSongArtistsLower = deviceSong.artistNames.mapNotNull { it?.lowercase(Locale.ROOT) }.toSet()
+                        val userInputArtistsLower = userSongInput.artists?.mapNotNull { it.lowercase(Locale.ROOT) }?.toSet() ?: emptySet()
+                        val deviceSongArtistsLower = deviceSong.artistNames.mapNotNull { it.lowercase(Locale.ROOT) }.toSet()
                         if (userInputArtistsLower.isEmpty() && deviceSongArtistsLower.isEmpty()) true
                         else if (userInputArtistsLower.isEmpty() || deviceSongArtistsLower.isEmpty()) false
                         else userInputArtistsLower.any { it in deviceSongArtistsLower }
@@ -334,7 +334,7 @@ object MetaDataManagerHelper : KoinComponent {
             val songIndex = currentList.indexOfFirst { it.file == filePath }
 
             if (songIndex != -1) {
-                var songMetaData = currentList[songIndex]
+                val songMetaData = currentList[songIndex]
                 var updatedMetaData = songMetaData
 
                 if (toggleLike) {

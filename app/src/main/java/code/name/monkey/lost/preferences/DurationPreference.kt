@@ -16,7 +16,6 @@ import code.name.monkey.lost.extensions.colorButtons
 import code.name.monkey.lost.extensions.colorControlNormal
 import code.name.monkey.lost.extensions.materialDialog
 import code.name.monkey.lost.util.PreferenceUtil
-import com.google.android.material.slider.Slider
 
 
 class DurationPreference @JvmOverloads constructor(
@@ -42,11 +41,11 @@ class DurationPreferenceDialog : DialogFragment() {
             addAccentColor()
             value = PreferenceUtil.audioFadeDuration.toFloat()
             updateText(value.toInt(), binding.duration)
-            addOnChangeListener(Slider.OnChangeListener { _, value, fromUser ->
+            addOnChangeListener { _, value, fromUser ->
                 if (fromUser) {
                     updateText(value.toInt(), binding.duration)
                 }
-            })
+            }
         }
 
 

@@ -6,6 +6,7 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import androidx.core.graphics.scale
 import com.bumptech.glide.util.Util.assertBackgroundThread
+import androidx.core.graphics.createBitmap
 
 
 internal object MergedImageUtils {
@@ -70,7 +71,7 @@ internal object MergedImageUtils {
     }
 
     private fun create(images: List<Bitmap>, imageSize: Int, parts: Int): Bitmap {
-        val result = Bitmap.createBitmap(imageSize, imageSize, Bitmap.Config.ARGB_8888)
+        val result = createBitmap(imageSize, imageSize)
         val canvas = Canvas(result)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         val onePartSize = imageSize / parts

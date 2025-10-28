@@ -71,7 +71,7 @@ class NowPlayingScreenPreferenceDialog : DialogFragment(), ViewPager.OnPageChang
         return materialDialog(R.string.pref_title_now_playing_screen_appearance)
             .setCancelable(false)
             .setPositiveButton(R.string.set) { _, _ ->
-                val nowPlayingScreen = values()[viewPagerPosition]
+                val nowPlayingScreen = entries[viewPagerPosition]
                 if (isNowPlayingThemes(nowPlayingScreen)) {
                     val result =
                         "${getString(nowPlayingScreen.titleRes)} theme is Pro version feature."
@@ -96,7 +96,7 @@ class NowPlayingScreenPreferenceDialog : DialogFragment(), ViewPager.OnPageChang
 private class NowPlayingScreenAdapter(private val context: Context) : PagerAdapter() {
 
     override fun instantiateItem(collection: ViewGroup, position: Int): Any {
-        val nowPlayingScreen = values()[position]
+        val nowPlayingScreen = entries[position]
 
         val inflater = LayoutInflater.from(context)
         val binding = PreferenceNowPlayingScreenItemBinding.inflate(inflater, collection, true)
@@ -120,7 +120,7 @@ private class NowPlayingScreenAdapter(private val context: Context) : PagerAdapt
     }
 
     override fun getCount(): Int {
-        return values().size
+        return entries.size
     }
 
     override fun isViewFromObject(view: View, instance: Any): Boolean {
@@ -128,7 +128,7 @@ private class NowPlayingScreenAdapter(private val context: Context) : PagerAdapt
     }
 
     override fun getPageTitle(position: Int): CharSequence {
-        return context.getString(values()[position].titleRes)
+        return context.getString(entries[position].titleRes)
     }
 }
 

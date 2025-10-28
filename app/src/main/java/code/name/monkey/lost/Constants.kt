@@ -17,7 +17,6 @@ object Constants {
     const val APP_TWITTER_LINK = "https://twitter.com/lostapp"
     const val FAQ_LINK = "https://github.com/Lost/Lost/blob/master/FAQ.md"
     const val PINTEREST = "https://in.pinterest.com/lostapp/"
-    const val AUDIO_SCROBBLER_URL = "https://ws.audioscrobbler.com/2.0/"
 
     const val IS_MUSIC =
         MediaStore.Audio.AudioColumns.IS_MUSIC + "=1" + " AND " + MediaStore.Audio.AudioColumns.TITLE + " != \'\'"
@@ -121,8 +120,6 @@ const val ALBUM_ARTISTS_ONLY = "album_artists_only"
 const val ALBUM_ARTIST = "album_artist"
 const val ALBUM_DETAIL_SONG_SORT_ORDER = "album_detail_song_sort_order"
 const val ARTIST_DETAIL_SONG_SORT_ORDER = "artist_detail_song_sort_order"
-const val LYRICS_OPTIONS = "lyrics_tab_position"
-const val CHOOSE_EQUALIZER = "choose_equalizer"
 const val EQUALIZER = "equalizer"
 const val SONG_GRID_STYLE = "song_grid_style"
 const val PAUSE_ON_ZERO_VOLUME = "pause_on_zero_volume"

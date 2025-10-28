@@ -21,7 +21,6 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
 import android.os.Looper;
 import android.text.Layout;
 import android.text.StaticLayout;
@@ -35,14 +34,15 @@ import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Scroller;
 
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
 
-import code.name.monkey.lost.BuildConfig;
 import code.name.monkey.lost.R;
 
 /**
@@ -61,7 +61,6 @@ public class LrcView extends View {
     private int mNormalTextColor;
     private float mNormalTextSize;
     private int mCurrentTextColor;
-    private float mCurrentTextSize;
     private int mTimelineTextColor;
     private int mTimelineColor;
     private int mTimeTextColor;
@@ -94,7 +93,7 @@ public class LrcView extends View {
     private final GestureDetector.SimpleOnGestureListener mSimpleOnGestureListener =
             new GestureDetector.SimpleOnGestureListener() {
                 @Override
-                public boolean onDown(MotionEvent e) {
+                public boolean onDown(@NonNull MotionEvent e) {
                     if (hasLrc() && mOnPlayClickListener != null) {
                         mScroller.forceFinished(true);
                         removeCallbacks(hideTimelineRunnable);
@@ -107,7 +106,7 @@ public class LrcView extends View {
                 }
 
                 @Override
-                public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                public boolean onScroll(MotionEvent e1, @NonNull MotionEvent e2, float distanceX, float distanceY) {
                     if (hasLrc()) {
                         mOffset -= distanceY;
                         mOffset = Math.min(mOffset, getOffset(0));
@@ -120,7 +119,7 @@ public class LrcView extends View {
                 }
 
                 @Override
-                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                public boolean onFling(MotionEvent e1, @NonNull MotionEvent e2, float velocityX, float velocityY) {
                     if (hasLrc()) {
                         mScroller.fling(
                                 0,
@@ -139,7 +138,7 @@ public class LrcView extends View {
                 }
 
                 @Override
-                public boolean onSingleTapConfirmed(MotionEvent e) {
+                public boolean onSingleTapConfirmed(@NonNull MotionEvent e) {
                     if (hasLrc() && mOnPlayClickListener != null) {
                         float y = e.getY() - mOffset;
                         int tappedLine = getTappedLine(y);
@@ -190,9 +189,8 @@ public class LrcView extends View {
 
     private void init(AttributeSet attrs) {
         TypedArray ta = getContext().obtainStyledAttributes(attrs, R.styleable.LrcView);
-        mCurrentTextSize =
-                ta.getDimension(
-                        R.styleable.LrcView_lrcTextSize, getResources().getDimension(R.dimen.lrc_text_size));
+        float mCurrentTextSize = ta.getDimension(
+                R.styleable.LrcView_lrcTextSize, getResources().getDimension(R.dimen.lrc_text_size));
         mNormalTextSize =
                 ta.getDimension(
                         R.styleable.LrcView_lrcNormalTextSize,
@@ -211,15 +209,15 @@ public class LrcView extends View {
         mNormalTextColor =
                 ta.getColor(
                         R.styleable.LrcView_lrcNormalTextColor,
-                        getResources().getColor(R.color.lrc_normal_text_color));
+                        ContextCompat.getColor(getContext(), R.color.lrc_normal_text_color));
         mCurrentTextColor =
                 ta.getColor(
                         R.styleable.LrcView_lrcCurrentTextColor,
-                        getResources().getColor(R.color.lrc_current_text_color));
+                        ContextCompat.getColor(getContext(), R.color.lrc_current_text_color));
         mTimelineTextColor =
                 ta.getColor(
                         R.styleable.LrcView_lrcTimelineTextColor,
-                        getResources().getColor(R.color.lrc_timeline_text_color));
+                        ContextCompat.getColor(getContext(), R.color.lrc_timeline_text_color));
         mDefaultLabel = ta.getString(R.styleable.LrcView_lrcLabel);
         mDefaultLabel =
                 TextUtils.isEmpty(mDefaultLabel) ? getContext().getString(R.string.empty) : mDefaultLabel;
@@ -227,7 +225,7 @@ public class LrcView extends View {
         mTimelineColor =
                 ta.getColor(
                         R.styleable.LrcView_lrcTimelineColor,
-                        getResources().getColor(R.color.lrc_timeline_color));
+                        ContextCompat.getColor(getContext(), R.color.lrc_timeline_color));
         float timelineHeight =
                 ta.getDimension(
                         R.styleable.LrcView_lrcTimelineHeight,
@@ -240,7 +238,7 @@ public class LrcView extends View {
         mTimeTextColor =
                 ta.getColor(
                         R.styleable.LrcView_lrcTimeTextColor,
-                        getResources().getColor(R.color.lrc_time_text_color));
+                        ContextCompat.getColor(getContext(), R.color.lrc_time_text_color));
         float timeTextSize =
                 ta.getDimension(
                         R.styleable.LrcView_lrcTimeTextSize,
@@ -260,7 +258,6 @@ public class LrcView extends View {
         mTimePaint.setTextAlign(Paint.Align.CENTER);
         mTimePaint.setStrokeWidth(timelineHeight);
         mTimePaint.setStrokeCap(Paint.Cap.ROUND);
-        Paint.FontMetrics mTimeFontMetrics = mTimePaint.getFontMetrics();
 
         mGestureDetector = new GestureDetector(getContext(), mSimpleOnGestureListener);
         mGestureDetector.setIsLongpressEnabled(false);
@@ -324,20 +321,16 @@ public class LrcView extends View {
             }
             String flag = sb.toString();
             setFlag(flag);
-            new AsyncTask<File, Integer, List<LrcEntry>>() {
-                @Override
-                protected List<LrcEntry> doInBackground(File... params) {
-                    return LrcUtils.parseLrc(params);
-                }
 
-                @Override
-                protected void onPostExecute(List<LrcEntry> lrcEntries) {
+            Executors.newSingleThreadExecutor().execute(() -> {
+                List<LrcEntry> lrcEntries = LrcUtils.parseLrc(new File[]{mainLrcFile, secondLrcFile});
+                post(() -> {
                     if (getFlag() == flag) {
                         onLrcLoaded(lrcEntries);
                         setFlag(null);
                     }
-                }
-            }.execute(mainLrcFile, secondLrcFile);
+                });
+            });
         });
     }
 
@@ -357,20 +350,15 @@ public class LrcView extends View {
                     }
                     String flag = sb.toString();
                     setFlag(flag);
-                    new AsyncTask<String, Integer, List<LrcEntry>>() {
-                        @Override
-                        protected List<LrcEntry> doInBackground(String... params) {
-                            return LrcUtils.parseLrc(params);
-                        }
-
-                        @Override
-                        protected void onPostExecute(List<LrcEntry> lrcEntries) {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        List<LrcEntry> lrcEntries = LrcUtils.parseLrc(new String[]{mainLrcText, secondLrcText});
+                        post(() -> {
                             if (getFlag() == flag) {
                                 onLrcLoaded(lrcEntries);
                                 setFlag(null);
                             }
-                        }
-                    }.execute(mainLrcText, secondLrcText);
+                        });
+                    });
                 });
     }
 
@@ -415,23 +403,18 @@ public class LrcView extends View {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
 
         int centerY = getHeight() / 2;
 
         if (!hasLrc()) {
             mLrcPaint.setColor(mCurrentTextColor);
-            @SuppressLint("DrawAllocation")
-            StaticLayout staticLayout =
-                    new StaticLayout(
-                            mDefaultLabel,
-                            mLrcPaint,
-                            (int) getLrcWidth(),
-                            Layout.Alignment.ALIGN_CENTER,
-                            1f,
-                            0f,
-                            false);
+            StaticLayout staticLayout = StaticLayout.Builder.obtain(mDefaultLabel, 0, mDefaultLabel.length(), mLrcPaint, (int) getLrcWidth())
+                    .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                    .setLineSpacing(0, 1f)
+                    .setIncludePad(false)
+                    .build();
             drawText(canvas, staticLayout, centerY);
             return;
         }

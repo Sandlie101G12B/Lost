@@ -1053,7 +1053,6 @@ class MusicService : MediaBrowserServiceCompat(),
 
     @SuppressLint("CheckResult")
     fun updateMediaSessionMetaData(onCompletion: () -> Unit) {
-        Log.i(TAG, "onResourceReady: ")
         val song = currentSong
         if (song.id == -1L) {
             mediaSession?.setMetadata(null)
@@ -1078,9 +1077,9 @@ class MusicService : MediaBrowserServiceCompat(),
         if (isAlbumArtOnLockScreen || VersionUtils.hasT()) {
             // val screenSize: Point = LostUtil.getScreenSize(this)
             val imageModel = if (song.isYTSong && !song.ytID.isNullOrEmpty()) {
-                "https://img.youtube.com/vi/${song.ytID}/mqdefault.jpg"
+                "https://img.youtube.com/vi/${song.ytID}/defaulter.jpg"
             } else {
-                LostGlideExtension.getSongModel(song)
+                getSongModel(song)
             }
             val request = Glide.with(this)
                 .asBitmap()
@@ -1299,7 +1298,6 @@ class MusicService : MediaBrowserServiceCompat(),
     }
 
     private fun registerBluetoothConnected() {
-        Log.i(TAG, "registerBluetoothConnected: ")
         if (!bluetoothConnectedRegistered) {
             registerReceiver(bluetoothReceiver, bluetoothConnectedIntentFilter)
             bluetoothConnectedRegistered = true

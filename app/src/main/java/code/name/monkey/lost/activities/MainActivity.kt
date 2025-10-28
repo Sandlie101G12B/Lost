@@ -39,25 +39,25 @@ class MainActivity : AbsCastActivity() {
         const val TAG = "MainActivity"
         const val EXPAND_PANEL = "expand_panel"
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
         super.onCreate(savedInstanceState)
         Timber.tag(TAG).d("onCreate started")
+        try {
+            Timber.tag(TAG).d("Setting up context for helpers.")
+            MetaDataManagerHelper.saveContext(this@MainActivity)
+            YTPlayerUtils.giveContext(this@MainActivity)
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Error setting up context for helpers.")
+        }
+
         setTaskDescriptionColorAuto()
         hideStatusBar()
         updateTabs()
 
-        lifecycleScope.launch(IO) {
-            try {
-                Timber.tag(TAG).d("Setting up context for helpers.")
-                MetaDataManagerHelper.saveContext(this@MainActivity)
-                YTPlayerUtils.giveContext(this@MainActivity)
-            } catch (e: Exception) {
-                Timber.tag(TAG).e(e, "Error setting up context for helpers.")
-            }
-        }
         AppRater.appLaunched(this)
         SongDataManager.loadDefaultSongsJson(this@MainActivity)
         Timber.tag(TAG).d("Checking for API keys.")

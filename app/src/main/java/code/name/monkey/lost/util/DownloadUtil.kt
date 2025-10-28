@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope // Required for coroutine handling in LifecycleService
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -217,6 +218,7 @@ class DownloadManager (
                     throw HttpDataSource.HttpDataSourceException(
                         java.net.MalformedURLException("Stream URL from PlaybackData is blank"),
                         DataSpec(Uri.EMPTY),
+                        PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
                         HttpDataSource.HttpDataSourceException.TYPE_OPEN
                     )
                 }

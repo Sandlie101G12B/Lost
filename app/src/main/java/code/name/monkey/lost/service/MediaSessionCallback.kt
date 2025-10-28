@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.support.v4.media.session.MediaSessionCompat
 import code.name.monkey.lost.auto.AutoMediaIDHelper
-import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.helper.MusicPlayerRemote.cycleRepeatMode
 import code.name.monkey.lost.helper.ShuffleHelper.makeShuffleList
 import code.name.monkey.lost.model.Album
@@ -205,15 +204,4 @@ class MediaSessionCallback(
         }
     }
 
-    private fun checkAndStartPlaying(songs: ArrayList<Song>, itemId: Long) {
-        var songIndex = MusicUtil.indexOfSongInList(songs, itemId)
-        if (songIndex == -1) {
-            songIndex = 0
-        }
-        openQueue(songs, songIndex)
-    }
-
-    private fun openQueue(songs: ArrayList<Song>, index: Int, startPlaying: Boolean = true) {
-        MusicPlayerRemote.openQueue(songs, index, startPlaying)
-    }
 }

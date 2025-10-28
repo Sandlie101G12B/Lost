@@ -59,7 +59,7 @@ object NavigationUtil {
                 effects.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sessionId)
                 effects.putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
                 activity.startActivityForResult(effects, 0)
-            } catch (notFound: ActivityNotFoundException) {
+            } catch (_: ActivityNotFoundException) {
                 activity.showToast(R.string.no_equalizer)
             }
         }

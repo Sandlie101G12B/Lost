@@ -97,7 +97,7 @@ object PlaylistSongsLoader {
                     "album_artist"//13
                 ), IS_MUSIC, null, Members.DEFAULT_SORT_ORDER
             )
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             return null
         }
     }

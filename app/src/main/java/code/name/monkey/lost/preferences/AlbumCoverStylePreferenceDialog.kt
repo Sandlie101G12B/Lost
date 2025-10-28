@@ -62,7 +62,7 @@ class AlbumCoverStylePreferenceDialog : DialogFragment(),
 
         return materialDialog(R.string.pref_title_album_cover_style)
             .setPositiveButton(R.string.set) { _, _ ->
-                val coverStyle = values()[viewPagerPosition]
+                val coverStyle = entries[viewPagerPosition]
                 if (isAlbumCoverStyle(coverStyle)) {
                     val result = getString(coverStyle.titleRes) + " theme is Pro version feature."
                     showToast(result)
@@ -90,7 +90,7 @@ class AlbumCoverStylePreferenceDialog : DialogFragment(),
         PagerAdapter() {
 
         override fun instantiateItem(collection: ViewGroup, position: Int): Any {
-            val albumCoverStyle = values()[position]
+            val albumCoverStyle = entries[position]
 
             val inflater = LayoutInflater.from(context)
             val binding = PreferenceNowPlayingScreenItemBinding.inflate(inflater, collection, true)
@@ -115,7 +115,7 @@ class AlbumCoverStylePreferenceDialog : DialogFragment(),
         }
 
         override fun getCount(): Int {
-            return values().size
+            return entries.size
         }
 
         override fun isViewFromObject(view: View, instace: Any): Boolean {
@@ -123,7 +123,7 @@ class AlbumCoverStylePreferenceDialog : DialogFragment(),
         }
 
         override fun getPageTitle(position: Int): CharSequence {
-            return context.getString(values()[position].titleRes)
+            return context.getString(entries[position].titleRes)
         }
     }
 
