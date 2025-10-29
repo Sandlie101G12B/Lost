@@ -12,7 +12,7 @@ import code.name.monkey.lost.db.PlaylistDao
 import code.name.monkey.lost.db.PlaylistEntity
 import code.name.monkey.lost.db.SongEntity
 import code.name.monkey.lost.helper.AutomaticPlaylistGenerator
-import code.name.monkey.lost.helper.MetaDataManagerHelper
+import code.name.monkey.lost.helper.MetaData
 import code.name.monkey.lost.model.Playlist
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.SongMetaData
@@ -57,7 +57,7 @@ class RealPlaylistRepository(
     // Injected dependencies
     private val playlistDao: PlaylistDao by inject()
     private val songRepository: SongRepository by inject()
-    private val metaDataManagerHelper: MetaDataManagerHelper by inject()
+    private val metaData: MetaData by inject()
 
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val autoPlaylistUpdateMutex = Mutex()
@@ -72,12 +72,10 @@ class RealPlaylistRepository(
 
     private val automaticPlaylistDefinitions: List<AutomaticPlaylistDefinition> by lazy {
         listOf(
-            AutomaticPlaylistDefinition("Throwback 2000") { meta, songs -> AutomaticPlaylistGenerator.generateThrowbackPlaylist(meta, songs, 2000) },
-            AutomaticPlaylistDefinition("Throwback 1990") { meta, songs -> AutomaticPlaylistGenerator.generateThrowbackPlaylist(meta, songs, 1990) },
-            AutomaticPlaylistDefinition("Decade Rewind 80s") { meta, songs -> AutomaticPlaylistGenerator.generateDecadeRewindPlaylist(meta, songs, 1980, 1989) },
+            AutomaticPlaylistDefinition("Unplayed Songs") { meta, songs -> AutomaticPlaylistGenerator.unplayedSongs(meta, songs) },
+            AutomaticPlaylistDefinition("Picked for you") { meta, songs -> AutomaticPlaylistGenerator.generateTastePlaylist(meta, songs) },
             AutomaticPlaylistDefinition("High Energy") { meta, songs -> AutomaticPlaylistGenerator.generateHighEnergyPlaylist(meta, songs) },
             AutomaticPlaylistDefinition("Liked Songs Radio") { meta, songs -> AutomaticPlaylistGenerator.generateLikedSongsRadio(meta, songs) }
-            // Add more definitions as needed
         )
     }
 
@@ -154,7 +152,7 @@ class RealPlaylistRepository(
             val currentDateString = getCurrentDateString()
             // Fetch these only once if multiple definitions need them
             val allLibrarySongs by lazy { songRepository.songs() }
-            val allSongMetaData by lazy { metaDataManagerHelper.getSongMetaDataList() }
+            val allSongMetaData by lazy { metaData.getSongMetaDataList() }
 
             for (definition in automaticPlaylistDefinitions) {
                 // Changed to AUTO_SUFFIX

@@ -204,12 +204,24 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layout: Int) : AbsMusicServi
     }
 
     fun updateShuffleState() {
-        shuffleButton.setColorFilter(
-            when (MusicPlayerRemote.shuffleMode) {
-                MusicService.SHUFFLE_MODE_SHUFFLE -> lastPlaybackControlsColor
-                else -> lastDisabledPlaybackControlsColor
-            }, PorterDuff.Mode.SRC_IN
-        )
+        when (MusicPlayerRemote.shuffleMode){
+            MusicService.SHUFFLE_MODE_SMART_SHUFFLE -> {
+                shuffleButton.setColorFilter(
+                    lastPlaybackControlsColor,
+                    PorterDuff.Mode.SRC_IN
+                )
+                shuffleButton.setImageResource(R.drawable.ic_smart_shuffle_icon)
+            }
+            else -> {
+                shuffleButton.setColorFilter(
+                    when (MusicPlayerRemote.shuffleMode) {
+                        MusicService.SHUFFLE_MODE_SHUFFLE -> lastPlaybackControlsColor
+                        else -> lastDisabledPlaybackControlsColor
+                    }, PorterDuff.Mode.SRC_IN
+                )
+                shuffleButton.setImageResource(R.drawable.ic_shuffle)
+            }
+        }
     }
 
     fun updateRepeatState() {

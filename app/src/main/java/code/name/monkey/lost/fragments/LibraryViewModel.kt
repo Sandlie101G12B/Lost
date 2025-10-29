@@ -114,7 +114,7 @@ class LibraryViewModel(
     private suspend fun fetchHomeSections() {
         val currentHomeSections = repository.homeSections().toMutableList()
 
-        val tasteBasedSongs: List<Song> = repository.getSongsForTaste(3) // You need to implement this in RealRepository
+        val tasteBasedSongs: List<Song> = repository.getSongsForTaste(50) // You need to implement this in RealRepository
         if (tasteBasedSongs.isNotEmpty()) { // Ensure we only add if we got songs
             val selectedForTasteSection = Home(
                 titleRes = R.string.selected_for_your_taste, // Ensure this string resource exists
@@ -126,7 +126,7 @@ class LibraryViewModel(
 
         val allRecentSongs: List<Song> = repository.recentSongs()
         if (allRecentSongs.size >= 10) { // Changed from >= 10 to > 0 for more chances to show
-            val shuffledRecent = allRecentSongs.shuffled().take(5) // Was 7, requirement was 5
+            val shuffledRecent = allRecentSongs.shuffled() // Was 7, requirement was 5
             if (shuffledRecent.isNotEmpty()) {
                 val youMightLikeSection = Home(
                     titleRes = R.string.you_also_might_like,
@@ -139,7 +139,7 @@ class LibraryViewModel(
 
         val lastAddedSongs: List<Song> = repository.newSongs()
         if (lastAddedSongs.isNotEmpty()) {
-            val shuffledLastAdded = lastAddedSongs.shuffled().take(3)
+            val shuffledLastAdded = lastAddedSongs.shuffled()
             if (shuffledLastAdded.isNotEmpty()) {
                 val trySomethingNewSection = Home(
                     titleRes = R.string.try_something_new,

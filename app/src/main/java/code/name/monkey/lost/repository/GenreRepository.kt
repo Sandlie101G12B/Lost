@@ -7,7 +7,7 @@ import code.name.monkey.lost.Constants.IS_MUSIC
 import code.name.monkey.lost.Constants.baseProjection
 import code.name.monkey.lost.extensions.getLong
 import code.name.monkey.lost.extensions.getStringOrNull
-import code.name.monkey.lost.helper.MetaDataManagerHelper
+import code.name.monkey.lost.helper.MetaData
 import code.name.monkey.lost.model.Genre
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.SongMetaData
@@ -26,7 +26,7 @@ class RealGenreRepository(
     private val contentResolver: ContentResolver,
     private val songRepository: RealSongRepository
 ) : GenreRepository {
-    private val metaDataManagerHelper = MetaDataManagerHelper // Added
+    private val metaData = MetaData // Added
     private val derivedIdToOriginalNameCache: MutableMap<Long, String> = mutableMapOf()
     private val genreCache: MutableMap<String, List<Genre>> = mutableMapOf() // New genre cache
     private val unknownGenreId = -1L
@@ -103,7 +103,7 @@ class RealGenreRepository(
         normalizeGenreNamesInMetaData()
 
         val allSongs = getAllSongsFromRepository()
-        val songMetaDataList = metaDataManagerHelper.getSongMetaDataList()
+        val songMetaDataList = metaData.getSongMetaDataList()
         val songDataToMetaMap = songMetaDataList.associateBy { it.file }
 
         // Use the display-formatted name as the key for aggregation
@@ -197,7 +197,7 @@ class RealGenreRepository(
         if (genreId == unknownGenreId) {
             // Logic for "Unknown Genre"
             val allSongs = getAllSongsFromRepository()
-            val songMetaDataList = metaDataManagerHelper.getSongMetaDataList()
+            val songMetaDataList = metaData.getSongMetaDataList()
             val songDataToMetaMap = songMetaDataList.associateBy { it.file }
             val explicitlyCategorizedSongs = mutableSetOf<Song>()
 
@@ -233,7 +233,7 @@ class RealGenreRepository(
 
             if (displayableOriginalGenreName != null) {
                 val allSongs = getAllSongsFromRepository()
-                val songMetaDataList = metaDataManagerHelper.getSongMetaDataList()
+                val songMetaDataList = metaData.getSongMetaDataList()
                 val songDataToMetaMap = songMetaDataList.associateBy { it.file }
 
                 // Check songs from MediaStore entries
@@ -308,7 +308,7 @@ class RealGenreRepository(
     }
 
     override fun normalizeGenreNamesInMetaData() {
-        val currentMetaDataList = metaDataManagerHelper.getSongMetaDataList()
+        val currentMetaDataList = metaData.getSongMetaDataList()
         val updatedMetaDataList = mutableListOf<SongMetaData>()
         var changesMade = false
 
@@ -342,7 +342,7 @@ class RealGenreRepository(
         }
 
         if (changesMade) {
-            metaDataManagerHelper.saveSongMetaDataList(updatedMetaDataList)
+            metaData.saveSongMetaDataList(updatedMetaDataList)
             // Clear caches as genre data has changed
             derivedIdToOriginalNameCache.clear()
             genreCache.clear()

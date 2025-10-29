@@ -10,7 +10,6 @@
         android:id="@+id/clickable_area"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="?attr/rectSelector"
         android:clickable="true"
         android:focusable="true"
         android:orientation="horizontal"

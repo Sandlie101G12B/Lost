@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.datastore.preferences.core.edit
 import androidx.preference.PreferenceManager
 import cat.ereza.customactivityoncrash.config.CaocConfig
@@ -62,6 +63,7 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         Timber.plant(Timber.DebugTree())
         instance = this
         YTPlayerUtils.giveContext(this)

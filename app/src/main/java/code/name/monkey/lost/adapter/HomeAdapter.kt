@@ -24,6 +24,7 @@ import code.name.monkey.lost.model.Album
 import code.name.monkey.lost.model.Artist
 import code.name.monkey.lost.model.Home
 import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.util.PreferenceUtil
 
 class HomeAdapter(private val activity: AppCompatActivity) :
@@ -76,21 +77,31 @@ class HomeAdapter(private val activity: AppCompatActivity) :
                 val viewHolder = holder as PlaylistViewHolder
                 viewHolder.bindView(home)
                 viewHolder.clickableArea.setOnClickListener {
-                    // [TODO] Define click behavior
+                    it.findFragment<HomeFragment>().setSharedAxisXTransitions()
+                    activity.findNavController(R.id.fragment_container).navigate(
+                        R.id.detailListFragment,
+                        bundleOf("type" to YOU_MIGHT_LIKE_SONGS)
+                    )
                 }
             }
             TRY_SOMETHING_NEW -> {
                 val viewHolder = holder as PlaylistViewHolder
                 viewHolder.bindView(home)
                 viewHolder.clickableArea.setOnClickListener {
-                    // [TODO] Define click behavior
+                    val songs = home.arrayList.filterIsInstance<Song>()
+                    if (songs.isNotEmpty()) {
+                        MusicPlayerRemote.enqueue(songs)
+                    }
                 }
             }
             SELECTED_FOR_YOUR_TASTE -> {
                 val viewHolder = holder as PlaylistViewHolder
                 viewHolder.bindView(home)
                 viewHolder.clickableArea.setOnClickListener {
-                    // [TODO] Define click behavior
+                    val songs = home.arrayList.filterIsInstance<Song>()
+                    if (songs.isNotEmpty()) {
+                        MusicPlayerRemote.enqueue(songs)
+                    }
                 }
             }
         }
@@ -134,18 +145,41 @@ class HomeAdapter(private val activity: AppCompatActivity) :
         fun bindView(home: Home) {
             title.setText(home.titleRes)
             recyclerView.apply {
-                val songsList = home.arrayList as? MutableList<Song> ?: mutableListOf()
+                val songsList = home.arrayList.filterIsInstance<Song>()
 
                 val itemLayoutId = if (home.homeSection == TRY_SOMETHING_NEW || home.homeSection == SELECTED_FOR_YOUR_TASTE) {
                     R.layout.item_try_new_song // Use new layout for TRY_SOMETHING_NEW
                 } else {
                     R.layout.item_favourite_card // Default layout for others
                 }
-                val songAdapter = SongAdapter(
-                    activity,
-                    songsList,
-                    itemLayoutId // Pass the chosen layout ID
-                )
+
+                val songsToShow = if (home.homeSection == TRY_SOMETHING_NEW || home.homeSection == SELECTED_FOR_YOUR_TASTE || home.homeSection == YOU_MIGHT_LIKE_SONGS) {
+                    songsList.take(3)
+                } else {
+                    songsList
+                }
+
+                val songAdapter = if (home.homeSection == TRY_SOMETHING_NEW || home.homeSection == SELECTED_FOR_YOUR_TASTE || home.homeSection == YOU_MIGHT_LIKE_SONGS) {
+                    object: SongAdapter(activity, songsToShow.toMutableList(), itemLayoutId) {
+                        override fun createViewHolder(view: View): ViewHolder {
+                            return object : ViewHolder(view) {
+                                override fun onClick(v: View?) {
+                                    if (isInQuickSelectMode) {
+                                        toggleChecked(layoutPosition)
+                                    } else {
+                                        val song = dataSet[layoutPosition]
+                                        val index = songsList.indexOf(song)
+                                        if (index != -1) {
+                                            MusicPlayerRemote.openQueue(songsList, index, true)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    SongAdapter(activity, songsToShow.toMutableList(), itemLayoutId)
+                }
 
                 if (home.homeSection == TRY_SOMETHING_NEW || home.homeSection == SELECTED_FOR_YOUR_TASTE) {
                     layoutManager = LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false)

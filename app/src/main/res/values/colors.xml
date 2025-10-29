@@ -8,14 +8,14 @@
     <color name="twenty_percent_black_overlay">#34000000</color>
     <color name="app_shortcut_default_foreground">#607d8b</color>
     <color name="app_shortcut_default_background">#f5f5f5</color>
-    <color name="md_indigo_A400">#3D5AFE</color>
-    <color name="dark_color">#202124</color>
-    <color name="black_color">#202124</color>
+    <color name="md_indigo_A400">#dc343b</color>
+    <color name="dark_color">#000000</color>
+    <color name="black_color">#000000</color>
 
-    <color name="darkColorPrimary">#202124</color>
-    <color name="darkColorSurface">#202124</color>
+    <color name="darkColorPrimary">#000000</color>
+    <color name="darkColorSurface">#000000</color>
 
-    <color name="darkerColorSurface">#353535</color>
+    <color name="darkerColorSurface">#000000</color>
     <color name="lighterColorSurface">#dddddd</color>
 
     <color name="blackColorSurface">#000000</color>
@@ -28,7 +28,7 @@
     <color name="card_shadow_2">#dddddd</color>
 
     <color name="progress_gray">#FFD8D8D8</color>
-    <color name="default_blue_light">#ff33b5e5</color>
+    <color name="default_blue_light">#fadc343b</color>
 
     <color name="bottomSheetColorLight">#FFFFFF</color>
     <color name="bottomSheetColorDark">#202020</color>

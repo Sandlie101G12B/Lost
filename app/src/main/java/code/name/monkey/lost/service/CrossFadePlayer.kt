@@ -11,7 +11,7 @@ import androidx.core.net.toUri
 import code.name.monkey.appthemehelper.util.VersionUtils.hasMarshmallow
 import code.name.monkey.lost.R
 import code.name.monkey.lost.extensions.showToast
-import code.name.monkey.lost.helper.MetaDataManagerHelper
+import code.name.monkey.lost.helper.MetaData
 import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.service.AudioFader.Companion.createFadeAnimator
@@ -64,7 +64,7 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
         val songFilePath = if (song.isYTSong) song.ytID else song.data // Use ytID or local data path
         if (songFilePath.isNullOrEmpty()) return null
 
-        val metaDataList = MetaDataManagerHelper.getSongMetaDataList()
+        val metaDataList = MetaData.getSongMetaDataList()
         // Adjust find condition based on what's stored in metaDataList.file (might be ytID for online)
         val songMetaData = metaDataList.find { it.file == songFilePath || (song.isYTSong && it.ytID == song.ytID) }
         return songMetaData?.bpm?.takeIf { it.isFinite() && it > 0 }

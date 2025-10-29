@@ -76,7 +76,7 @@ private constructor(private val mContext: Context) : ThemeStorePrefKeys, ThemeSt
                 ThemeStorePrefKeys.KEY_WALLPAPER_COLOR_DARK,
                 ColorUtil.getReadableColorDark(
                     color,
-                    Color.parseColor("#202124")
+                    Color.parseColor("#000000")
                 )
             )
         }

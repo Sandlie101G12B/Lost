@@ -9,6 +9,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import code.name.monkey.lost.BuildConfig
 import code.name.monkey.lost.R
+import code.name.monkey.lost.helper.MetaData.reconcileLikedStatusWithLibrary
 import code.name.monkey.lost.model.SongMetaData
 import code.name.monkey.lost.model.SongTMPContainer
 import code.name.monkey.lost.network.InternetConnection
@@ -59,7 +60,7 @@ fun initialiseMetaDataProcess(context: Context) {
 
     CoroutineScope(Dispatchers.IO).launch {
         enhanceSongsData(inputPath, outputPath, deviceSongs, context)
-        //reconcileLikedStatusWithLibrary(songs)
+        reconcileLikedStatusWithLibrary(songs)
     }
 }
 

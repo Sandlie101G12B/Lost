@@ -22,7 +22,6 @@ import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -43,8 +42,7 @@ import code.name.monkey.lost.extensions.toMediaSessionQueue
 import code.name.monkey.lost.extensions.uri
 import code.name.monkey.lost.glide.BlurTransformation
 import code.name.monkey.lost.glide.LostGlideExtension.getSongModel
-import code.name.monkey.lost.glide.LostGlideExtension
-import code.name.monkey.lost.helper.MetaDataManagerHelper
+import code.name.monkey.lost.helper.MetaData
 import code.name.monkey.lost.helper.ShuffleHelper.makeShuffleList
 import kotlinx.coroutines.launch
 import code.name.monkey.lost.model.Song
@@ -490,6 +488,12 @@ class MusicService : MediaBrowserServiceCompat(),
             putInt(SAVED_SHUFFLE_MODE, shuffleMode)
         }
         when (shuffleMode) {
+            SHUFFLE_MODE_SMART_SHUFFLE -> {
+                this.shuffleMode = shuffleMode
+                makeShuffleList(playingQueue, getPosition(), true)
+                position = 0
+            }
+
             SHUFFLE_MODE_SHUFFLE -> {
                 this.shuffleMode = shuffleMode
                 makeShuffleList(playingQueue, getPosition())
@@ -756,6 +760,10 @@ class MusicService : MediaBrowserServiceCompat(),
                 makeShuffleList(this.playingQueue, startPosition)
                 position = 0
             }
+            if (shuffleMode == SHUFFLE_MODE_SMART_SHUFFLE) {
+                makeShuffleList(this.playingQueue, startPosition, true)
+                position = 0
+            }
             if (startPlaying) {
                 playSongAt(position)
             } else {
@@ -807,7 +815,7 @@ class MusicService : MediaBrowserServiceCompat(),
         if (currentSong == emptySong) return
         val songToUpdate = currentSong // Capture the current song before it changes
         serviceScope.launch(IO) {
-            MetaDataManagerHelper.updateSongInteraction(filePath = songToUpdate.data, recordPlay = true)
+            MetaData.updateSongInteraction(filePath = songToUpdate.data, recordPlay = true)
         }
     }
 
@@ -816,7 +824,7 @@ class MusicService : MediaBrowserServiceCompat(),
         if (currentSong == emptySong) return
         val songToUpdate = currentSong // Capture the current song before it changes
         serviceScope.launch(IO) {
-            MetaDataManagerHelper.updateSongInteraction(filePath = songToUpdate.data, recordSkip = true)
+            MetaData.updateSongInteraction(filePath = songToUpdate.data, recordSkip = true)
         }
     }
 
@@ -861,7 +869,7 @@ class MusicService : MediaBrowserServiceCompat(),
     fun toggleFavorite() {
         serviceScope.launch {
             if (currentSong != emptySong) {
-                MetaDataManagerHelper.updateSongInteraction(filePath = currentSong.data, toggleLike = true)
+                MetaData.updateSongInteraction(filePath = currentSong.data, toggleLike = true)
             }
             LocalBroadcastManager.getInstance(this@MusicService)
                 .sendBroadcast(Intent(FAVORITE_STATE_CHANGED))
@@ -1027,7 +1035,9 @@ class MusicService : MediaBrowserServiceCompat(),
     fun toggleShuffle() {
         if (getShuffleMode() == SHUFFLE_MODE_NONE) {
             setShuffleMode(SHUFFLE_MODE_SHUFFLE)
-        } else {
+        } else if(getShuffleMode() == SHUFFLE_MODE_SHUFFLE) {
+            setShuffleMode(SHUFFLE_MODE_SMART_SHUFFLE)
+        }else{
             setShuffleMode(SHUFFLE_MODE_NONE)
         }
     }
@@ -1274,7 +1284,7 @@ class MusicService : MediaBrowserServiceCompat(),
         if (playlist != null) {
             val playlistSongs = playlist.songs()
             if (playlistSongs.isNotEmpty()) {
-                if (shuffleMode == SHUFFLE_MODE_SHUFFLE) {
+                if (shuffleMode == SHUFFLE_MODE_SHUFFLE || shuffleMode == SHUFFLE_MODE_SMART_SHUFFLE) {
                     val startPosition = Random().nextInt(playlistSongs.size)
                     openQueue(playlistSongs, startPosition, true)
                     setShuffleMode(shuffleMode)
@@ -1446,6 +1456,7 @@ class MusicService : MediaBrowserServiceCompat(),
         const val SAVED_REPEAT_MODE = "REPEAT_MODE"
         const val SHUFFLE_MODE_NONE = 0
         const val SHUFFLE_MODE_SHUFFLE = 1
+        const val SHUFFLE_MODE_SMART_SHUFFLE = 2
         const val REPEAT_MODE_NONE = 0
         const val REPEAT_MODE_ALL = 1
         const val REPEAT_MODE_THIS = 2

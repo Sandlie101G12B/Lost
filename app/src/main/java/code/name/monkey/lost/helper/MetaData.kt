@@ -19,8 +19,8 @@ import java.io.File
 import java.io.IOException
 import java.util.Locale
 
-object MetaDataManagerHelper : KoinComponent {
-    private const val TAG = "MetaDataManagerHelper"
+object MetaData : KoinComponent {
+    private const val TAG = "MetaData"
     private const val OUTPUT_FILE_NAME = outputPath
     private var appContext: Context? = null
     @Volatile
@@ -58,7 +58,7 @@ object MetaDataManagerHelper : KoinComponent {
                     MusicUtil.toggleFavorite(songToToggle)
                 }
             }
-            // Save MetaDataManagerHelper's cache
+            // Save MetaData's cache
             cachedSongMetaDataList?.let { saveSongMetaDataList(it) }
         }
     }
@@ -162,6 +162,23 @@ object MetaDataManagerHelper : KoinComponent {
         }
     }
 
+    suspend fun reconcileLikedStatusWithLibrary(songs: List<Song>) {
+        val metaDataList = getSongMetaDataList().toMutableList()
+        var changed = false
+        songs.forEach { song ->
+            val isFavorite = MusicUtil.isFavorite(song)
+            val metaData = metaDataList.find { it.file == song.data }
+            if (metaData != null && metaData.liked != isFavorite) {
+                val index = metaDataList.indexOf(metaData)
+                metaDataList[index] = metaData.copy(liked = isFavorite)
+                changed = true
+            }
+        }
+        if (changed) {
+            saveSongMetaDataList(metaDataList)
+        }
+    }
+
     fun saveContext(context: Context) {
         appContext = context.applicationContext
 //        val myJsonString = """
@@ -174,7 +191,7 @@ object MetaDataManagerHelper : KoinComponent {
         appContext?.let {
             return it
         } ?: run {
-            throw IllegalStateException("Context not initialized in MetaDataManagerHelper. Call saveContext first.")
+            throw IllegalStateException("Context not initialized in MetaData. Call saveContext first.")
         }
     }
 

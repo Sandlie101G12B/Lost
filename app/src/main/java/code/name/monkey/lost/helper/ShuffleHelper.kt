@@ -37,7 +37,7 @@ object ShuffleHelper : KoinComponent {
     // Injected by Koin. Assumes Repository is defined in your Koin modules.
     private val repository: Repository by inject()
 
-    private const val CACHE_EXPIRY_MS = 5000L // 5 seconds
+    private const val CACHE_EXPIRY_MS = 3000L // 3 seconds
     private data class CachedShuffle(val list: List<Song>, val timestamp: Long)
     private val shuffleCache = mutableMapOf<String, CachedShuffle>()
 
@@ -439,8 +439,8 @@ object ShuffleHelper : KoinComponent {
     private fun plantJsonFileLoggingTree() {
         if (isFileTreePlanted) return
 
-        // Assuming MetaDataManagerHelper.getContext() provides a valid Context
-        val context = MetaDataManagerHelper.getContext()
+        // Assuming MetaData.getContext() provides a valid Context
+        val context = MetaData.getContext()
 
         val logDir = File(context.getExternalFilesDir(null), "logs")
         if (!logDir.exists()) {
@@ -552,7 +552,7 @@ object ShuffleHelper : KoinComponent {
         return map
     }
 
-    fun makeShuffleList(listToShuffle: MutableList<Song>, current: Int) {
+    fun makeShuffleList(listToShuffle: MutableList<Song>, current: Int, isSmart: Boolean = false) {
         if (listToShuffle.isEmpty() || current !in listToShuffle.indices) return
 
         val songForCacheKey = listToShuffle[current]
@@ -573,7 +573,6 @@ object ShuffleHelper : KoinComponent {
 
         if (listToShuffle.isEmpty()) {
             listToShuffle.add(0, currentSong)
-            shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
             Timber.tag(TAG).d("Cache updated for key '$cacheKey' after list became empty.")
             return
         }
@@ -581,11 +580,10 @@ object ShuffleHelper : KoinComponent {
         val currentMeta = metadata[getSongKey(currentSong)]
         val hasAnyMetadata = listToShuffle.any { metadata[getSongKey(it)] != null }
 
-        if (currentMeta == null || !hasAnyMetadata) {
+        if (currentMeta == null || !hasAnyMetadata || !isSmart) {
             Timber.tag(TAG).d("Current meta is null or no metadata in listToShuffle. Performing simple shuffle.")
             listToShuffle.shuffle()
             listToShuffle.add(0, currentSong)
-            shuffleCache[cacheKey] = CachedShuffle(listToShuffle.toList(), System.currentTimeMillis())
             Timber.tag(TAG).d("Cache updated for key '$cacheKey' after simple shuffle.")
             return
         }
@@ -740,7 +738,7 @@ object ShuffleHelper : KoinComponent {
                 }
         }
 
-        if (InternetConnection.hasInternetConnection(MetaDataManagerHelper.getContext())) {
+        if (InternetConnection.hasInternetConnection(MetaData.getContext())) {
             Timber.tag(TAG).d("Internet connection available. Attempting online shuffle for key '$cacheKey'.")
 //            runBlocking { onlineShuffle() }
             offlineshuffle()

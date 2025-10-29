@@ -18,7 +18,7 @@ import code.name.monkey.lost.db.SongEntity
 import code.name.monkey.lost.db.fromHistoryToSongs
 import code.name.monkey.lost.db.toSong
 import code.name.monkey.lost.fragments.search.Filter
-import code.name.monkey.lost.helper.MetaDataManagerHelper
+import code.name.monkey.lost.helper.MetaData
 import code.name.monkey.lost.model.AbsCustomPlaylist
 import code.name.monkey.lost.model.Album
 import code.name.monkey.lost.model.Artist
@@ -352,11 +352,10 @@ class RealRepository(
     )
 
     override suspend fun getSongsForTaste(limit: Int): List<Song> = try {
-        println("Starting getSongsForTaste with limit: $limit")
-        val numSeedSongsToAnalyze = 20
+        val numSeedSongsToAnalyze = 10
         val numProminentArtistsToPick = 3
 
-        val allSongMetaDataMap = MetaDataManagerHelper.getSongMetaDataList()
+        val allSongMetaDataMap = MetaData.getSongMetaDataList()
             .filter { it.file.isNotBlank() }
             .associateBy { it.file }
         println("Fetched ${allSongMetaDataMap.size} valid metadata entries.")
@@ -369,7 +368,7 @@ class RealRepository(
 
         if (topPlayedSeedSongs.isEmpty()) {
             println("No seed songs. Returning random from library.")
-            allLibrarySongs.shuffled().take(limit).also {
+            allLibrarySongs.shuffled().also {
                 println("Returning ${it.size} songs (random): ${it.joinToString { s -> s.title }}")
             }
         }
@@ -377,7 +376,7 @@ class RealRepository(
         val seedSongMetadata = topPlayedSeedSongs.mapNotNull { allSongMetaDataMap[it.data] }
         if (seedSongMetadata.isEmpty()) {
             println("No metadata for seed songs. Returning random from library.")
-            allLibrarySongs.shuffled().take(limit).also {
+            allLibrarySongs.shuffled().also {
                 println("Returning ${it.size} songs (random due to no seed metadata): ${it.joinToString { s -> s.title }}")
             }
         }
@@ -404,7 +403,7 @@ class RealRepository(
 
         if (candidateSongs.isEmpty()) {
             println("No suitable candidate songs found after scoring. Returning random from library.")
-            allLibrarySongs.shuffled().take(limit).also {
+            allLibrarySongs.shuffled().also {
                 println("Returning ${it.size} songs (random due to no candidates): ${it.joinToString { s -> s.title }}")
             }
         }
@@ -412,7 +411,7 @@ class RealRepository(
         val selectedSongs = mutableListOf<Song>()
         val availableCandidates = candidateSongs.toMutableList()
 
-        repeat(limit) {
+        repeat(50) {
             if (availableCandidates.isEmpty()) {
                 println("Ran out of candidates during selection.")
                 return@repeat // Break repeat if no more candidates
@@ -459,7 +458,7 @@ class RealRepository(
         e.printStackTrace()
         val allLibrarySongsFallback = try { songRepository.songs() } catch (_: Exception) { emptyList() }
         println("Error fallback: Returning purely random songs.")
-        allLibrarySongsFallback.shuffled().take(limit)
+        allLibrarySongsFallback.shuffled()
     }
 
     override fun getTrendingYouTubeSongs(needed: Int): List<Song> {
@@ -642,7 +641,7 @@ class RealRepository(
                 emptyList()
             } else {
                 println("Returning ${unplayedSongs.size} new songs: ${unplayedSongs.joinToString { it.title }}")
-                unplayedSongs.shuffled().take(5)
+                unplayedSongs.shuffled()
             }
         } catch (_: Exception) {
             emptyList()

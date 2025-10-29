@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="1dp"
-    android:background="?attr/rectSelector"
     android:clickable="true"
     android:focusable="true">
 
@@ -17,17 +16,18 @@
         tools:ignore="MissingPrefix">
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/paletteColorContainer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            tools:ignore="UnusedAttribute,UselessParent">
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/image"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:scaleType="centerCrop"
                 app:layout_constraintDimensionRatio="1:1"
-                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:ignore="ContentDescription"
@@ -40,9 +40,10 @@
                 android:gravity="center_vertical"
                 android:orientation="vertical"
                 android:padding="12dp"
+                app:layout_constraintBottom_toBottomOf="@+id/image"
                 app:layout_constraintEnd_toStartOf="@id/menu"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/image">
+                app:layout_constraintStart_toEndOf="@+id/image"
+                app:layout_constraintTop_toTopOf="@+id/image">
 
                 <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/title"
@@ -65,6 +66,8 @@
             <androidx.appcompat.widget.AppCompatImageView
                 android:id="@+id/menu"
                 style="@style/OverFlowButton"
+                android:layout_width="61dp"
+                android:layout_height="57dp"
                 android:layout_gravity="center_vertical"
                 android:layout_weight="0"
                 app:layout_constraintBottom_toBottomOf="@id/titleContainer"

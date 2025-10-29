@@ -18,7 +18,7 @@ import code.name.monkey.lost.db.PlaylistEntity
 import code.name.monkey.lost.db.toSongEntity
 import code.name.monkey.lost.extensions.getLong
 import code.name.monkey.lost.extensions.showToast
-import code.name.monkey.lost.helper.MetaDataManagerHelper
+import code.name.monkey.lost.helper.MetaData
 import code.name.monkey.lost.helper.MusicPlayerRemote.removeFromQueue
 import code.name.monkey.lost.model.Artist
 import code.name.monkey.lost.model.Song
@@ -384,7 +384,7 @@ object MusicUtil : KoinComponent {
     
     private suspend fun updateSongMetaDataWithLikedStatus(song: Song, isLiked: Boolean) { // Removed context parameter
         withContext(IO) { // Perform file operations on IO dispatcher
-            val metaDataList = MetaDataManagerHelper.getSongMetaDataList().toMutableList() // No context needed
+            val metaDataList = MetaData.getSongMetaDataList().toMutableList() // No context needed
             val songKey = getSongKeyForMetaData(song)
             val songMetaIndex = metaDataList.indexOfFirst { 
                 // Handle potential errors if it.file is blank or invalid path
@@ -404,7 +404,7 @@ object MusicUtil : KoinComponent {
                     likedTimestamp = if (isLiked) System.currentTimeMillis() else null
                 )
                 metaDataList[songMetaIndex] = updatedMetaData
-                MetaDataManagerHelper.saveSongMetaDataList(metaDataList) // No context needed
+                MetaData.saveSongMetaDataList(metaDataList) // No context needed
                 Timber.tag("MusicUtil")
                     .d("Updated liked status for ${song.title} to $isLiked with timestamp ${updatedMetaData.likedTimestamp}")
             } else {

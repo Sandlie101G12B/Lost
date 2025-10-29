@@ -4,7 +4,7 @@ import android.content.Context
 import code.name.monkey.lost.R
 import code.name.monkey.lost.db.PlaylistWithSongs
 import code.name.monkey.lost.fragments.search.Filter
-import code.name.monkey.lost.helper.MetaDataManagerHelper
+import code.name.monkey.lost.helper.MetaData
 import code.name.monkey.lost.model.Album
 import code.name.monkey.lost.model.Artist
 import code.name.monkey.lost.model.Genre
@@ -35,7 +35,7 @@ class RealSearchRepository(
                 emptyList()
             }
 
-            val onlineSearch: List<Song> = if ((filter == Filter.SONGS || filter == Filter.NO_FILTER) && InternetConnection.hasInternetConnection(MetaDataManagerHelper.getContext())) {
+            val onlineSearch: List<Song> = if ((filter == Filter.SONGS || filter == Filter.NO_FILTER) && InternetConnection.hasInternetConnection(MetaData.getContext())) {
                 runBlocking {
                     searchVideos(query)
                         .fold(

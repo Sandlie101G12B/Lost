@@ -522,16 +522,29 @@ class ClassicPlayerFragment : AbsPlayerFragment(R.layout.fragment_classic_player
 
     fun updateShuffleState() {
         when (MusicPlayerRemote.shuffleMode) {
-            MusicService.SHUFFLE_MODE_SHUFFLE ->
+            MusicService.SHUFFLE_MODE_SHUFFLE -> {
                 binding.playerControlsContainer.shuffleButton.setColorFilter(
                     lastPlaybackControlsColor,
                     PorterDuff.Mode.SRC_IN
                 )
+                binding.playerControlsContainer.shuffleButton.setImageResource(R.drawable.ic_shuffle)
+            }
 
-            else -> binding.playerControlsContainer.shuffleButton.setColorFilter(
-                lastDisabledPlaybackControlsColor,
-                PorterDuff.Mode.SRC_IN
-            )
+            MusicService.SHUFFLE_MODE_SMART_SHUFFLE -> {
+                binding.playerControlsContainer.shuffleButton.setColorFilter(
+                    lastPlaybackControlsColor,
+                    PorterDuff.Mode.SRC_IN
+                )
+                binding.playerControlsContainer.shuffleButton.setImageResource(R.drawable.ic_smart_shuffle_icon)
+            }
+
+            else -> {
+                binding.playerControlsContainer.shuffleButton.setColorFilter(
+                    lastDisabledPlaybackControlsColor,
+                    PorterDuff.Mode.SRC_IN
+                )
+                binding.playerControlsContainer.shuffleButton.setImageResource(R.drawable.ic_shuffle)
+            }
         }
     }
 

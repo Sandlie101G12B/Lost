@@ -170,15 +170,29 @@ class DriveModeActivity : AbsMusicServiceActivity(), Callback {
 
     fun updateShuffleState() {
         when (MusicPlayerRemote.shuffleMode) {
-            MusicService.SHUFFLE_MODE_SHUFFLE -> binding.shuffleButton.setColorFilter(
-                lastPlaybackControlsColor,
-                PorterDuff.Mode.SRC_IN
-            )
+            MusicService.SHUFFLE_MODE_SHUFFLE -> {
+                binding.shuffleButton.setColorFilter(
+                    lastPlaybackControlsColor,
+                    PorterDuff.Mode.SRC_IN
+                )
+                binding.shuffleButton.setImageResource(R.drawable.ic_shuffle)
+            }
 
-            else -> binding.shuffleButton.setColorFilter(
-                lastDisabledPlaybackControlsColor,
-                PorterDuff.Mode.SRC_IN
-            )
+            MusicService.SHUFFLE_MODE_SMART_SHUFFLE -> {
+                binding.shuffleButton.setColorFilter(
+                    lastPlaybackControlsColor,
+                    PorterDuff.Mode.SRC_IN
+                )
+                binding.shuffleButton.setImageResource(R.drawable.ic_smart_shuffle_icon)
+            }
+
+            else -> {
+                binding.shuffleButton.setColorFilter(
+                    lastDisabledPlaybackControlsColor,
+                    PorterDuff.Mode.SRC_IN
+                )
+                binding.shuffleButton.setImageResource(R.drawable.ic_shuffle)
+            }
         }
     }
 

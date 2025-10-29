@@ -41,11 +41,59 @@ object AutomaticPlaylistGenerator {
         }
     }
 
+    fun unplayedSongs(
+        allSongMetaData: List<SongMetaData>,
+        allLibrarySongs: List<Song>,
+        count: Int = Random.nextInt(50, 150)
+    ): PlaylistBlueprint? {
+        val random = Random(getDailySeed())
+        val unplayedSongs = allSongMetaData.asSequence()
+            .filter { it.playTimestamps.isEmpty() }
+            .shuffled(random)
+            .take(count)
+            .toList()
+
+        if (unplayedSongs.isEmpty()) return null
+
+        val selectedSongs = findMatchingSongs(unplayedSongs, allLibrarySongs)
+        if (selectedSongs.isEmpty()) return null
+        return PlaylistBlueprint("Unplayed Songs", selectedSongs.map { it.data })
+    }
+
+    fun generateTastePlaylist(
+        allSongMetaData: List<SongMetaData>,
+        allLibrarySongs: List<Song>,
+        count: Int = Random.nextInt(50, 150)
+    ): PlaylistBlueprint? {
+        val random = Random(getDailySeed())
+        val likedSongs = allSongMetaData.filter { it.liked }
+        if (likedSongs.isEmpty()) return null
+
+        val recentLiked = likedSongs.sortedByDescending { it.likedTimestamp }.take(5)
+        val favoriteGenres = recentLiked.flatMap { it.genre }.groupingBy { it }.eachCount().keys
+        val favoriteMoods = recentLiked.flatMap { it.mood }.groupingBy { it }.eachCount().keys
+
+        val tasteSongs = allSongMetaData.asSequence()
+            .filter {
+                val hasFavoriteGenre = it.genre.any { genre -> genre in favoriteGenres }
+                val hasFavoriteMood = it.mood.any { mood -> mood in favoriteMoods }
+                (hasFavoriteGenre || hasFavoriteMood) && !it.liked
+            }
+            .shuffled(random)
+            .take(count)
+            .toList()
+
+        if (tasteSongs.isEmpty()) return null
+        val selectedSongs = findMatchingSongs(tasteSongs, allLibrarySongs)
+        if (selectedSongs.isEmpty()) return null
+        return PlaylistBlueprint("Picked for you", selectedSongs.map { it.data })
+    }
+
     fun generateThrowbackPlaylist(
         allSongMetaData: List<SongMetaData>,
         allLibrarySongs: List<Song>,
         targetYear: Int,
-        count: Int = 20
+        count: Int = Random.nextInt(50, 150)
     ): PlaylistBlueprint? {
         val random = Random(getDailySeed())
         val filteredMetaData = allSongMetaData.asSequence()
@@ -68,7 +116,7 @@ object AutomaticPlaylistGenerator {
         allLibrarySongs: List<Song>,
         startYear: Int,
         endYear: Int,
-        count: Int = 30
+        count: Int = Random.nextInt(50, 150)
     ): PlaylistBlueprint? {
         val random = Random(getDailySeed())
         val filteredMetaData = allSongMetaData.asSequence()
@@ -94,7 +142,7 @@ object AutomaticPlaylistGenerator {
         allLibrarySongs: List<Song>,
         minEnergy: Double = 0.7,
         minTempo: Double = 120.0,
-        count: Int = 25
+        count: Int = Random.nextInt(50, 150)
     ): PlaylistBlueprint? {
         val random = Random(getDailySeed())
         val filteredMetaData = allSongMetaData.asSequence()
@@ -116,7 +164,7 @@ object AutomaticPlaylistGenerator {
         allSongMetaData: List<SongMetaData>,
         allLibrarySongs: List<Song>,
         targetMood: String,
-        count: Int = 20
+        count: Int = Random.nextInt(50, 150)
     ): PlaylistBlueprint? {
         val random = Random(getDailySeed())
         val filteredMetaData = allSongMetaData.asSequence()
@@ -139,7 +187,7 @@ object AutomaticPlaylistGenerator {
     fun generateAllMoodPlaylists(
         allSongMetaData: List<SongMetaData>,
         allLibrarySongs: List<Song>,
-        countPerMood: Int = 20
+        countPerMood: Int = Random.nextInt(50, 150)
     ): List<PlaylistBlueprint> {
         val allMoods = allSongMetaData.asSequence()
             .flatMap { it.mood }
@@ -155,7 +203,7 @@ object AutomaticPlaylistGenerator {
         allSongMetaData: List<SongMetaData>,
         allLibrarySongs: List<Song>,
         targetGenre: String,
-        count: Int = 25
+        count: Int = Random.nextInt(50, 150)
     ): PlaylistBlueprint? {
         val random = Random(getDailySeed())
         // Assuming genres in SongMetaData are already somewhat normalized.
@@ -180,7 +228,7 @@ object AutomaticPlaylistGenerator {
     fun generateAllGenrePlaylists(
         allSongMetaData: List<SongMetaData>,
         allLibrarySongs: List<Song>,
-        countPerGenre: Int = 25
+        countPerGenre: Int = Random.nextInt(50, 150)
     ): List<PlaylistBlueprint> {
         val allGenres = allSongMetaData.asSequence()
             .flatMap { it.genre }

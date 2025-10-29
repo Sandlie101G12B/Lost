@@ -27,7 +27,7 @@ import org.koin.android.ext.android.get
 import code.name.monkey.lost.helper.SongDataManager
 import code.name.monkey.lost.helper.SongStatisticsManager
 import code.name.monkey.lost.helper.LyricsGetter
-import code.name.monkey.lost.helper.MetaDataManagerHelper // Added import
+import code.name.monkey.lost.helper.MetaData // Added import
 import code.name.monkey.lost.helper.getApiKeys
 import code.name.monkey.lost.helper.addApiKey
 import code.name.monkey.lost.helper.initialiseMetaDataProcess
@@ -48,7 +48,7 @@ class MainActivity : AbsCastActivity() {
         Timber.tag(TAG).d("onCreate started")
         try {
             Timber.tag(TAG).d("Setting up context for helpers.")
-            MetaDataManagerHelper.saveContext(this@MainActivity)
+            MetaData.saveContext(this@MainActivity)
             YTPlayerUtils.giveContext(this@MainActivity)
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error setting up context for helpers.")
@@ -178,7 +178,9 @@ class MainActivity : AbsCastActivity() {
                 val songs: List<Song> = getSongs(intent.extras!!)
                 if (MusicPlayerRemote.shuffleMode == MusicService.SHUFFLE_MODE_SHUFFLE) {
                     MusicPlayerRemote.openAndShuffleQueue(songs, true)
-                } else {
+                } else if (MusicPlayerRemote.shuffleMode == MusicService.SHUFFLE_MODE_SMART_SHUFFLE) {
+                    MusicPlayerRemote.openAndSmartShuffleQueue(songs, true)
+                }else {
                     MusicPlayerRemote.openQueue(songs, 0, true)
                 }
                 handled = true
