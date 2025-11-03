@@ -1,5 +1,6 @@
 package code.name.monkey.lost.fragments.settings
 
+import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,15 +12,20 @@ import androidx.navigation.fragment.findNavController
 import code.name.monkey.appthemehelper.ThemeStore
 import code.name.monkey.lost.App
 import code.name.monkey.lost.R
+import code.name.monkey.lost.activities.MainActivity
 import code.name.monkey.lost.databinding.FragmentMainSettingsBinding
 import code.name.monkey.lost.extensions.drawAboveSystemBarsWithPadding
 import code.name.monkey.lost.extensions.goToProVersion
+import timber.log.Timber
 
-class MainSettingsFragment : Fragment(), View.OnClickListener {
+class MainSettingsFragment : Fragment(), View.OnClickListener, MainActivity.OnSpotifyLoginCompleteListener {
 
     private var _binding: FragmentMainSettingsBinding? = null
     private val binding get() = _binding!!
 
+    companion object {
+        private const val TAG = "SpotifyPlaylist"
+    }
 
     override fun onClick(view: View) {
         findNavController().navigate(
@@ -36,6 +42,15 @@ class MainSettingsFragment : Fragment(), View.OnClickListener {
                 else -> R.id.action_mainSettingsFragment_to_themeSettingsFragment
             }
         )
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        Timber.tag(TAG).d("onAttach called")
+        if (context is MainActivity) {
+            Timber.tag(TAG).d("Setting OnSpotifyLoginCompleteListener")
+            context.setOnSpotifyLoginCompleteListener(this)
+        }
     }
 
     override fun onCreateView(
@@ -59,6 +74,10 @@ class MainSettingsFragment : Fragment(), View.OnClickListener {
         binding.otherSettings.setOnClickListener(this)
         binding.aboutSettings.setOnClickListener(this)
         binding.backupRestoreSettings.setOnClickListener(this)
+        binding.spotifySettings.setOnClickListener {
+            Timber.tag(TAG).d("spotifySettings clicked")
+            (requireActivity() as MainActivity).openSpotifyLogin()
+        }
 
         binding.buyProContainer.apply {
             isGone = App.isProVersion()
@@ -75,6 +94,11 @@ class MainSettingsFragment : Fragment(), View.OnClickListener {
         }
 
         binding.container.drawAboveSystemBarsWithPadding()
+    }
+
+    override fun onSpotifyLoginComplete() {
+        Timber.tag(TAG).d("onSpotifyLoginComplete called, navigating to other settings")
+        findNavController().navigate(R.id.action_mainSettingsFragment_to_otherSettingsFragment)
     }
 
     override fun onDestroyView() {

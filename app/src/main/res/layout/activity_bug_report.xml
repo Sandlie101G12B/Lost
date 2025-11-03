@@ -48,7 +48,7 @@
                     android:layout_height="wrap_content"
                     android:lineSpacingExtra="8dp"
                     android:text="@string/bug_report_manual"
-                    android:textAppearance="@style/TextViewSubtitle1" />
+                    android:textAppearance="@style/TextViewHeadline6" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="wrap_content"
@@ -59,7 +59,7 @@
             </LinearLayout>
 
             <include
-                android:id="@+id/card_device_info"
+                android:id="@+id/cardDeviceInfo"
                 layout="@layout/bug_report_card_device_info"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />

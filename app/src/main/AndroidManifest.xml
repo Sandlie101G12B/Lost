@@ -126,6 +126,12 @@
 
                 <data android:mimeType="vnd.android.cursor.dir/audio" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="${redirectSchemeName}" android:host="${redirectHostName}" android:pathPattern="${redirectPathPattern}" />
+            </intent-filter>
         </activity>
         <activity android:name=".activities.tageditor.AlbumTagEditorActivity" />
         <activity android:name=".activities.tageditor.SongTagEditorActivity" />

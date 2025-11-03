@@ -23,10 +23,11 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:paddingLeft="16dp"
-            android:paddingTop="40dp"
+            android:paddingTop="20dp"
             android:paddingRight="20dp"
             android:paddingBottom="5dp"
-            android:textAppearance="@style/TextViewHeadline6"
+            android:textAppearance="@style/TextViewHeadline16"
+            android:textSize="20sp"
             tools:text="@tools:sample/full_names" />
 
         <code.name.monkey.lost.views.AccentIcon
@@ -36,7 +37,7 @@
             android:paddingBottom="5dp"
             android:paddingLeft="16dp"
             android:paddingRight="16dp"
-            android:paddingTop="40dp"
+            android:paddingTop="20dp"
             app:srcCompat="@drawable/ic_arrow_forward" />
     </LinearLayout>
 

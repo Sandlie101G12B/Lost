@@ -44,11 +44,6 @@
         <item name="titleMarginStart">16dp</item>
     </style>
 
-    <style name="mcab_overflow_style" parent="Widget.AppCompat.ActionButton.Overflow">
-        <item name="srcCompat">@drawable/ic_more_vert</item>
-        <item name="android:tint">?colorSurface</item>
-    </style>
-
     <style name="ToolbarTextAppearanceNormal">
         <item name="android:textStyle">bold</item>
         <item name="android:textAllCaps">false</item>
@@ -65,17 +60,9 @@
         <item name="android:layout_height">wrap_content</item>
     </style>
 
-    <style name="BottomSheetItemTextAppearance" parent="Widget.MaterialComponents.BottomNavigationView.Colored">
-        <item name="android:textSize">13sp</item>
-    </style>
-
     <style name="Fab" parent="FabParent" />
 
     <style name="TextViewNormal" parent="">
-        <item name="android:textSize">14sp</item>
-    </style>
-
-    <style name="TextViewNormalCompress" parent="TextAppearance.MaterialComponents.Caption">
         <item name="android:textSize">14sp</item>
     </style>
 
@@ -89,13 +76,15 @@
 
     <style name="TextViewCaption" parent="TextAppearance.MaterialComponents.Caption" />
 
-    <style name="TextViewHeadline6" parent="TextAppearance.MaterialComponents.Headline6" />
+    <style name="TextViewHeadline6" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="fontFamily">@font/roboto_medium</item>
+        <item name="android:textSize">15.2sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
 
     <style name="TextViewHeadline3" parent="TextAppearance.MaterialComponents.Headline3" />
 
     <style name="TextViewHeadline2" parent="TextAppearance.MaterialComponents.Headline2" />
-
-    <style name="TextViewSubtitle1" parent="TextAppearance.MaterialComponents.Subtitle1" />
 
     <style name="TextViewSubtitle2" parent="TextAppearance.MaterialComponents.Subtitle2" />
 
@@ -138,22 +127,6 @@
 
     <style name="MaterialAlertDialogTheme" parent="ThemeOverlay.Material3.MaterialAlertDialog" />
 
-    <style name="AppTextAppearance.MaterialAlertDialog.Button" parent="Widget.MaterialComponents.Button.TextButton">
-        <item name="android:textSize">16sp</item>
-        <item name="android:textStyle">bold</item>
-        <item name="android:padding">0dp</item>
-    </style>
-
-    <style name="AppTextAppearance.MaterialAlertDialog.Body" parent="MaterialAlertDialog.Material3.Body.Text">
-        <item name="android:textAppearance">@style/TextViewBody1</item>
-        <item name="android:paddingTop">16dp</item>
-    </style>
-
-    <style name="AppTextAppearance.MaterialAlertDialog.Title" parent="MaterialAlertDialog.Material3.Title.Text">
-        <item name="android:textAppearance">@style/TextViewHeadline6</item>
-        <item name="android:textStyle">bold</item>
-    </style>
-
     <style name="MaterialButtonTheme" parent="Widget.Material3.Button">
         <item name="cornerRadius">6dp</item>
         <item name="iconGravity">textStart</item>
@@ -179,10 +152,6 @@
     </style>
 
     <!-- This will set the fade in animation on all your activities by default -->
-    <style name="WindowAnimationTransition">
-        <item name="android:windowEnterAnimation">@android:anim/fade_in</item>
-        <item name="android:windowExitAnimation">@android:anim/fade_out</item>
-    </style>
 
     <style name="circleImageView" parent="ShapeAppearance.MaterialComponents">
         <item name="cornerSize">40dp</item>
@@ -197,11 +166,6 @@
         <item name="chipStartPadding">10dp</item>
     </style>
     <!--Bottom Sheet Dialog Style-->
-    <style name="BottomSheetDialogStyle" parent="Theme.Design.BottomSheetDialog">
-        <item name="android:windowIsFloating">false</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowSoftInputMode">adjustResize|stateVisible</item>
-    </style>
 
     <style name="HomeActionButton" parent="Widget.Material3.Button.ElevatedButton.Icon">
         <item name="android:paddingTop">16dp</item>
@@ -232,8 +196,8 @@
     </style>
 
     <style name="FontThemeOverlay">
-        <item name="fontFamily">@font/manrope</item>
-        <item name="android:fontFamily">@font/manrope</item>
+        <item name="fontFamily">@font/roboto_regular</item>
+        <item name="android:fontFamily">@font/roboto_regular</item>
     </style>
 
     <style name="CircleFABOverlay">
@@ -271,5 +235,10 @@
         <item name="thumbElevation">0dp</item>
         <item name="background">@android:color/transparent</item>
         <item name="haloRadius">0dp</item>
+    </style>
+    <style name="TextViewHeadline16" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="fontFamily">@font/roboto_condensed</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">normal</item>
     </style>
 </resources>

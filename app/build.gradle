@@ -27,6 +27,11 @@ android {
         versionName = "6.5.1"
         buildConfigField("String", "GEMINI_API_KEYS", "\"${getProperty(getProperties('local.properties'), 'GEMINI_API_KEYS')}\"")
         buildConfigField("String", "GOOGLE_PLAY_LICENSING_KEY", "\"${getProperty(getProperties('public.properties'), 'GOOGLE_PLAY_LICENSE_KEY')}\"")
+        manifestPlaceholders = [
+                redirectSchemeName : 'lost',
+                redirectHostName   : 'callback',
+                redirectPathPattern: '/'
+        ]
     }
 
     def signingProperties = getProperties('lost.properties')
@@ -164,6 +169,7 @@ dependencies {
     implementation(libs.ktor.serialization.json)
     implementation(libs.timber)
     implementation libs.androidx.lifecycle.service
+    implementation libs.androidx.media3.datasource.okhttp
     // Cast Dependencies
     normalImplementation(libs.google.play.services.cast.framework)
     implementation(libs.coil)
@@ -246,4 +252,8 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    
+    // Spotify SDK Dependencies from developer.spotify.com
+    implementation "com.spotify.android:auth:2.1.1"
+    implementation "com.google.code.gson:gson:2.11.0"
 }

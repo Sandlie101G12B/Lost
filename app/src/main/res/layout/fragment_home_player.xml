@@ -60,7 +60,7 @@
         android:shadowDx="1"
         android:shadowDy="1"
         android:shadowRadius="2"
-        android:textAppearance="@style/TextViewSubtitle1"
+        android:textAppearance="@style/TextViewHeadline6"
         android:textColor="@color/md_white_1000"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

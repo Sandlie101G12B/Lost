@@ -2,6 +2,7 @@ package code.name.monkey.lost
 
 import android.app.Activity
 import android.app.Application
+import android.content.Intent
 import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.appcompat.app.AppCompatDelegate
@@ -54,6 +55,7 @@ import java.net.Authenticator
 import java.net.PasswordAuthentication
 import java.net.Proxy
 import java.util.Locale
+import kotlin.system.exitProcess
 
 class App : Application() {
 
@@ -63,6 +65,17 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        if (!BuildConfig.DEBUG) {
+            val defaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
+            Thread.setDefaultUncaughtExceptionHandler { t, e ->
+                val intent = Intent(this, MainActivity::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                intent.putExtra("autoplay", true)
+                startActivity(intent)
+                exitProcess(0)
+            }
+        }
+
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         Timber.plant(Timber.DebugTree())
         instance = this

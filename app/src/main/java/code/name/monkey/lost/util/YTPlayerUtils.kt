@@ -3,7 +3,6 @@ package code.name.monkey.lost.util
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
-import android.os.Build
 import com.metrolist.innertube.NewPipeUtils
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
@@ -21,7 +20,6 @@ import com.metrolist.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
 import com.metrolist.innertube.models.YouTubeClient.Companion.MOBILE
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_CREATOR
-import dagger.hilt.android.EntryPointAccessors 
 import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 import timber.log.Timber
@@ -29,9 +27,6 @@ import kotlinx.coroutines.withContext
 import java.util.Collections
 import java.util.concurrent.TimeUnit
 import code.name.monkey.lost.model.Song
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
 
 enum class AudioQuality {
     AUTO,

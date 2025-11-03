@@ -28,8 +28,9 @@
             app:navigationIcon="@drawable/ic_keyboard_arrow_down"
             app:subtitleTextAppearance="@style/TextViewCaption"
             app:titleMargin="0dp"
+            android:textStyle="bold"
             app:titleMarginStart="0dp"
-            app:titleTextAppearance="@style/TextViewSubtitle1"
+            app:titleTextAppearance="@style/TextViewHeadline6"
             tools:subtitle="@tools:sample/full_names"
             tools:title="@tools:sample/full_names" />
 

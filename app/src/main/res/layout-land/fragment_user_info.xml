@@ -80,8 +80,9 @@
                 android:autofillHints="name"
                 android:hint="@string/my_name"
                 android:importantForAutofill="yes"
+                android:textStyle="bold"
                 android:inputType="textPersonName|textCapWords|text"
-                android:textAppearance="@style/TextViewSubtitle1"
+                android:textAppearance="@style/TextViewHeadline6"
                 tools:text="@tools:sample/full_names" />
         </com.google.android.material.textfield.TextInputLayout>
 

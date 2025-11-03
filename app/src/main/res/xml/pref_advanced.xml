@@ -90,4 +90,18 @@
         android:positiveButtonText="@null"
         android:title="@string/pref_language_name"
         app:icon="@drawable/ic_language" />
+
+    <PreferenceScreen
+        app:key="spotify_settings"
+        app:title="@string/spotify"
+        app:summary="@string/spotify_settings_summary">
+        <Preference
+            app:key="spotify_login"
+            app:title="@string/login" />
+        <PreferenceCategory
+            app:key="spotify_playlists_category"
+            app:title="@string/playlists">
+            <!-- Playlists will be added here dynamically -->
+        </PreferenceCategory>
+    </PreferenceScreen>
 </androidx.preference.PreferenceScreen>

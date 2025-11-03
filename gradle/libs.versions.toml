@@ -60,6 +60,10 @@ devTools_ksp_version = "2.1.21-2.0.1"
 ben_manes_versoin = "0.46.0"
 slidableactivity = "2.1.0"
 lifecycleService = "2.9.4"
+agp = "8.13.0"
+junitVersion = "1.1.5"
+espressoCore = "3.5.1"
+media3DatasourceOkhttp = "1.8.0"
 
 
 [libraries]
@@ -177,6 +181,9 @@ room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-media3-datasource-okhttp = { group = "androidx.media3", name = "media3-datasource-okhttp", version.ref = "media3DatasourceOkhttp" }
 
 [plugins]
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
@@ -184,3 +191,5 @@ github-ben-manes = { id = "com.github.ben-manes.versions", version.ref = "ben_ma
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "devTools_ksp_version" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

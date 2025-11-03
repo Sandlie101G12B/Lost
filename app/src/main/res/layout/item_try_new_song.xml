@@ -27,6 +27,7 @@
                 android:layout_width="100dp"
                 android:layout_height="100dp"
                 android:scaleType="centerCrop"
+                app:cardElevation="1dp"
                 tools:srcCompat="@tools:sample/backgrounds/scenic" />
 
         </com.google.android.material.card.MaterialCardView>
@@ -46,7 +47,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textAppearance="@style/TextViewHeadline6"
                 android:textStyle="bold"
                 tools:text="Song Title Which is Very Long and Needs to Ellipsize" />
 
@@ -56,7 +57,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="3"
-                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textAppearance="@style/TextViewBody2"
                 tools:text="Artist Name" />
         </LinearLayout>
     </LinearLayout>

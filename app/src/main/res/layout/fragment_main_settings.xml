@@ -49,7 +49,7 @@
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
                     android:text="@string/lost_music_pro"
-                    android:textAppearance="@style/TextViewSubtitle1"
+                    android:textAppearance="@style/TextViewHeadline6"
                     android:textStyle="bold"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -159,14 +159,24 @@
             app:settingListItemTitle="@string/notification" />
 
         <code.name.monkey.lost.views.SettingListItemView
-            android:id="@+id/otherSettings"
+            android:id="@+id/aboutSettings"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:settingListItemIcon="@drawable/ic_info_outline"
+            android:textColor="?android:attr/textColorPrimary"
+            app:settingListItemIconColor="@color/md_light_green_A400"
+            app:settingListItemText="@string/about_settings_summary"
+            app:settingListItemTitle="@string/action_about" />
+
+        <code.name.monkey.lost.views.SettingListItemView
+            android:id="@+id/spotifySettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:settingListItemIcon="@drawable/ic_testing"
+            app:settingListItemIcon="@drawable/ic_spotify"
             android:textColor="?android:attr/textColorPrimary"
-            app:settingListItemIconColor="@color/md_indigo_A400"
-            app:settingListItemText="@string/other_settings_summary"
-            app:settingListItemTitle="@string/others" />
+            app:settingListItemIconColor="@color/spotify_green"
+            app:settingListItemText="@string/spotify_settings_summary"
+            app:settingListItemTitle="@string/intergrate_spotify_playlists" />
 
         <code.name.monkey.lost.views.SettingListItemView
             android:id="@+id/backup_restore_settings"
@@ -179,14 +189,14 @@
             app:settingListItemTitle="@string/backup_restore_title" />
 
         <code.name.monkey.lost.views.SettingListItemView
-            android:id="@+id/aboutSettings"
+            android:id="@+id/otherSettings"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            app:settingListItemIcon="@drawable/ic_info_outline"
+            android:layout_height="wrap_content"
+            app:settingListItemIcon="@drawable/ic_testing"
             android:textColor="?android:attr/textColorPrimary"
-            app:settingListItemIconColor="@color/md_light_green_A400"
-            app:settingListItemText="@string/about_settings_summary"
-            app:settingListItemTitle="@string/action_about" />
+            app:settingListItemIconColor="@color/md_indigo_A400"
+            app:settingListItemText="@string/other_settings_summary"
+            app:settingListItemTitle="@string/others" />
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

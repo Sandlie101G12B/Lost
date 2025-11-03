@@ -17,9 +17,10 @@
         android:paddingBottom="5dp"
         android:paddingLeft="10dp"
         android:paddingRight="20dp"
-        android:paddingTop="25dp"
+        android:paddingTop="20dp"
         android:text="@string/suggestion_songs"
-        android:textAppearance="@style/TextViewHeadline6"
+        android:textAppearance="@style/TextViewHeadline16"
+        android:textSize="20sp"
         app:layout_constrainedWidth="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

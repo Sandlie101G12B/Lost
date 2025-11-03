@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/mi_baseline"
         android:gravity="center"
-        android:textAppearance="@style/TextViewSubtitle1"
+        android:textAppearance="@style/TextViewHeadline6"
         tools:text="Lorem ipsum dolor sit amet, consectetur, adipisci velit, …" />
 
 </com.heinrichreimersoftware.materialintro.view.parallax.ParallaxLinearLayout>

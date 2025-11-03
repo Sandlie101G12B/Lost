@@ -74,8 +74,7 @@ class RealPlaylistRepository(
         listOf(
             AutomaticPlaylistDefinition("Unplayed Songs") { meta, songs -> AutomaticPlaylistGenerator.unplayedSongs(meta, songs) },
             AutomaticPlaylistDefinition("Picked for you") { meta, songs -> AutomaticPlaylistGenerator.generateTastePlaylist(meta, songs) },
-            AutomaticPlaylistDefinition("High Energy") { meta, songs -> AutomaticPlaylistGenerator.generateHighEnergyPlaylist(meta, songs) },
-            AutomaticPlaylistDefinition("Liked Songs Radio") { meta, songs -> AutomaticPlaylistGenerator.generateLikedSongsRadio(meta, songs) }
+            AutomaticPlaylistDefinition("High Energy") { meta, songs -> AutomaticPlaylistGenerator.generateHighEnergyPlaylist(meta, songs) }
         )
     }
 

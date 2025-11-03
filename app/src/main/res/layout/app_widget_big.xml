@@ -91,7 +91,7 @@
             android:layout_weight="1"
             android:gravity="center_vertical"
             android:singleLine="true"
-            android:textAppearance="@style/TextViewSubtitle1"
+            android:textAppearance="@style/TextViewHeadline6"
             android:textColor="@color/ate_secondary_text_dark"
             tools:text="Text" />
 

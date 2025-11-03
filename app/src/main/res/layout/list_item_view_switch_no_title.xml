@@ -29,7 +29,7 @@
         android:layout_height="wrap_content"
         android:paddingStart="0dp"
         android:paddingEnd="16dp"
-        android:textAppearance="@style/TextViewSubtitle1"
+        android:textAppearance="@style/TextViewHeadline6"
         app:layout_constrainedWidth="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@android:id/checkbox"

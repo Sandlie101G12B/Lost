@@ -18,6 +18,7 @@ import code.name.monkey.lost.model.CategoryInfo
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.repository.PlaylistSongsLoader
 import code.name.monkey.lost.service.MusicService
+import code.name.monkey.lost.service.SpotifyPlaylistIntergrator
 import code.name.monkey.lost.util.AppRater
 import code.name.monkey.lost.util.PreferenceUtil
 import code.name.monkey.lost.util.logE
@@ -38,6 +39,16 @@ class MainActivity : AbsCastActivity() {
     companion object {
         const val TAG = "MainActivity"
         const val EXPAND_PANEL = "expand_panel"
+    }
+
+    interface OnSpotifyLoginCompleteListener {
+        fun onSpotifyLoginComplete()
+    }
+
+    private var onSpotifyLoginCompleteListener: OnSpotifyLoginCompleteListener? = null
+
+    fun setOnSpotifyLoginCompleteListener(listener: OnSpotifyLoginCompleteListener) {
+        this.onSpotifyLoginCompleteListener = listener
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,6 +102,22 @@ class MainActivity : AbsCastActivity() {
         Timber.tag(TAG).d("Showing changelog.")
         WhatsNewFragment.showChangeLog(this)
         Timber.tag(TAG).d("onCreate finished.")
+    }
+
+    fun openSpotifyLogin() {
+        Timber.tag("SpotifyPlaylist").d("openSpotifyLogin called from MainActivity")
+        SpotifyPlaylistIntergrator.openLogin(this)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        Timber.tag("SpotifyPlaylist").d("onActivityResult in MainActivity with requestCode: %d", requestCode)
+        SpotifyPlaylistIntergrator.onAuthorizationComplete(requestCode, resultCode, data) { success ->
+            if (success) {
+                Timber.tag("SpotifyPlaylist").d("Spotify login successful in MainActivity, notifying listener.")
+                onSpotifyLoginCompleteListener?.onSpotifyLoginComplete()
+            }
+        }
     }
 
     private fun setupNavigationController() {
