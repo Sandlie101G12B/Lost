@@ -37,8 +37,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import com.metrolist.innertube.YouTube
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jaudiotagger.audio.AudioFileIO
@@ -53,7 +53,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URL
 import kotlin.random.Random
-import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_REMIX
 
 // NEW sealed class to represent a download's final outcome
 sealed class DownloadResult {
@@ -79,14 +78,6 @@ class DownloadService : LifecycleService(), KoinComponent {
         } else {
             startForeground(FOREGROUND_NOTIFICATION_ID, notification)
         }
-        downloadManager.downloading
-            .onEach { inProgress ->
-                if (inProgress.isEmpty()) {
-                    Timber.tag(TAG).i("All downloads complete, stopping service.")
-                    stopSelf()
-                }
-            }
-            .launchIn(lifecycleScope)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -146,11 +137,12 @@ class DownloadService : LifecycleService(), KoinComponent {
 class DownloadManager (
     private val context: Context
 ): KoinComponent {
-    private val playlistDao:PlaylistDao by inject()
+    private val playlistDao: PlaylistDao by inject()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val downloading = MutableStateFlow<Map<String, Int>>(emptyMap()) // videoId → progress
     val downloadResult = MutableSharedFlow<DownloadResult>(extraBufferCapacity = 10)
     private val jobs = mutableMapOf<String, Job>()
+
     private fun canPostNotifications(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
@@ -179,6 +171,7 @@ class DownloadManager (
         val job = scope.launch {
             var tempAudioFile: File? = null
             try {
+                downloading.update { it + (videoId to 0) } // Indicate that a download is in progress
                 postInitialNotification(song, videoId)
                 val tempFileName = "download_${videoId}_${Random.nextInt(10000)}.tmp"
                 tempAudioFile = File(context.cacheDir, tempFileName)
@@ -253,15 +246,7 @@ class DownloadManager (
         videoId: String,
         outputFile: File
     ) {
-        val streamData = withContext(Dispatchers.IO) {
-            YouTube.player(videoId = videoId, client = WEB_REMIX).getOrThrow()
-        }
-        val audioStream = streamData.streamingData?.adaptiveFormats
-            ?.filter { it.mimeType.contains("audio") }
-            ?.maxByOrNull { it.bitrate }
-            ?: streamData.streamingData?.formats?.firstOrNull()
-            ?: throw IOException("No suitable audio stream found for videoId: $videoId")
-        val url = audioStream.url
+        val url = YTPlayerUtils.getPlaybackData(videoId).getOrThrow().streamUrl
         val dataSource = DefaultHttpDataSource.Factory().createDataSource()
         var output: FileOutputStream? = null
 
