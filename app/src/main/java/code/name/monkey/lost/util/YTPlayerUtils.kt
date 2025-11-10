@@ -3,6 +3,11 @@ package code.name.monkey.lost.util
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
+import androidx.core.net.toUri
+import androidx.media3.exoplayer.offline.DownloadRequest
+import androidx.media3.exoplayer.offline.DownloadService
+import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.service.ExoDownloadService
 import com.metrolist.innertube.NewPipeUtils
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
@@ -12,21 +17,20 @@ import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.models.YouTubeClient
-import com.metrolist.innertube.models.YouTubeClient.Companion.IOS
-import com.metrolist.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
-import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_REMIX
-import com.metrolist.innertube.models.response.PlayerResponse
 import com.metrolist.innertube.models.YouTubeClient.Companion.ANDROID_VR_NO_AUTH
+import com.metrolist.innertube.models.YouTubeClient.Companion.IOS
 import com.metrolist.innertube.models.YouTubeClient.Companion.MOBILE
+import com.metrolist.innertube.models.YouTubeClient.Companion.TVHTML5_SIMPLY_EMBEDDED_PLAYER
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_CREATOR
+import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import com.metrolist.innertube.models.response.PlayerResponse
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import timber.log.Timber
-import kotlinx.coroutines.withContext
 import java.util.Collections
 import java.util.concurrent.TimeUnit
-import code.name.monkey.lost.model.Song
 
 enum class AudioQuality {
     AUTO,
@@ -44,8 +48,8 @@ data class YouTubeSourceConfig(
 data class YouTubeSearchItem(
     val videoId: String?,
     val title: String?,
-    val author: String?, 
-    val duration: String?, 
+    val author: String?,
+    val duration: String?,
     val thumbnailUrl: String?
 )
 
@@ -66,7 +70,7 @@ object YTPlayerUtils {
     private val httpClient = OkHttpClient.Builder()
         .proxy(YouTube.proxy)
         .build()
-    
+
     private val MAIN_CLIENT: YouTubeClient = WEB_REMIX
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
         ANDROID_VR_NO_AUTH,
@@ -77,9 +81,10 @@ object YTPlayerUtils {
         WEB_CREATOR
     )
 
-    fun giveContext(context:Context){
-        appContext = context.applicationContext 
+    fun giveContext(context: Context) {
+        appContext = context.applicationContext
     }
+
     data class PlaybackData(
         val audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
         val videoDetails: PlayerResponse.VideoDetails?,
@@ -105,7 +110,8 @@ object YTPlayerUtils {
             val signatureTimestamp = getSignatureTimestampOrNull(videoId)
             val isLoggedIn = YouTube.cookie != null
             val sessionId = if (isLoggedIn) YouTube.dataSyncId else YouTube.visitorData
-            Timber.tag(logTag).d("Session auth: ${if (isLoggedIn) "Logged in ($sessionId)" else "Not logged in ($sessionId)"}")
+            Timber.tag(logTag)
+                .d("Session auth: ${if (isLoggedIn) "Logged in ($sessionId)" else "Not logged in ($sessionId)"}")
 
             val mainPlayerResponse =
                 YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp).getOrThrow()
@@ -157,14 +163,16 @@ object YTPlayerUtils {
                         continue
                     }
                     if (clientIndex == STREAM_FALLBACK_CLIENTS.size - 1) {
-                        Timber.tag(logTag).d("Using last fallback client without validation: ${client.clientName}")
+                        Timber.tag(logTag)
+                            .d("Using last fallback client without validation: ${client.clientName}")
                         break
                     }
                     if (validateStatus(streamUrl)) {
                         Timber.tag(logTag).d("Stream validated for client ${client.clientName}")
                         break
                     } else {
-                        Timber.tag(logTag).d("Validation failed for client ${client.clientName}, trying next fallback")
+                        Timber.tag(logTag)
+                            .d("Validation failed for client ${client.clientName}, trying next fallback")
                     }
                 } else {
                     Timber.tag(logTag).d(
@@ -177,8 +185,16 @@ object YTPlayerUtils {
             if (streamUrl == null) throw Exception("Could not resolve a stream URL.")
             if (streamExpiresInSeconds == null) throw Exception("Missing stream expiration time.")
 
-            Timber.tag(logTag).d("Successfully obtained playback data: ${format.mimeType}, bitrate=${format.bitrate}")
-            PlaybackData(audioConfig, videoDetails, playbackTracking, format, streamUrl, streamExpiresInSeconds)
+            Timber.tag(logTag)
+                .d("Successfully obtained playback data: ${format.mimeType}, bitrate=${format.bitrate}")
+            PlaybackData(
+                audioConfig,
+                videoDetails,
+                playbackTracking,
+                format,
+                streamUrl,
+                streamExpiresInSeconds
+            )
         }
     }
 
@@ -186,7 +202,8 @@ object YTPlayerUtils {
         videoId: String,
         playlistId: String? = null,
     ): Result<PlayerResponse> {
-        Timber.tag(logTag).d("Fetching metadata-only player response for videoId: $videoId using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
+        Timber.tag(logTag)
+            .d("Fetching metadata-only player response for videoId: $videoId using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
         return YouTube.player(videoId, playlistId, client = MAIN_CLIENT)
             .onSuccess { Timber.tag(logTag).d("Successfully fetched metadata") }
             .onFailure { Timber.tag(logTag).e(it, "Failed to fetch metadata") }
@@ -197,7 +214,8 @@ object YTPlayerUtils {
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
     ): PlayerResponse.StreamingData.Format? {
-        Timber.tag(logTag).d("Finding format with audioQuality: $audioQuality, network metered: ${connectivityManager.isActiveNetworkMetered}")
+        Timber.tag(logTag)
+            .d("Finding format with audioQuality: $audioQuality, network metered: ${connectivityManager.isActiveNetworkMetered}")
         val format = playerResponse.streamingData?.adaptiveFormats
             ?.filter { it.isAudio }
             ?.maxByOrNull {
@@ -205,7 +223,7 @@ object YTPlayerUtils {
                     AudioQuality.AUTO -> if (connectivityManager.isActiveNetworkMetered) -1 else 1
                     AudioQuality.HIGH -> 1
                     AudioQuality.LOW -> -1
-                } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) 
+                } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0)
             }
         if (format != null) {
             Timber.tag(logTag).d("Selected format: ${format.mimeType}, bitrate: ${format.bitrate}")
@@ -221,11 +239,12 @@ object YTPlayerUtils {
             val requestBuilder = okhttp3.Request.Builder().head().url(url)
             val response = httpClient.newCall(requestBuilder.build()).execute()
             val isSuccessful = response.isSuccessful
-            Timber.tag(logTag).d("Stream URL validation result: ${if (isSuccessful) "Success" else "Failed"} (${response.code})")
+            Timber.tag(logTag)
+                .d("Stream URL validation result: ${if (isSuccessful) "Success" else "Failed"} (${response.code})")
             return isSuccessful
         } catch (e: Exception) {
             Timber.tag(logTag).e(e, "Stream URL validation failed with exception")
-            }
+        }
         return false
     }
 
@@ -248,7 +267,7 @@ object YTPlayerUtils {
     fun extractYouTubeVideoId(youtubeUrl: String): String? {
         val patterns = listOf(
             Regex("""(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})"""),
-        )
+            )
         for (pattern in patterns) {
             val matcher = pattern.find(youtubeUrl)
             if (matcher != null && matcher.groupValues.size > 1) {
@@ -258,7 +277,6 @@ object YTPlayerUtils {
         return null
     }
 
-    // @RequiresApi(Build.VERSION_CODES.O) // REMOVED - minSdk is 26+
     suspend fun initiateVideoDownload(
         song: Song,
         audioQuality: AudioQuality = AudioQuality.HIGH
@@ -266,39 +284,33 @@ object YTPlayerUtils {
         try {
             if (!::appContext.isInitialized) {
                 Timber.tag(logTag).e("AppContext not initialized. Cannot start download.")
-                // Consider returning a failure Result or throwing an exception here
-                // return@withContext Result.failure(IllegalStateException("AppContext not initialized"))
+                return@withContext
             }
 
             val videoId = extractYouTubeVideoId(song.data)?.takeIf { it.isNotBlank() }
             if (videoId == null) {
                 Timber.tag(logTag).e("Failed to extract valid videoId from song data: ${song.data}")
-                // Consider returning a failure Result or throwing an exception here
-                // return@withContext Result.failure(IllegalArgumentException("Invalid videoId"))
+                return@withContext
             }
 
             if (offlineVideos.containsKey(videoId)) {
                 Timber.tag(logTag).i("Video $videoId is already in offlineVideos map.")
-                // Ensure the return type matches what the caller expects if you return early
-                 return@withContext // Assuming the function is intended to return Unit implicitly on success here
+                return@withContext
             }
 
             Timber.tag(logTag).d("Requesting download for videoId=$videoId, song=${song.title}")
 
-            val intent = Intent(appContext, DownloadService::class.java).apply {
-                action = DownloadService.ACTION_START_DOWNLOAD
-                putExtra(DownloadService.EXTRA_SONG, song)
-            }
-            appContext.startService(intent) // MODIFIED: Always use startService
+            val downloadRequest = DownloadRequest.Builder(videoId, song.data.toUri()).build()
+            DownloadService.sendAddDownload(
+                appContext,
+                ExoDownloadService::class.java,
+                downloadRequest,
+                /* foreground= */ false
+            )
 
         } catch (e: Exception) {
             Timber.tag(logTag).e(e, "Failed to initiate download for ${song.title}")
-            // Consider returning a failure Result or re-throwing if the caller should handle it
-            // return@withContext Result.failure(e)
         }
-        // Ensure a Unit is returned if the function is expected to return Unit
-        // If all paths are expected to lead to a Result, make sure they do.
-        // Based on the original structure, it seems an implicit Unit return on success or after catch was intended.
     }
 
 
@@ -320,7 +332,7 @@ object YTPlayerUtils {
         }
         Timber.tag(logTag).d("Attempting to add video $videoId to playlist $playlistId")
         val innertubeResult = YouTube.addToPlaylist(playlistId, videoId)
-        innertubeResult.map { } 
+        innertubeResult.map { }
     }
 
     suspend fun getSimilarContent(videoId: String): Result<List<SongItem>> = withContext(Dispatchers.IO) {
@@ -328,7 +340,7 @@ object YTPlayerUtils {
             Timber.tag(logTag).d("Getting similar content for videoId: $videoId")
             val endpoint = WatchEndpoint(videoId = videoId, playlistId = null)
             val nextResult = YouTube.next(endpoint).getOrThrow()
-            val similarItems: List<SongItem> = nextResult.items.map { it } 
+            val similarItems: List<SongItem> = nextResult.items.map { it }
             Timber.tag(logTag).d("Found ${similarItems.size} similar items for videoId: $videoId")
             similarItems
         }.onFailure {
@@ -345,8 +357,8 @@ object YTPlayerUtils {
     }
 
     private fun mapYTItemToYouTubeSearchItem(ytItem: YTItem): YouTubeSearchItem? {
-        val videoId: String? 
-        val title: String = ytItem.title 
+        val videoId: String?
+        val title: String = ytItem.title
         var author: String?
         var displayDurationOrType: String?
         val thumbnailUrl: String? = ytItem.thumbnail
@@ -358,17 +370,17 @@ object YTPlayerUtils {
                 displayDurationOrType = formatDuration(ytItem.duration)
             }
             is AlbumItem -> {
-                videoId = null 
+                videoId = null
                 author = ytItem.artists?.joinToString(", ") { it.name }
                 displayDurationOrType = "Album" + (ytItem.year?.let { " ($it)" } ?: "")
             }
             is ArtistItem -> {
-                videoId = null 
-                author = ytItem.title 
+                videoId = null
+                author = ytItem.title
                 displayDurationOrType = "Artist"
             }
             is PlaylistItem -> {
-                videoId = null 
+                videoId = null
                 author = ytItem.author?.name
                 displayDurationOrType = "Playlist" + (ytItem.songCountText?.let { " ($it)" } ?: "")
             }
@@ -386,15 +398,7 @@ object YTPlayerUtils {
             val searchResult = YouTube.search(query, filter = filter).getOrThrow()
             Timber.tag(logTag).i("Successfully received search result for \"$query\". Found ${searchResult.items.size} items.")
             val mappedItems = searchResult.items.mapNotNull { mapYTItemToYouTubeSearchItem(it) }
-            Timber.tag(logTag).i("Mapped ${mappedItems.size} search results for query: \"$query\"")
             mappedItems
-        }.onFailure {
-            Timber.tag(logTag).e(it, "Failed to search for videos with query: \"$query\"")
-            Result.failure<List<YouTubeSearchItem>>(it)
         }
-    }
-
-    private fun reportException(t: Throwable) {
-        Timber.tag(logTag).e(t, "Reported exception (UniversalYouTubeSource)")
     }
 }

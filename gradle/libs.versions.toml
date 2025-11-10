@@ -64,6 +64,8 @@ agp = "8.13.0"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
 media3DatasourceOkhttp = "1.8.0"
+roomKtx = "2.8.3"
+adapters = "3.2.0-alpha11"
 
 
 [libraries]
@@ -184,6 +186,8 @@ androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-s
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-media3-datasource-okhttp = { group = "androidx.media3", name = "media3-datasource-okhttp", version.ref = "media3DatasourceOkhttp" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "roomKtx" }
+androidx-adapters = { group = "androidx.databinding", name = "adapters", version.ref = "adapters" }
 
 [plugins]
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

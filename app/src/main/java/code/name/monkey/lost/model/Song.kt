@@ -24,6 +24,7 @@ open class Song(
     open val ytID: String? = null,
     open val isYTSong: Boolean = false,
     open var streamUrl: String? = null,
+    open val isLocal: Boolean = false
 ) : Parcelable {
 
     @IgnoredOnParcel
@@ -110,6 +111,48 @@ open class Song(
                 "artistNames=$artistNames, artistIds=$artistIds)"
     }
 
+    open fun copy(
+        id: Long = this.id,
+        title: String = this.title,
+        trackNumber: Int = this.trackNumber,
+        year: Int = this.year,
+        duration: Long = this.duration,
+        data: String = this.data,
+        dateModified: Long = this.dateModified,
+        albumId: Long = this.albumId,
+        albumName: String = this.albumName,
+        artistId: Long = this.artistId,
+        artistName: String = this.artistName,
+        composer: String? = this.composer,
+        albumArtist: String? = this.albumArtist,
+        bpm: Float? = this.bpm,
+        ytID: String? = this.ytID,
+        isYTSong: Boolean = this.isYTSong,
+        streamUrl: String? = this.streamUrl,
+        isLocal: Boolean = this.isLocal
+    ): Song {
+        return Song(
+            id,
+            title,
+            trackNumber,
+            year,
+            duration,
+            data,
+            dateModified,
+            albumId,
+            albumName,
+            artistId,
+            artistName,
+            composer,
+            albumArtist,
+            bpm,
+            ytID,
+            isYTSong,
+            streamUrl,
+            isLocal
+        )
+    }
+
     companion object {
 
         @JvmStatic
@@ -127,7 +170,8 @@ open class Song(
             artistName = "", // This will lead to empty artistNames and artistIds
             composer = "",
             albumArtist = "",
-            bpm = null  // Explicit constructor args for emptySong
+            bpm = null,  // Explicit constructor args for emptySong
+            isLocal = false
         )
     }
 }

@@ -1,26 +1,40 @@
 package code.name.monkey.lost
 
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.database.DatabaseProvider
+import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.NoOpCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.room.Room
 import code.name.monkey.lost.auto.AutoMusicProvider
 import code.name.monkey.lost.cast.LostWebServer
+import code.name.monkey.lost.contants.MaxSongCacheSizeKey
+import code.name.monkey.lost.db.DatabaseDao
+import code.name.monkey.lost.db.InternalDatabase
+import code.name.monkey.lost.db.MIGRATION_1_2
 import code.name.monkey.lost.db.MIGRATION_23_24
 import code.name.monkey.lost.db.MIGRATION_24_25
 import code.name.monkey.lost.db.LostDatabase
+import code.name.monkey.lost.db.MusicDatabase
 import code.name.monkey.lost.fragments.LibraryViewModel
 import code.name.monkey.lost.fragments.albums.AlbumDetailsViewModel
 import code.name.monkey.lost.fragments.artists.ArtistDetailsViewModel
 import code.name.monkey.lost.fragments.genres.GenreDetailsViewModel
 import code.name.monkey.lost.fragments.playlists.PlaylistDetailsViewModel
-import code.name.monkey.lost.helper.MetaData // Added import
+import code.name.monkey.lost.helper.MetaData
 import code.name.monkey.lost.model.Genre
 import code.name.monkey.lost.network.provideDefaultCache
 import code.name.monkey.lost.network.provideLastFmRest
 import code.name.monkey.lost.network.provideLastFmRetrofit
 import code.name.monkey.lost.network.provideOkHttp
-import code.name.monkey.lost.util.DownloadManager
 import code.name.monkey.lost.repository.*
+import code.name.monkey.lost.util.DownloadUtil
+import code.name.monkey.lost.util.dataStore
+import code.name.monkey.lost.util.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -46,6 +60,20 @@ private val roomModule = module {
         Room.databaseBuilder(androidContext(), LostDatabase::class.java, "playlist.db")
             .addMigrations(MIGRATION_23_24, MIGRATION_24_25)
             .build()
+    }
+
+    single {
+        val internalDb = Room.databaseBuilder(
+            androidContext(),
+            InternalDatabase::class.java,
+            "song.db"
+        ).addMigrations(MIGRATION_1_2)
+            .build()
+        MusicDatabase(internalDb)
+    }
+
+    factory<DatabaseDao> {
+        get<MusicDatabase>()
     }
 
     factory {
@@ -112,7 +140,7 @@ private val dataModule = module {
     } bind SongRepository::class
 
     single {
-        RealGenreRepository(get(),  get())
+        RealGenreRepository(get(), get())
     } bind GenreRepository::class
 
     single {
@@ -191,8 +219,38 @@ private val viewModules = module {
     }
 }
 
-val downloadModule = module {
-    single { DownloadManager(androidContext()) }
+@UnstableApi
+private val cacheModule = module {
+    single<DatabaseProvider> {
+        StandaloneDatabaseProvider(androidContext())
+    }
+
+    single(named("playerCache")) {
+        SimpleCache(
+            androidContext().filesDir.resolve("exoplayer"),
+            when (val cacheSize = androidContext().dataStore[MaxSongCacheSizeKey] ?: 1024) {
+                -1 -> NoOpCacheEvictor()
+                else -> LeastRecentlyUsedCacheEvictor(cacheSize * 1024 * 1024L)
+            },
+            get(),
+        )
+    }
+
+    single(named("downloadCache")) {
+        SimpleCache(
+            androidContext().filesDir.resolve("download"),
+            NoOpCacheEvictor(),
+            get()
+        )
+    }
 }
 
-val appModules = listOf(mainModule, dataModule, autoModule, viewModules, networkModule, roomModule, downloadModule)
+val downloadModule = module {
+    single {
+        @UnstableApi
+        DownloadUtil(androidContext(), get(), get(), get(named("downloadCache")), get(named("playerCache")))
+    }
+}
+
+@UnstableApi
+val appModules = listOf(mainModule, dataModule, autoModule, viewModules, networkModule, roomModule, downloadModule, cacheModule)

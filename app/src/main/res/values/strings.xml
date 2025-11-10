@@ -67,6 +67,7 @@
         <item quantity="one">Album</item>
         <item quantity="other">Albums</item>
     </plurals>
+    <plurals name="n_song">songs</plurals>
     <string name="always">Always</string>
     <string name="app_share">Hey check out this cool music player at: https://play.google.com/store/apps/details?id=%s</string>
     <string name="app_shortcut_shuffle_all_short">Shuffle</string>
@@ -528,4 +529,5 @@
     <string name="spotify_settings_summary">Login to Spotify to sync your playlists</string>
     <string name="intergrate_spotify_playlists">Integrate Spotify Playlists</string>
     <string name="cancel">Cancel download</string>
+    <string name="downloading">Downloading song</string>
 </resources>

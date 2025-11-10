@@ -30,7 +30,7 @@ import code.name.monkey.lost.contants.UseLoginForBrowse
 import code.name.monkey.lost.contants.VisitorDataKey
 import code.name.monkey.lost.extensions.toInetSocketAddress
 import code.name.monkey.lost.helper.WallpaperAccentManager
-import code.name.monkey.lost.util.DownloadManager // Added import
+import code.name.monkey.lost.util.DownloadUtil
 import code.name.monkey.lost.util.YTPlayerUtils
 import code.name.monkey.lost.util.dataStore
 import code.name.monkey.lost.util.get
@@ -178,7 +178,7 @@ class App : Application() {
         }
 
         // Create notification channels
-        DownloadManager.createNotificationChannel(this, "downloads_manager_channel")
+//        DownloadUtil.createNotificationChannel(this, "downloads_manager_channel")
 
         // default theme
         if (!ThemeStore.isConfigured(this, 3)) {

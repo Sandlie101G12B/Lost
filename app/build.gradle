@@ -149,10 +149,17 @@ static def getProperty(Properties properties, String name) {
     return properties?.getProperty(name) ?: "$name missing"
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    compilerOptions {
+        if (project.findProperty("enableComposeCompilerReports") == "true") {
+            arrayOf("reports", "metrics").forEach { freeCompilerArgs.add("-P"); freeCompilerArgs.add("plugin:androidx.compose.compiler.plugins.kotlin:${it}Destination=${project.layout.buildDirectory}/compose_metrics") }
+        }
+    }
+}
+
 dependencies {
     implementation(project(':appthemehelper'))
     implementation(libs.gridLayout)
-
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.annotation)
     implementation(libs.androidx.constraintLayout)
@@ -170,64 +177,51 @@ dependencies {
     implementation(libs.timber)
     implementation libs.androidx.lifecycle.service
     implementation libs.androidx.media3.datasource.okhttp
-    // Cast Dependencies
+    implementation libs.room.ktx
+    implementation libs.androidx.adapters
     normalImplementation(libs.google.play.services.cast.framework)
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
-    // WebServer by NanoHttpd
     normalImplementation(libs.nanohttpd)
     implementation(libs.room.runtime)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
-
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-
     implementation(libs.koin.core)
     implementation(libs.koin.android)
-
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.common.java8)
-
     implementation(libs.androidx.core.splashscreen)
-
     normalImplementation(libs.google.feature.delivery)
     normalImplementation(libs.google.play.review)
-
     implementation(libs.hilt.navigation)
     ksp(libs.room.compiler)
     implementation(libs.hilt)
     kapt(libs.hilt.compiler)
-
     implementation(libs.android.material)
-
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp3.logging.interceptor)
-
     implementation(libs.afollestad.material.dialogs.core)
     implementation(libs.afollestad.material.dialogs.input)
     implementation(libs.afollestad.material.dialogs.color)
     implementation(libs.afollestad.material.cab)
-
-
     implementation(libs.kotlinx.coroutines.android)
-
     implementation(libs.glide)
     ksp(libs.glide.ksp)
     implementation(libs.glide.okhttp3.integration)
-
     implementation(libs.advrecyclerview)
     implementation(libs.fadingedgelayout)
     implementation(libs.keyboardvisibilityevent)
     implementation(libs.jetradarmobile.android.snowfall)
     implementation(libs.chrisbanes.insetter)
-
     implementation(libs.org.eclipse.egit.github.core)
     implementation(libs.jaudiotagger)
-    implementation 'org.slf4j:slf4j-nop:1.7.32' // Added to resolve SLF4J warning
+    implementation 'org.slf4j:slf4j-nop:1.7.32'
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
     normalImplementation(libs.android.lab.library)
     implementation(libs.slidableactivity)
     implementation(libs.material.intro)
@@ -236,24 +230,18 @@ dependencies {
     implementation(libs.customactivityoncrash)
     implementation(libs.tankery.circularSeekBar)
     implementation(libs.androidx.exoplayer)
-    // Jetpack Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3) // Assuming Material 3, adjust if using Material 2
+    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.navigation.compose) // For Jetpack Navigation with Compose
-
-    // Optional - For tooling (like live preview in Android Studio)
+    implementation(libs.androidx.navigation.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
-    // Optional - For UI tests
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    
-    // Spotify SDK Dependencies from developer.spotify.com
     implementation "com.spotify.android:auth:2.1.1"
     implementation "com.google.code.gson:gson:2.11.0"
 }

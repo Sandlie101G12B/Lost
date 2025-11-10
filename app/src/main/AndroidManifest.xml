@@ -313,7 +313,7 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
-        <service android:name=".util.DownloadService"
+        <service android:name=".util.DownloadUtil"
             android:foregroundServiceType="dataSync"
             android:exported="false"/>
 

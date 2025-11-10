@@ -1,12 +1,14 @@
 package code.name.monkey.lost.fragments.settings
 
-import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.preference.Preference
 import code.name.monkey.appthemehelper.common.prefs.supportv7.ATEListPreference
 import code.name.monkey.lost.LANGUAGE_NAME
@@ -21,9 +23,8 @@ import code.name.monkey.lost.fragments.ReloadType.HomeSections
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.repository.SongRepository
 import code.name.monkey.lost.service.SpotifyPlaylistIntergrator
-import code.name.monkey.lost.util.DownloadManager
 import code.name.monkey.lost.util.DownloadResult
-import code.name.monkey.lost.util.DownloadService
+import code.name.monkey.lost.util.DownloadUtil
 import code.name.monkey.lost.util.PreferenceUtil
 import com.metrolist.innertube.YouTube
 import kotlinx.coroutines.delay
@@ -33,12 +34,13 @@ import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 import timber.log.Timber
+import androidx.media3.common.util.UnstableApi
 
 class OtherSettingsFragment : AbsSettingsFragment() {
     private val libraryViewModel by activityViewModel<LibraryViewModel>()
     private val playlistDao by inject<PlaylistDao>()
     private val songRepository by inject<SongRepository>()
-    private val downloadManager by inject<DownloadManager>()
+    private val downloadUtil by inject<DownloadUtil>()
 
     override fun invalidateSettings() {
         val languagePreference: ATEListPreference? = findPreference(LANGUAGE_NAME)
@@ -81,7 +83,7 @@ class OtherSettingsFragment : AbsSettingsFragment() {
         }
 
         val spotifyLogin: Preference? = findPreference("spotify_login")
-        spotifyLogin?.isVisible = false
+        spotifyLogin?.isVisible = true
 
         syncSpotifyPlaylists()
     }
@@ -89,6 +91,8 @@ class OtherSettingsFragment : AbsSettingsFragment() {
         // Increased set of illegal characters
         return input.replace("[\\/:*?\"<>|#%]", "_")
     }
+
+    @OptIn(UnstableApi::class)
     private fun syncSpotifyPlaylists() {
         lifecycleScope.launch {
             val playlists = SpotifyPlaylistIntergrator.getPlaylists()
@@ -213,7 +217,7 @@ class OtherSettingsFragment : AbsSettingsFragment() {
                             // This is started *before* the downloads to prevent a race condition
                             // where downloads could complete before the collector is attached.
                             val collectorJob = lifecycleScope.launch {
-                                downloadManager.downloadResult
+                                downloadUtil.downloadResult
                                     .filter { result -> result.videoId in videoIdsToWaitFor }
                                     .take(videoIdsToWaitFor.size)
                                     .collect { result ->
@@ -231,13 +235,10 @@ class OtherSettingsFragment : AbsSettingsFragment() {
 
                             Timber.tag("SpotifyPlaylist").d("Waiting for ${videoIdsToWaitFor.size} downloads to complete")
 
-                            // Now, start all downloads concurrently.
-                            songsToDownload.values.forEach { songToDownload ->
-                                val intent = Intent(requireContext(), DownloadService::class.java).apply {
-                                    action = DownloadService.ACTION_START_DOWNLOAD
-                                    putExtra(DownloadService.EXTRA_SONG, songToDownload)
-                                }
-                                requireContext().startService(intent)
+                            @UnstableApi
+                            songsToDownload.forEach { (videoId, song) ->
+                                val request = DownloadRequest.Builder(videoId, song.data.toUri()).build()
+                                downloadUtil.downloadManager.addDownload(request)
                             }
 
                             // Wait for the collector job to finish, which happens when .take() is satisfied.
