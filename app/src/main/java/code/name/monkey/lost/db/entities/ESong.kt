@@ -6,7 +6,7 @@ import androidx.room.Junction
 import androidx.room.Relation
 
 @Immutable
-data class Song
+data class ESong
 @JvmOverloads
 constructor(
     @Embedded val song: SongEntity,

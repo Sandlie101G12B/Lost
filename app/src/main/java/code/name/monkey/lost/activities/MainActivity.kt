@@ -22,7 +22,7 @@ import code.name.monkey.lost.service.SpotifyPlaylistIntergrator
 import code.name.monkey.lost.util.AppRater
 import code.name.monkey.lost.util.PreferenceUtil
 import code.name.monkey.lost.util.logE
-import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
 import code.name.monkey.lost.helper.SongDataManager
@@ -33,6 +33,7 @@ import code.name.monkey.lost.helper.getApiKeys
 import code.name.monkey.lost.helper.addApiKey
 import code.name.monkey.lost.helper.initialiseMetaDataProcess
 import code.name.monkey.lost.util.YTPlayerUtils
+import kotlinx.coroutines.Dispatchers.IO
 import timber.log.Timber
 
 class MainActivity : AbsCastActivity() {
@@ -53,7 +54,7 @@ class MainActivity : AbsCastActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
+//            Timber.plant(Timber.DebugTree())
         }
         super.onCreate(savedInstanceState)
         Timber.tag(TAG).d("onCreate started")
@@ -195,61 +196,76 @@ class MainActivity : AbsCastActivity() {
     }
 
     private fun handlePlaybackIntent(intent: Intent) {
-        lifecycleScope.launch(IO) {
-            val uri: Uri? = intent.data
-            val mimeType: String? = intent.type
-            var handled = false
-            if (intent.action != null &&
-                intent.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH
-            ) {
-                val songs: List<Song> = getSongs(intent.extras!!)
-                if (MusicPlayerRemote.shuffleMode == MusicService.SHUFFLE_MODE_SHUFFLE) {
-                    MusicPlayerRemote.openAndShuffleQueue(songs, true)
-                } else if (MusicPlayerRemote.shuffleMode == MusicService.SHUFFLE_MODE_SMART_SHUFFLE) {
-                    MusicPlayerRemote.openAndSmartShuffleQueue(songs, true)
-                }else {
-                    MusicPlayerRemote.openQueue(songs, 0, true)
+        if (intent.action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH && intent.extras != null) {
+            lifecycleScope.launch(Dispatchers.Main) {
+                val songsLiveData = getSongs(intent.extras!!)
+                var isQueueInitialized = false
+                songsLiveData.observe(this@MainActivity) { songs ->
+                    if (songs.isEmpty()) return@observe
+
+                    if (!isQueueInitialized) {
+                        if (MusicPlayerRemote.shuffleMode == MusicService.SHUFFLE_MODE_SHUFFLE) {
+                            MusicPlayerRemote.openAndShuffleQueue(songs, true)
+                        } else if (MusicPlayerRemote.shuffleMode == MusicService.SHUFFLE_MODE_SMART_SHUFFLE) {
+                            MusicPlayerRemote.openAndSmartShuffleQueue(songs, true)
+                        } else {
+                            MusicPlayerRemote.openQueue(songs, 0, true)
+                        }
+                        isQueueInitialized = true
+                    } else {
+                        val currentQueue = MusicPlayerRemote.playingQueue
+                        val newSongs = songs.filterNot { currentQueue.contains(it) }
+                        if (newSongs.isNotEmpty()) {
+                            MusicPlayerRemote.enqueue(newSongs)
+                        }
+                    }
                 }
-                handled = true
-            }
-            if (uri != null && uri.toString().isNotEmpty()) {
-                MusicPlayerRemote.playFromUri(this@MainActivity, uri)
-                handled = true
-            } else if ("vnd.android.cursor.dir/playlist" == mimeType) { // Replaced MediaStore.Audio.Playlists.CONTENT_TYPE
-                val id = parseLongFromIntent(intent, "playlistId", "playlist")
-                if (id >= 0L) {
-                    val position: Int = intent.getIntExtra("position", 0)
-                    val songs: List<Song> = PlaylistSongsLoader.getPlaylistSongList(get(), id)
-                    MusicPlayerRemote.openQueue(songs, position, true)
-                    handled = true
-                }
-            } else if ("vnd.android.cursor.dir/albums" == mimeType) { // Replaced MediaStore.Audio.Albums.CONTENT_TYPE
-                val id = parseLongFromIntent(intent, "albumId", "album")
-                if (id >= 0L) {
-                    val position: Int = intent.getIntExtra("position", 0)
-                    val songs = libraryViewModel.albumById(id).songs
-                    MusicPlayerRemote.openQueue(
-                        songs,
-                        position,
-                        true
-                    )
-                    handled = true
-                }
-            } else if ("vnd.android.cursor.dir/artists" == mimeType) { // Replaced MediaStore.Audio.Artists.CONTENT_TYPE
-                val id = parseLongFromIntent(intent, "artistId", "artist")
-                if (id >= 0L) {
-                    val position: Int = intent.getIntExtra("position", 0)
-                    val songs: List<Song> = libraryViewModel.artistById(id).songs
-                    MusicPlayerRemote.openQueue(
-                        songs,
-                        position,
-                        true
-                    )
-                    handled = true
-                }
-            }
-            if (handled) {
                 setIntent(Intent())
+            }
+        } else {
+            lifecycleScope.launch(IO) {
+                val uri: Uri? = intent.data
+                val mimeType: String? = intent.type
+                var handled = false
+                if (uri != null && uri.toString().isNotEmpty()) {
+                    MusicPlayerRemote.playFromUri(this@MainActivity, uri)
+                    handled = true
+                } else if ("vnd.android.cursor.dir/playlist" == mimeType) { // Replaced MediaStore.Audio.Playlists.CONTENT_TYPE
+                    val id = parseLongFromIntent(intent, "playlistId", "playlist")
+                    if (id >= 0L) {
+                        val position: Int = intent.getIntExtra("position", 0)
+                        val songs: List<Song> = PlaylistSongsLoader.getPlaylistSongList(get(), id)
+                        MusicPlayerRemote.openQueue(songs, position, true)
+                        handled = true
+                    }
+                } else if ("vnd.android.cursor.dir/albums" == mimeType) { // Replaced MediaStore.Audio.Albums.CONTENT_TYPE
+                    val id = parseLongFromIntent(intent, "albumId", "album")
+                    if (id >= 0L) {
+                        val position: Int = intent.getIntExtra("position", 0)
+                        val songs = libraryViewModel.albumById(id).songs
+                        MusicPlayerRemote.openQueue(
+                            songs,
+                            position,
+                            true
+                        )
+                        handled = true
+                    }
+                } else if ("vnd.android.cursor.dir/artists" == mimeType) { // Replaced MediaStore.Audio.Artists.CONTENT_TYPE
+                    val id = parseLongFromIntent(intent, "artistId", "artist")
+                    if (id >= 0L) {
+                        val position: Int = intent.getIntExtra("position", 0)
+                        val songs: List<Song> = libraryViewModel.artistById(id).songs
+                        MusicPlayerRemote.openQueue(
+                            songs,
+                            position,
+                            true
+                        )
+                        handled = true
+                    }
+                }
+                if (handled) {
+                    setIntent(Intent())
+                }
             }
         }
     }

@@ -220,37 +220,66 @@ private val viewModules = module {
 }
 
 @UnstableApi
-private val cacheModule = module {
+val cacheModule = module {
+
     single<DatabaseProvider> {
         StandaloneDatabaseProvider(androidContext())
     }
 
     single(named("playerCache")) {
-        SimpleCache(
-            androidContext().filesDir.resolve("exoplayer"),
-            when (val cacheSize = androidContext().dataStore[MaxSongCacheSizeKey] ?: 1024) {
-                -1 -> NoOpCacheEvictor()
-                else -> LeastRecentlyUsedCacheEvictor(cacheSize * 1024 * 1024L)
-            },
-            get(),
-        )
+        val context = androidContext()
+        val databaseProvider = get<DatabaseProvider>()
+
+        val constructor = {
+            SimpleCache(
+                context.filesDir.resolve("exoplayer"),
+                when (val cacheSize = context.dataStore[MaxSongCacheSizeKey] ?: 1024) {
+                    -1 -> NoOpCacheEvictor()
+                    else -> LeastRecentlyUsedCacheEvictor(cacheSize * 1024L * 1024L)
+                },
+                databaseProvider
+            )
+        }
+
+        val tmp = constructor()
+        tmp.release()
+        constructor()
     }
 
     single(named("downloadCache")) {
-        SimpleCache(
-            androidContext().filesDir.resolve("download"),
-            NoOpCacheEvictor(),
-            get()
-        )
+        val context = androidContext()
+        val databaseProvider = get<DatabaseProvider>()
+
+        val constructor = {
+            SimpleCache(
+                context.filesDir.resolve("download"),
+                NoOpCacheEvictor(),
+                databaseProvider
+            )
+        }
+
+        val tmp = constructor()
+        tmp.release()
+        constructor()
     }
 }
 
+
+@UnstableApi
 val downloadModule = module {
     single {
-        @UnstableApi
         DownloadUtil(androidContext(), get(), get(), get(named("downloadCache")), get(named("playerCache")))
     }
 }
 
 @UnstableApi
-val appModules = listOf(mainModule, dataModule, autoModule, viewModules, networkModule, roomModule, downloadModule, cacheModule)
+val appModules = listOf(
+    mainModule,
+    dataModule,
+    autoModule,
+    viewModules,
+    networkModule,
+    roomModule,
+    cacheModule,   // ← make sure cacheModule is registered BEFORE downloadModule
+    downloadModule // ← downloadModule depends on caches
+)

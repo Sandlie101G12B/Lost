@@ -10,15 +10,25 @@ import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.lost.Constants
 import code.name.monkey.lost.Constants.IS_MUSIC
 import code.name.monkey.lost.Constants.baseProjection
+import code.name.monkey.lost.db.DatabaseDao
+import code.name.monkey.lost.contants.SongSortType
+import code.name.monkey.lost.db.toSong
 import code.name.monkey.lost.extensions.getInt
 import code.name.monkey.lost.extensions.getLong
 import code.name.monkey.lost.extensions.getString
 import code.name.monkey.lost.extensions.getStringOrNull
 import code.name.monkey.lost.helper.SortOrder
 import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.db.entities.ESong
 import code.name.monkey.lost.providers.BlacklistStore
 import code.name.monkey.lost.util.PreferenceUtil
 import code.name.monkey.lost.util.getExternalStoragePublicDirectory
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.runBlocking
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import timber.log.Timber
 import java.text.Collator
 
 interface SongRepository {
@@ -38,21 +48,31 @@ interface SongRepository {
     fun song(songId: Long): Song
 }
 
-class RealSongRepository(private val context: Context) : SongRepository {
+class RealSongRepository(
+    private val context: Context
+) : SongRepository, KoinComponent {
 
+    private val databaseDao: DatabaseDao by inject()
     override fun songs(): List<Song> {
-        return sortedSongs(makeSongCursor(null, null))
+        val localSongs = sortedSongs(makeSongCursor(null, null))
+        val databaseSongs = runBlocking { databaseDao.allSongs().first().map { it.toSong(context) } }
+        Timber.tag("SpotifyPlaylist").d("Database songs found: ${databaseSongs.size}")
+        // Prioritize database songs by adding them first.
+        // Use a composite key of title and artist to find unique songs.
+        return (databaseSongs + localSongs).distinctBy {
+            Pair(it.title.trim().lowercase(), it.artistName.trim().lowercase())
+        }
     }
 
     override fun songs(cursor: Cursor?): List<Song> {
-        val songs = arrayListOf<Song>()
+        val localSongs = arrayListOf<Song>()
         if (cursor != null && cursor.moveToFirst()) {
             do {
-                songs.add(getSongFromCursorImpl(cursor))
+                localSongs.add(getSongFromCursorImpl(cursor))
             } while (cursor.moveToNext())
         }
         cursor?.close()
-        return songs
+        return localSongs
     }
 
     override fun sortedSongs(cursor: Cursor?): List<Song> {
@@ -125,7 +145,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
 //                                                                                                                      //
 //                                                                                                                      //
 //        if (query.length >= 4) {                                                                                      //
-//            val sanitizedQueryForLyrics = query.replace(Regex("[^a-zA-Z0-9\\s]"), "")
+//            val sanitizedQueryForLyrics = query.replace(Regex("[^a-zA-Z0-9\s]"), "")
 //
 //            if (sanitizedQueryForLyrics.isNotBlank()) {
 //                val allSongsForLyricsCheck: List<Song> = songs(makeSongCursor(null, null))
@@ -169,7 +189,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
     }
 
     private fun getSongFromCursorImpl(
-        cursor: Cursor
+        cursor: Cursor,
     ): Song {
         val id = cursor.getLong(AudioColumns._ID)
         val title = cursor.getString(AudioColumns.TITLE)
@@ -184,9 +204,9 @@ class RealSongRepository(private val context: Context) : SongRepository {
         val artistName = cursor.getStringOrNull(AudioColumns.ARTIST)
         val composer = cursor.getStringOrNull(AudioColumns.COMPOSER)
         val albumArtist = cursor.getStringOrNull("album_artist")
-        
+
         val bpm = null
-        
+
         return Song(
             id,
             title,
@@ -201,7 +221,8 @@ class RealSongRepository(private val context: Context) : SongRepository {
             artistName ?: "",
             composer ?: "",
             albumArtist ?: "",
-            bpm
+            bpm,
+            isLocal = true
         )
     }
 
@@ -211,7 +232,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
         selection: String?,
         selectionValues: Array<String>?,
         sortOrder: String = PreferenceUtil.songSortOrder,
-        ignoreBlacklist: Boolean = false
+        ignoreBlacklist: Boolean = false,
     ): Cursor? {
         var selectionFinal = selection
         var selectionValuesFinal = selectionValues
@@ -245,6 +266,9 @@ class RealSongRepository(private val context: Context) : SongRepository {
         } else {
             Media.EXTERNAL_CONTENT_URI
         }
+
+
+
         return try {
             context.contentResolver.query(
                 uri,
@@ -260,7 +284,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
 
     private fun generateBlacklistSelection(
         selection: String?,
-        pathCount: Int
+        pathCount: Int,
     ): String {
         val newSelection = StringBuilder(
             if (selection != null && selection.trim { it <= ' ' } != "") "$selection AND " else "")
@@ -273,7 +297,7 @@ class RealSongRepository(private val context: Context) : SongRepository {
 
     private fun addSelectionValues(
         selectionValues: Array<String>?,
-        paths: ArrayList<String>
+        paths: ArrayList<String>,
     ): Array<String> {
         var selectionValuesFinal = selectionValues
         if (selectionValuesFinal == null) {

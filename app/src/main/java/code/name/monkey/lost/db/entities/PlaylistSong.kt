@@ -10,5 +10,5 @@ data class PlaylistSong(
         entityColumn = "id",
         entity = SongEntity::class,
     )
-    val song: Song,
+    val song: ESong,
 )

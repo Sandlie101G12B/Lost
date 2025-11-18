@@ -1,3 +1,4 @@
+
 package code.name.monkey.lost.db
 
 import android.annotation.SuppressLint
@@ -27,8 +28,8 @@ import code.name.monkey.lost.db.entities.SetVideoIdEntity
 import code.name.monkey.lost.db.entities.SongAlbumMap
 import code.name.monkey.lost.db.entities.SongArtistMap
 import code.name.monkey.lost.db.entities.SongEntity
-import code.name.monkey.lost.db.entities.SortedSongAlbumMap
 import code.name.monkey.lost.db.entities.SortedSongArtistMap
+import code.name.monkey.lost.db.entities.SortedSongAlbumMap
 import code.name.monkey.lost.extensions.toSQLiteQuery
 import java.time.Instant
 import java.time.LocalDateTime
@@ -86,7 +87,7 @@ class MusicDatabase(
     version = 23,
     exportSchema = false
 )
-@TypeConverters(Converters::class)
+@TypeConverters(DatabaseConverters::class)
 abstract class InternalDatabase : RoomDatabase() {
     abstract val dao: DatabaseDao
 
@@ -121,7 +122,7 @@ val MIGRATION_1_2 =
                 val modifyDate: LocalDateTime = LocalDateTime.now(),
             )
 
-            val converters = Converters()
+            val converters = DatabaseConverters()
             val artistMap = mutableMapOf<Int, String>()
             val artists = mutableListOf<ArtistEntity>()
             db.query("SELECT * FROM artist".toSQLiteQuery()).use { cursor ->

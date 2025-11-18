@@ -32,5 +32,5 @@ data class AlbumWithSongs(
             entityColumn = "songId",
         ),
     )
-    val songs: List<Song>,
+    val songs: List<ESong>,
 )

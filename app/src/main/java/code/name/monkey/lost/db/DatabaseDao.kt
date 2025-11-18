@@ -38,7 +38,7 @@ import code.name.monkey.lost.db.entities.PlaylistSongMap
 import code.name.monkey.lost.db.entities.RelatedSongMap
 import code.name.monkey.lost.db.entities.SearchHistory
 import code.name.monkey.lost.db.entities.SetVideoIdEntity
-import code.name.monkey.lost.db.entities.Song
+import code.name.monkey.lost.db.entities.ESong
 import code.name.monkey.lost.db.entities.SongAlbumMap
 import code.name.monkey.lost.db.entities.SongArtistMap
 import code.name.monkey.lost.db.entities.SongEntity
@@ -60,19 +60,19 @@ import code.name.monkey.lost.extensions.reversed
 interface DatabaseDao {
     @Transaction
     @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY rowId")
-    fun songsByRowIdAsc(): Flow<List<Song>>
+    fun songsByRowIdAsc(): Flow<List<ESong>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY inLibrary")
-    fun songsByCreateDateAsc(): Flow<List<Song>>
+    fun songsByCreateDateAsc(): Flow<List<ESong>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY title")
-    fun songsByNameAsc(): Flow<List<Song>>
+    fun songsByNameAsc(): Flow<List<ESong>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE inLibrary IS NOT NULL ORDER BY totalPlayTime")
-    fun songsByPlayTimeAsc(): Flow<List<Song>>
+    fun songsByPlayTimeAsc(): Flow<List<ESong>>
 
     fun songs(
         sortType: SongSortType,
@@ -110,19 +110,19 @@ interface DatabaseDao {
 
     @Transaction
     @Query("SELECT * FROM song WHERE liked ORDER BY rowId")
-    fun likedSongsByRowIdAsc(): Flow<List<Song>>
+    fun likedSongsByRowIdAsc(): Flow<List<ESong>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE liked ORDER BY likedDate")
-    fun likedSongsByCreateDateAsc(): Flow<List<Song>>
+    fun likedSongsByCreateDateAsc(): Flow<List<ESong>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE liked ORDER BY title")
-    fun likedSongsByNameAsc(): Flow<List<Song>>
+    fun likedSongsByNameAsc(): Flow<List<ESong>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE liked ORDER BY totalPlayTime")
-    fun likedSongsByPlayTimeAsc(): Flow<List<Song>>
+    fun likedSongsByPlayTimeAsc(): Flow<List<ESong>>
 
     fun likedSongs(
         sortType: SongSortType,
@@ -164,25 +164,25 @@ interface DatabaseDao {
 
     @Transaction
     @Query("SELECT song.* FROM song JOIN song_album_map ON song.id = song_album_map.songId WHERE song_album_map.albumId = :albumId")
-    fun albumSongs(albumId: String): Flow<List<Song>>
+    fun albumSongs(albumId: String): Flow<List<ESong>>
 
     @Transaction
     @Query(
         "SELECT song.* FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = :artistId AND inLibrary IS NOT NULL ORDER BY inLibrary",
     )
-    fun artistSongsByCreateDateAsc(artistId: String): Flow<List<Song>>
+    fun artistSongsByCreateDateAsc(artistId: String): Flow<List<ESong>>
 
     @Transaction
     @Query(
         "SELECT song.* FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = :artistId AND inLibrary IS NOT NULL ORDER BY title",
     )
-    fun artistSongsByNameAsc(artistId: String): Flow<List<Song>>
+    fun artistSongsByNameAsc(artistId: String): Flow<List<ESong>>
 
     @Transaction
     @Query(
         "SELECT song.* FROM song_artist_map JOIN song ON song_artist_map.songId = song.id WHERE artistId = :artistId AND inLibrary IS NOT NULL ORDER BY totalPlayTime",
     )
-    fun artistSongsByPlayTimeAsc(artistId: String): Flow<List<Song>>
+    fun artistSongsByPlayTimeAsc(artistId: String): Flow<List<ESong>>
 
     fun artistSongs(
         artistId: String,
@@ -207,7 +207,7 @@ interface DatabaseDao {
     fun artistSongsPreview(
         artistId: String,
         previewSize: Int = 3,
-    ): Flow<List<Song>>
+    ): Flow<List<ESong>>
 
     @Transaction
     @Query(
@@ -240,7 +240,7 @@ interface DatabaseDao {
         LIMIT 100
     """,
     )
-    fun quickPicks(now: Long = System.currentTimeMillis()): Flow<List<Song>>
+    fun quickPicks(now: Long = System.currentTimeMillis()): Flow<List<ESong>>
 
     @Transaction
     @Query(
@@ -268,7 +268,7 @@ interface DatabaseDao {
         now: Long = System.currentTimeMillis(),
         limit: Int = 5,
         offset: Int = 0,
-    ): Flow<List<Song>>
+    ): Flow<List<ESong>>
 
     @Transaction
     @Query(
@@ -333,7 +333,7 @@ interface DatabaseDao {
         limit: Int = 6,
         offset: Int = 0,
         toTimeStamp: Long? = LocalDateTime.now().toInstant(ZoneOffset.UTC).toEpochMilli(),
-    ): Flow<List<Song>>
+    ): Flow<List<ESong>>
 
     @Transaction
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
@@ -457,7 +457,7 @@ interface DatabaseDao {
         LIMIT 100
     """
     )
-    fun forgottenFavorites(now: Long = System.currentTimeMillis()): Flow<List<Song>>
+    fun forgottenFavorites(now: Long = System.currentTimeMillis()): Flow<List<ESong>>
 
     @Transaction
     @Query(
@@ -478,23 +478,23 @@ interface DatabaseDao {
         now: Long = System.currentTimeMillis(),
         limit: Int = 5,
         offset: Int = 0,
-    ): Flow<List<Song>>
+    ): Flow<List<ESong>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE id = :songId")
-    fun song(songId: String?): Flow<Song?>
+    fun song(songId: String?): Flow<ESong?>
 
     @Transaction
     @Query("SELECT * FROM song WHERE id = :songId LIMIT 1")
-    suspend fun getSongById(songId: String): Song?
+    suspend fun getSongById(songId: String): ESong?
 
     @Transaction
     @Query("SELECT * FROM song WHERE id = :songId LIMIT 1")
-    fun getSongByIdBlocking(songId: String): Song?
+    fun getSongByIdBlocking(songId: String): ESong?
 
     @Transaction
     @Query("SELECT * FROM song WHERE id IN (:songIds)")
-    suspend fun getSongsByIds(songIds: List<String>): List<Song>
+    suspend fun getSongsByIds(songIds: List<String>): List<ESong>
 
     
     @Transaction
@@ -503,7 +503,7 @@ interface DatabaseDao {
 
     @Transaction
     @Query("SELECT * FROM song")
-    fun allSongs(): Flow<List<Song>>
+    fun allSongs(): Flow<List<ESong>>
 
     @Transaction
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
@@ -869,7 +869,7 @@ interface DatabaseDao {
     fun downloadedSongs(
         sortType: SongSortType,
         descending: Boolean
-    ): Flow<List<Song>> = when (sortType) {
+    ): Flow<List<ESong>> = when (sortType) {
         SongSortType.CREATE_DATE -> downloadedSongsByCreateDateAsc()
         SongSortType.NAME -> downloadedSongsByNameAsc().map { songs ->
             val collator = Collator.getInstance(Locale.getDefault())
@@ -888,15 +888,15 @@ interface DatabaseDao {
 
     @Transaction
     @Query("SELECT * FROM song WHERE isDownloaded = 1 ORDER BY dateDownload")
-    fun downloadedSongsByCreateDateAsc(): Flow<List<Song>>
+    fun downloadedSongsByCreateDateAsc(): Flow<List<ESong>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE isDownloaded = 1 ORDER BY title")
-    fun downloadedSongsByNameAsc(): Flow<List<Song>>
+    fun downloadedSongsByNameAsc(): Flow<List<ESong>>
 
     @Transaction
     @Query("SELECT * FROM song WHERE isDownloaded = 1 ORDER BY totalPlayTime")
-    fun downloadedSongsByPlayTimeAsc(): Flow<List<Song>>
+    fun downloadedSongsByPlayTimeAsc(): Flow<List<ESong>>
 
     @Query("UPDATE song SET isDownloaded = :downloaded, dateDownload = :date WHERE id = :songId")
     fun updateDownloadedInfo(songId: String, downloaded: Boolean, date: LocalDateTime?)
@@ -906,7 +906,7 @@ interface DatabaseDao {
     fun searchSongs(
         query: String,
         previewSize: Int = Int.MAX_VALUE,
-    ): Flow<List<Song>>
+    ): Flow<List<ESong>>
 
     @Transaction
     @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
@@ -1003,7 +1003,7 @@ interface DatabaseDao {
     @Query(
         "SELECT song.* FROM (SELECT * from related_song_map GROUP BY relatedSongId) map JOIN song ON song.id = map.relatedSongId where songId = :songId",
     )
-    fun getRelatedSongs(songId: String): Flow<List<Song>>
+    fun getRelatedSongs(songId: String): Flow<List<ESong>>
 
     @Transaction
     @Query(
@@ -1018,7 +1018,7 @@ interface DatabaseDao {
         WHERE songId = :songId
         """
     )
-    fun relatedSongs(songId: String): List<Song>
+    fun relatedSongs(songId: String): List<ESong>
 
     @Transaction
     @Query(
@@ -1164,7 +1164,7 @@ interface DatabaseDao {
 
     @Transaction
     fun update(
-        song: Song,
+        song: ESong,
         mediaMetadata: MediaMetadata,
     ) {
         update(
@@ -1366,4 +1366,4 @@ interface DatabaseDao {
     }
 }
 
-private fun List<Song>.reversed(reversed: Boolean) = if (reversed) asReversed() else this
+private fun List<ESong>.reversed(reversed: Boolean) = if (reversed) asReversed() else this
