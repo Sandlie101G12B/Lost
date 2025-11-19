@@ -10,13 +10,11 @@ import androidx.room.Room
 import code.name.monkey.lost.auto.AutoMusicProvider
 import code.name.monkey.lost.cast.LostWebServer
 import code.name.monkey.lost.contants.MaxSongCacheSizeKey
-import code.name.monkey.lost.db.DatabaseDao
-import code.name.monkey.lost.db.InternalDatabase
-import code.name.monkey.lost.db.MIGRATION_1_2
-import code.name.monkey.lost.db.MIGRATION_23_24
 import code.name.monkey.lost.db.MIGRATION_24_25
+import code.name.monkey.lost.db.MIGRATION_25_26
+import code.name.monkey.lost.db.MIGRATION_26_27
 import code.name.monkey.lost.db.LostDatabase
-import code.name.monkey.lost.db.MusicDatabase
+import code.name.monkey.lost.db.MIGRATION_27_28
 import code.name.monkey.lost.fragments.LibraryViewModel
 import code.name.monkey.lost.fragments.albums.AlbumDetailsViewModel
 import code.name.monkey.lost.fragments.artists.ArtistDetailsViewModel
@@ -58,22 +56,8 @@ private val roomModule = module {
 
     single {
         Room.databaseBuilder(androidContext(), LostDatabase::class.java, "playlist.db")
-            .addMigrations(MIGRATION_23_24, MIGRATION_24_25)
+            .addMigrations(MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28)
             .build()
-    }
-
-    single {
-        val internalDb = Room.databaseBuilder(
-            androidContext(),
-            InternalDatabase::class.java,
-            "song.db"
-        ).addMigrations(MIGRATION_1_2)
-            .build()
-        MusicDatabase(internalDb)
-    }
-
-    factory<DatabaseDao> {
-        get<MusicDatabase>()
     }
 
     factory {
@@ -91,11 +75,16 @@ private val roomModule = module {
     factory {
         get<LostDatabase>().similarSongDao()
     }
+    
+    factory {
+        get<LostDatabase>().songsDao()
+    }
 
     single {
-        RealRoomRepository(get(), get(), get(), get())
+        RealRoomRepository(get(), get(), get(), get(), get())
     } bind RoomRepository::class
 }
+
 private val autoModule = module {
     single {
         AutoMusicProvider(
@@ -109,6 +98,7 @@ private val autoModule = module {
         )
     }
 }
+
 private val mainModule = module {
     single {
         androidContext().contentResolver
@@ -117,6 +107,7 @@ private val mainModule = module {
         LostWebServer(get())
     }
 }
+
 private val dataModule = module {
     single {
         RealRepository(
@@ -263,7 +254,6 @@ val cacheModule = module {
         constructor()
     }
 }
-
 
 @UnstableApi
 val downloadModule = module {

@@ -9,6 +9,7 @@ import code.name.monkey.lost.GENRES
 import code.name.monkey.lost.PLAYLISTS
 import code.name.monkey.lost.R
 import code.name.monkey.lost.TOP_ARTISTS
+import code.name.monkey.lost.db.DownloadedSongsEntity
 import code.name.monkey.lost.db.HistoryEntity
 import code.name.monkey.lost.db.PlayCountEntity
 import code.name.monkey.lost.db.PlaylistEntity
@@ -39,6 +40,7 @@ import code.name.monkey.lost.util.logE
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import kotlin.random.Random
@@ -110,14 +112,15 @@ interface Repository {
     suspend fun getSongsForTaste(limit: Int): List<Song>
     fun newSongs(): List<Song>
     fun getTrendingYouTubeSongs(needed: Int): List<Song>
-
-    // Similar Songs
     suspend fun addSimilarSong(originalSongId: Long, similarSong: Song)
     fun getSimilarSongs(originalSongId: Long): LiveData<List<Song>>
     suspend fun getSimilarSongsList(originalSongId: Long): List<Song>
     suspend fun removeSimilarSong(originalSongId: Long, similarSongId: Long)
     suspend fun clearSimilarSongsForOriginal(originalSongId: Long)
     suspend fun isSongSimilar(originalSongId: Long, potentialSimilarSongId: Long): Boolean
+    suspend fun saveSongToDatabase(song: DownloadedSongsEntity)
+    suspend fun getAllSavedSongs(): Flow<List<DownloadedSongsEntity>>
+    suspend fun deleteSavedSong(songId: String)
 }
 
 class RealRepository(
@@ -708,5 +711,17 @@ class RealRepository(
 
     override suspend fun isSongSimilar(originalSongId: Long, potentialSimilarSongId: Long): Boolean {
         return roomRepository.similarSongDao().findSimilarSongEntry(originalSongId, potentialSimilarSongId) != null
+    }
+
+    override suspend fun saveSongToDatabase(song: DownloadedSongsEntity){
+        return roomRepository.songsDao().insertSong(song)
+    }
+
+    override suspend fun getAllSavedSongs(): Flow<List<DownloadedSongsEntity>>{
+        return roomRepository.songsDao().getAllSongs()
+    }
+
+    override suspend fun deleteSavedSong(songId: String){
+        return roomRepository.songsDao().deleteSong(songId)
     }
 }

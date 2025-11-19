@@ -10,8 +10,7 @@ import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.lost.Constants
 import code.name.monkey.lost.Constants.IS_MUSIC
 import code.name.monkey.lost.Constants.baseProjection
-import code.name.monkey.lost.db.DatabaseDao
-import code.name.monkey.lost.contants.SongSortType
+import code.name.monkey.lost.db.LostDatabase
 import code.name.monkey.lost.db.toSong
 import code.name.monkey.lost.extensions.getInt
 import code.name.monkey.lost.extensions.getLong
@@ -19,12 +18,10 @@ import code.name.monkey.lost.extensions.getString
 import code.name.monkey.lost.extensions.getStringOrNull
 import code.name.monkey.lost.helper.SortOrder
 import code.name.monkey.lost.model.Song
-import code.name.monkey.lost.db.entities.ESong
 import code.name.monkey.lost.providers.BlacklistStore
 import code.name.monkey.lost.util.PreferenceUtil
 import code.name.monkey.lost.util.getExternalStoragePublicDirectory
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.runBlocking
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -52,13 +49,16 @@ class RealSongRepository(
     private val context: Context
 ) : SongRepository, KoinComponent {
 
-    private val databaseDao: DatabaseDao by inject()
+    private val databaseDao: LostDatabase by inject()
     override fun songs(): List<Song> {
         val localSongs = sortedSongs(makeSongCursor(null, null))
-        val databaseSongs = runBlocking { databaseDao.allSongs().first().map { it.toSong(context) } }
+        val databaseSongs = runBlocking {
+            databaseDao.songsDao().getAllSongs().first().map {
+                val streamUrl = databaseDao.songsDao().getFormatById(it.id.hashCode().toLong()).playbackUrl
+                it.toSong(context, streamUrl)
+            }
+        }
         Timber.tag("SpotifyPlaylist").d("Database songs found: ${databaseSongs.size}")
-        // Prioritize database songs by adding them first.
-        // Use a composite key of title and artist to find unique songs.
         return (databaseSongs + localSongs).distinctBy {
             Pair(it.title.trim().lowercase(), it.artistName.trim().lowercase())
         }

@@ -2,7 +2,6 @@ package code.name.monkey.lost.model
 
 import androidx.compose.runtime.Immutable
 import com.metrolist.innertube.models.SongItem
-import code.name.monkey.lost.db.entities.SongEntity
 import java.io.Serializable
 import java.time.LocalDateTime
 
@@ -32,21 +31,7 @@ data class MediaMetadata(
         val title: String,
     ) : Serializable
 
-    fun toSongEntity() =
-        SongEntity(
-            id = id,
-            title = title,
-            duration = duration,
-            thumbnailUrl = thumbnailUrl,
-            albumId = album?.id,
-            albumName = album?.title,
-            explicit = explicit,
-            liked = liked,
-            likedDate = likedDate,
-            inLibrary = inLibrary,
-            libraryAddToken = libraryAddToken,
-            libraryRemoveToken = libraryRemoveToken
-        )
+
 }
 
 fun Song.toMediaMetadata() =

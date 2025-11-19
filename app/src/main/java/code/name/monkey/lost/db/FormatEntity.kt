@@ -1,11 +1,11 @@
-package code.name.monkey.lost.db.entities
+package code.name.monkey.lost.db
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "format")
 data class FormatEntity(
-    @PrimaryKey val id: String,
+    @PrimaryKey val id: Long,
     val itag: Int,
     val mimeType: String,
     val codecs: String,

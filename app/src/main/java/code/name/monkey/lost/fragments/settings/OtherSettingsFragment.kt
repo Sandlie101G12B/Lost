@@ -9,7 +9,6 @@ import androidx.core.os.LocaleListCompat
 import code.name.monkey.lost.fragments.ReloadType.HomeSections
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.preference.Preference
 import code.name.monkey.appthemehelper.common.prefs.supportv7.ATEListPreference
 import code.name.monkey.lost.LANGUAGE_NAME
@@ -17,19 +16,15 @@ import code.name.monkey.lost.LAST_ADDED_CUTOFF
 import code.name.monkey.lost.R
 import code.name.monkey.lost.db.PlaylistDao
 import code.name.monkey.lost.db.PlaylistEntity
-import code.name.monkey.lost.db.SongEntity
 import code.name.monkey.lost.extensions.installLanguageAndRecreate
 import code.name.monkey.lost.fragments.LibraryViewModel
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.repository.SongRepository
 import code.name.monkey.lost.service.SpotifyPlaylistIntergrator
-import code.name.monkey.lost.util.DownloadResult
 import code.name.monkey.lost.util.DownloadUtil
 import code.name.monkey.lost.util.PreferenceUtil
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.take
+import com.metrolist.innertube.YouTube
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 import timber.log.Timber
@@ -108,97 +103,50 @@ class OtherSettingsFragment : AbsSettingsFragment() {
 
                     val allLocalSongs = songRepository.songs()
                     val tracks = SpotifyPlaylistIntergrator.getPlaylistTracks(spotifyPlaylist.id) ?: emptyList()
-                    val songsToDownload = mutableMapOf<String, Song>()
-                    val songsFoundLocally = mutableListOf<Song>()
-
-                    // Pre-process local songs for faster lookup
                     val localMap = allLocalSongs.associateBy { sanitize("${it.title}-${it.artistName}").lowercase() }
+                    
+                    val songsToAddLocally = mutableListOf<Song>()
+                    val videosToDownload = mutableListOf<String>()
+                    val seenKeys = mutableSetOf<String>()
 
                     tracks.forEach { track ->
                         val key = sanitize("${track.name}-${track.artists.firstOrNull()?.name}").lowercase()
+                        
+                        if (seenKeys.contains(key)) return@forEach
+                        seenKeys.add(key)
+                        
                         val localSong = localMap[key]
                         if (localSong != null) {
-                            songsFoundLocally.add(localSong)
+                            songsToAddLocally.add(localSong)
                         } else {
                             // Lookup on YouTube
                             val query = "${track.name} ${track.artists.firstOrNull()?.name}"
-                            val videoId = com.metrolist.innertube.YouTube
-                                .search(query, com.metrolist.innertube.YouTube.SearchFilter.FILTER_SONG)
+                            val videoId = YouTube
+                                .search(query, YouTube.SearchFilter.FILTER_SONG)
                                 .getOrNull()?.items?.firstOrNull()?.id
-                            videoId?.let {
-                                songsToDownload[it] = Song(
-                                    id = 0,
-                                    title = track.name,
-                                    artistName = track.artists.firstOrNull()?.name ?: "",
-                                    data = "https://www.youtube.com/watch?v=$it",
-                                    albumName = "",
-                                    duration = 0,
-                                    trackNumber = 0,
-                                    year = 0,
-                                    dateModified = 0,
-                                    albumId = 0,
-                                    artistId = 0,
-                                    composer = "",
-                                    albumArtist = ""
-                                )
+                            
+                            if (videoId != null) {
+                                videosToDownload.add(videoId)
                             }
                         }
                     }
 
                     Timber.tag("SpotifyPlaylist")
-                        .d("${songsFoundLocally.size} found locally, ${songsToDownload.size} to download")
+                        .d("${songsToAddLocally.size} found locally, ${videosToDownload.size} to download")
 
-                    if (songsToDownload.isNotEmpty()) {
-                        val videoIds = songsToDownload.keys
-
-                        // Launch collector BEFORE adding downloads
-                        val collectorJob = lifecycleScope.launch {
-                            withTimeoutOrNull(60_000L) {
-                                downloadUtil?.downloadResult
-                                    ?.filter { it.videoId in videoIds }
-                                    ?.take(videoIds.size)
-                                    ?.collect { result ->
-                                        when (result) {
-                                            is DownloadResult.Success -> Timber.d("Downloaded ${result.videoId}")
-                                            is DownloadResult.Failure -> Timber.e("Failed ${result.videoId}: ${result.reason}")
-                                        }
-                                    }
-                            }
-                        }
-
-                        songsToDownload.forEach { (videoId, song) ->
-                            val request = DownloadRequest.Builder(videoId, song.data.toUri()).build()
-                            downloadUtil?.downloadManager?.addDownload(request)
-                        }
-
-                        collectorJob.join()
-                    }
-
-                    // Combine local and downloaded songs
-                    val allSongs = (songsFoundLocally + songsToDownload.values).distinctBy { it.title to it.artistName }
-                    if (allSongs.isNotEmpty()) {
+                    if (songsToAddLocally.isNotEmpty() || videosToDownload.isNotEmpty()) {
                         val playlistEntity = PlaylistEntity(playlistName = spotifyPlaylist.name)
                         val playlistId = playlistDao.createPlaylist(playlistEntity)
-                        val songEntities = allSongs.map {
-                            SongEntity(
-                                playlistCreatorId = playlistId,
-                                id = it.id,
-                                title = it.title,
-                                trackNumber = it.trackNumber,
-                                year = it.year,
-                                duration = it.duration,
-                                data = it.data,
-                                dateModified = it.dateModified,
-                                albumId = it.albumId,
-                                albumName = it.albumName,
-                                artistId = it.artistId,
-                                artistName = it.artistName,
-                                composer = it.composer,
-                                albumArtist = it.albumArtist
-                            )
+                        
+                        songsToAddLocally.forEach { 
+                            downloadUtil?.addLocalSongToPlaylist(it, playlistId) 
                         }
-                        playlistDao.insertSongsToPlaylist(songEntities)
-                        Timber.tag("SpotifyPlaylist").d("Created playlist '${spotifyPlaylist.name}' with ${allSongs.size} songs")
+                        
+                        videosToDownload.forEach { videoId ->
+                            downloadUtil?.addDownload(videoId, "https://www.youtube.com/watch?v=$videoId".toUri(), playlistId)
+                        }
+                        
+                        Timber.tag("SpotifyPlaylist").d("Created playlist '${spotifyPlaylist.name}' with ID $playlistId")
                     }
 
                 } catch (e: Exception) {

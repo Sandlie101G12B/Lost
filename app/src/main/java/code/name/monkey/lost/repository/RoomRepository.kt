@@ -42,15 +42,16 @@ interface RoomRepository {
     fun checkPlaylistExists(playListId: Long): LiveData<Boolean>
     fun getPlaylist(playlistId: Long): LiveData<PlaylistWithSongs>
     suspend fun addSongsToTopOfPlaylist(playlistId: Long, songsToAdd: List<Song>) // Name is now misleading
-
-    fun similarSongDao(): SimilarSongDao // Added
+    fun similarSongDao(): SimilarSongDao
+    fun songsDao(): DownloadedSongsDao
 }
 
 class RealRoomRepository(
     private val playlistDao: PlaylistDao,
     private val playCountDao: PlayCountDao,
     private val historyDao: HistoryDao,
-    private val similarSongDao: SimilarSongDao // Added
+    private val similarSongDao: SimilarSongDao,
+    private val songsDao: DownloadedSongsDao
 ) : RoomRepository {
     @WorkerThread
     override suspend fun createPlaylist(playlistEntity: PlaylistEntity): Long =
@@ -224,4 +225,5 @@ class RealRoomRepository(
     }
 
     override fun similarSongDao(): SimilarSongDao = similarSongDao // Added
+    override fun songsDao(): DownloadedSongsDao = songsDao
 }

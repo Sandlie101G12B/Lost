@@ -3,20 +3,15 @@ package code.name.monkey.lost.db
 import android.os.Parcelable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.Index
 import androidx.room.PrimaryKey
 import kotlinx.parcelize.Parcelize
 import java.time.LocalDateTime
 
 @Parcelize
-@Entity(indices = [Index(value = ["playlist_creator_id", "id"], unique = true)])
-data class SongEntity(
-    @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "song_key")
-    val songPrimaryKey: Long = 0L,
-    @ColumnInfo(name = "playlist_creator_id")
-    val playlistCreatorId: Long,
-    val id: Long,
+@Entity(tableName = "downloaded_songs")
+data class DownloadedSongsEntity(
+    @PrimaryKey
+    val id: String,
     val title: String,
     @ColumnInfo(name = "track_number")
     val trackNumber: Int,
@@ -35,5 +30,9 @@ data class SongEntity(
     val artistName: String,
     val composer: String?,
     @ColumnInfo(name = "album_artist")
-    val albumArtist: String?
+    val albumArtist: String?,
+    val dateDownload: LocalDateTime?,
+    val isDownloaded: Boolean,
+    val thumbnailUrl: String?,
+    val inLibrary: LocalDateTime?
 ) : Parcelable
