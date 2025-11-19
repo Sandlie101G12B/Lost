@@ -23,7 +23,7 @@ interface DownloadedSongsDao {
     suspend fun insertFormat(format: FormatEntity)
 
     @Query("SELECT * FROM format WHERE id = :id")
-    suspend fun getFormatById(id: Long): FormatEntity
+    suspend fun getFormatById(id: String): FormatEntity
 
     @Query("SELECT * FROM downloaded_songs WHERE id = :songId")
     suspend fun getSongById(songId: String): DownloadedSongsEntity?

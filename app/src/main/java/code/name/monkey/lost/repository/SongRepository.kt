@@ -54,7 +54,7 @@ class RealSongRepository(
         val localSongs = sortedSongs(makeSongCursor(null, null))
         val databaseSongs = runBlocking {
             databaseDao.songsDao().getAllSongs().first().map {
-                val streamUrl = databaseDao.songsDao().getFormatById(it.id.hashCode().toLong()).playbackUrl
+                val streamUrl = databaseDao.songsDao().getFormatById(it.id).playbackUrl
                 it.toSong(context, streamUrl)
             }
         }
@@ -145,7 +145,7 @@ class RealSongRepository(
 //                                                                                                                      //
 //                                                                                                                      //
 //        if (query.length >= 4) {                                                                                      //
-//            val sanitizedQueryForLyrics = query.replace(Regex("[^a-zA-Z0-9\s]"), "")
+//            val sanitizedQueryForLyrics = query.replace(Regex("[^a-zA-Z0-9\\s]"), "")
 //
 //            if (sanitizedQueryForLyrics.isNotBlank()) {
 //                val allSongsForLyricsCheck: List<Song> = songs(makeSongCursor(null, null))

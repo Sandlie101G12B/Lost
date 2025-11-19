@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "format")
 data class FormatEntity(
-    @PrimaryKey val id: Long,
+    @PrimaryKey val id: String,
     val itag: Int,
     val mimeType: String,
     val codecs: String,

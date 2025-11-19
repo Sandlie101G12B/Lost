@@ -1,7 +1,6 @@
 package code.name.monkey.lost.repository
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import code.name.monkey.lost.FAVOURITES

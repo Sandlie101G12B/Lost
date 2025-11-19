@@ -191,6 +191,8 @@ class DownloadUtil(
 
                         scope.launch {
                             val song = database.songsDao().getSongById(download.request.id)
+                            Timber.tag("SpotifyPlaylist").d("Download request id: ${download.request.id}")
+                            Timber.tag("SpotifyPlaylist").d("-- Song: $song")
                             if (song != null) {
                                 when (download.state) {
                                     Download.STATE_COMPLETED -> {
@@ -297,21 +299,37 @@ class DownloadUtil(
         }
     }
 
+    suspend fun ensureSongMetadata(mediaId: String) {
+        fetchAndCachePlaybackData(mediaId)
+    }
+
     /**
      * Attempt to fetch playback data from YTPlayerUtils and cache it. This performs
      * DB upserts for metadata but does it off the resolver thread.
      */
     private suspend fun fetchAndCachePlaybackData(mediaId: String) {
+        Timber.tag("SpotifyPlaylist").d("fetchAndCachePlaybackData called for $mediaId")
         // If another coroutine already fetched it successfully, skip
         val existing = playbackCache[mediaId]
-        if (existing != null && existing.expiresAtMs > System.currentTimeMillis()) return
+        if (existing != null && existing.expiresAtMs > System.currentTimeMillis()) {
+            Timber.tag("SpotifyPlaylist").d("Skipping fetch for $mediaId, found valid in-memory cache")
+            return
+        }
 
         try {
-            Timber.tag("SpotifyPlaylist").d("Fetching playback data for $mediaId")
+            Timber.tag("SpotifyPlaylist").d("Fetching playback data for $mediaId from YTPlayerUtils")
             // getPlaybackData is a suspend function in this variant; adapt if yours is not.
             val playbackDataResult = YTPlayerUtils.getPlaybackData(mediaId) // suspend
+            
+            if (playbackDataResult.isFailure) {
+                 Timber.tag("SpotifyPlaylist").e("YTPlayerUtils.getPlaybackData failed for $mediaId: ${playbackDataResult.exceptionOrNull()}")
+            }
+
             val playbackData = playbackDataResult.getOrThrow()
+            Timber.tag("SpotifyPlaylist").d("Successfully fetched playback data for $mediaId. Video Title: ${playbackData.videoDetails?.title}")
+
             val format = playbackData.format
+            Timber.tag("SpotifyPlaylist").d("Format info: itag=${format.itag}, mimeType=${format.mimeType}, bitrate=${format.bitrate}")
 
             val codecs = format.mimeType.split(";").find { it.trim().startsWith("codecs=") }
                 ?.substringAfter("=")
@@ -319,6 +337,7 @@ class DownloadUtil(
 
             val contentLength = format.contentLength
             val expiresAt = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L)
+            Timber.tag("SpotifyPlaylist").d("Stream expires in ${playbackData.streamExpiresInSeconds} seconds. ExpiresAt timestamp: $expiresAt")
 
             val formatInfo = FormatInfo(
                 itag = format.itag,
@@ -330,6 +349,7 @@ class DownloadUtil(
             )
 
             val streamUrl = playbackData.streamUrl // do NOT append range manually; let HTTP range headers handle requests
+            Timber.tag("SpotifyPlaylist").d("Stream URL obtained (length: ${streamUrl.length})")
 
             // cache in-memory for quick access by resolver
             playbackCache[mediaId] = PlaybackCacheEntry(
@@ -337,55 +357,63 @@ class DownloadUtil(
                 format = formatInfo,
                 expiresAtMs = expiresAt
             )
+            Timber.tag("SpotifyPlaylist").d("Added $mediaId to playbackCache")
 
-            // persist metadata to DB asynchronously (not on resolver thread)
-            scope.launch {
-                Timber.tag("SpotifyPlaylist").d("Upserting format and song info for $mediaId into DB")
-                val now = LocalDateTime.now()
+            Timber.tag("SpotifyPlaylist").d("Upserting format and song info for $mediaId into DB")
+            val now = LocalDateTime.now()
 
-                database.songsDao().insertFormat(
-                    FormatEntity(
-                        id = mediaId.hashCode().toLong(),
-                        itag = formatInfo.itag,
-                        mimeType = formatInfo.mimeType,
-                        codecs = formatInfo.codecs,
-                        bitrate = formatInfo.bitrate ?: 0,
-                        sampleRate = formatInfo.sampleRate,
-                        contentLength = formatInfo.contentLength ?: 0L,
-                        loudnessDb = playbackData.audioConfig?.loudnessDb,
-                        playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl
-                    )
-                )
+            val formatEntity = FormatEntity(
+                id = mediaId,
+                itag = formatInfo.itag,
+                mimeType = formatInfo.mimeType,
+                codecs = formatInfo.codecs,
+                bitrate = formatInfo.bitrate ?: 0,
+                sampleRate = formatInfo.sampleRate,
+                contentLength = formatInfo.contentLength ?: 0L,
+                loudnessDb = playbackData.audioConfig?.loudnessDb,
+                playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl
+            )
+            Timber.tag("SpotifyPlaylist").d("Inserting FormatEntity: $formatEntity")
+            database.songsDao().insertFormat(formatEntity)
 
-                val existingSong = database.songsDao().getSongById(mediaId)
-                val updatedSong: DownloadedSongsEntity = if (existingSong != null) {
-                    if (existingSong.dateDownload == null) {
-                        existingSong.copy(dateDownload = now)
-                    } else existingSong
+            val existingSong = database.songsDao().getSongById(mediaId)
+            Timber.tag("SpotifyPlaylist").d("Checking existing song in DB for $mediaId: ${existingSong != null}")
+            
+            val updatedSong: DownloadedSongsEntity = if (existingSong != null) {
+                if (existingSong.dateDownload == null) {
+                    Timber.tag("SpotifyPlaylist").d("Existing song has no download date, updating with now")
+                    existingSong.copy(dateDownload = now)
                 } else {
-                    DownloadedSongsEntity(
-                        id = mediaId, // Assuming mediaId can be converted to a Long hash
-                        title = playbackData.videoDetails?.title ?: "Unknown",
-                        trackNumber = 0, 
-                        year = 0,
-                        duration = playbackData.videoDetails?.lengthSeconds?.toLongOrNull() ?: 0L,
-                        data = "/",
-                        dateModified = now as Long,
-                        albumId = 0, 
-                        albumName = "", 
-                        artistId = 0, 
-                        artistName = playbackData.videoDetails?.author ?: "Unknown",
-                        composer = null,
-                        albumArtist = null,
-                        dateDownload = now,
-                        isDownloaded = false,
-                        thumbnailUrl = playbackData.videoDetails?.thumbnail?.thumbnails?.lastOrNull()?.url,
-                        inLibrary = null
-                    )
+                    Timber.tag("SpotifyPlaylist").d("Existing song already has download date, keeping it")
+                    existingSong
                 }
-
-                database.songsDao().insertSong(updatedSong)
+            } else {
+                Timber.tag("SpotifyPlaylist").d("Creating new DownloadedSongsEntity for $mediaId")
+                DownloadedSongsEntity(
+                    id = mediaId, // Assuming mediaId can be converted to a Long hash
+                    title = playbackData.videoDetails?.title ?: "Unknown",
+                    trackNumber = 0, 
+                    year = 0,
+                    duration = playbackData.videoDetails?.lengthSeconds?.toLongOrNull() ?: 0L,
+                    data = "/",
+                    dateModified = 0,
+                    albumId = 0, 
+                    albumName = "", 
+                    artistId = 0, 
+                    artistName = playbackData.videoDetails?.author ?: "Unknown",
+                    composer = null,
+                    albumArtist = null,
+                    dateDownload = now,
+                    isDownloaded = false,
+                    thumbnailUrl = playbackData.videoDetails?.thumbnail?.thumbnails?.lastOrNull()?.url,
+                    inLibrary = null
+                )
             }
+
+            Timber.tag("SpotifyPlaylist").d("Inserting/Updating SongEntity: $updatedSong")
+            database.songsDao().insertSong(updatedSong)
+            Timber.tag("SpotifyPlaylist").d("DB upsert complete for $mediaId")
+
 
         } catch (e: Exception) {
             Timber.tag("SpotifyPlaylist").e(e, "Failed to fetch playback data for $mediaId")
@@ -409,13 +437,22 @@ class DownloadUtil(
     fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
 
     fun addDownload(videoId: String, uri: Uri, playlistId: Long? = null) {
-        val requestBuilder = DownloadRequest.Builder(videoId, uri)
-        if (playlistId != null) {
-            val buffer = ByteBuffer.allocate(Long.SIZE_BYTES)
-            buffer.putLong(playlistId)
-            requestBuilder.setData(buffer.array())
+        scope.launch {
+            Timber.tag("SpotifyPlaylist").d("addDownload called for $videoId. Fetching metadata first...")
+            fetchAndCachePlaybackData(videoId)
+
+            val requestBuilder = DownloadRequest.Builder(videoId, uri)
+                .setCustomCacheKey(videoId)
+
+            if (playlistId != null) {
+                val buffer = ByteBuffer.allocate(Long.SIZE_BYTES)
+                buffer.putLong(playlistId)
+                requestBuilder.setData(buffer.array())
+            }
+            
+            Timber.tag("SpotifyPlaylist").d("Metadata ready for $videoId. Adding to DownloadManager.")
+            downloadManager.addDownload(requestBuilder.build())
         }
-        downloadManager.addDownload(requestBuilder.build())
     }
 
     fun addLocalSongToPlaylist(song: Song, playlistId: Long) {

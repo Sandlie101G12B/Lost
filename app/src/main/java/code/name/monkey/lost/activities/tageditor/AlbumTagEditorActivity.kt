@@ -139,7 +139,7 @@ class AlbumTagEditorActivity : AbsTagEditorActivity<ActivityAlbumTagEditorBindin
                     )
                     deleteAlbumArt = false
                     dataChanged()
-                    setResult(Activity.RESULT_OK)
+                    setResult(RESULT_OK)
                 }
 
                 override fun onLoadFailed(errorDrawable: Drawable?) {
