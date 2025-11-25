@@ -1,8 +1,12 @@
 package code.name.monkey.lost.activities
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import cat.ereza.customactivityoncrash.CustomActivityOnCrash
 import code.name.monkey.lost.R
@@ -65,6 +69,18 @@ class ErrorActivity : AppCompatActivity() {
                         ), ".txt"
                     )
                     shareFile(this, bugReport, "text/*")
+                }
+                .setNegativeButton(
+                    R.string.customactivityoncrash_error_activity_error_details_copy
+                ) { _, _ ->
+                    val errorDetails = CustomActivityOnCrash.getAllErrorDetailsFromIntent(
+                        this@ErrorActivity,
+                        intent
+                    )
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("Crash Report", errorDetails)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                 }
                 .show()
         }
