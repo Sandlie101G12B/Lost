@@ -83,6 +83,14 @@
             app:launchSingleTop="true"
             app:popEnterAnim="@anim/lost_fragment_close_enter"
             app:popExitAnim="@anim/lost_fragment_close_exit" />
+
+        <action
+            android:id="@+id/action_mainSettingsFragment_to_spotifyImportFragment"
+            app:destination="@id/spotifyImportFragment"
+            app:enterAnim="@anim/lost_fragment_open_enter"
+            app:exitAnim="@anim/lost_fragment_open_exit"
+            app:popEnterAnim="@anim/lost_fragment_close_enter"
+            app:popExitAnim="@anim/lost_fragment_close_exit" />
     </fragment>
 
     <fragment
@@ -108,7 +116,15 @@
     <fragment
         android:id="@+id/otherSettingsFragment"
         android:name="code.name.monkey.lost.fragments.settings.OtherSettingsFragment"
-        android:label="Other" />
+        android:label="Other">
+        <action
+            android:id="@+id/action_otherSettingsFragment_to_spotifyImportFragment"
+            app:destination="@id/spotifyImportFragment"
+            app:enterAnim="@anim/lost_fragment_open_enter"
+            app:exitAnim="@anim/lost_fragment_open_exit"
+            app:popEnterAnim="@anim/lost_fragment_close_enter"
+            app:popExitAnim="@anim/lost_fragment_close_exit" />
+    </fragment>
 
     <fragment
         android:id="@+id/personalizeSettingsFragment"
@@ -129,5 +145,11 @@
         android:id="@+id/backup_fragment"
         android:name="code.name.monkey.lost.fragments.backup.BackupFragment"
         android:label="About" />
+
+    <fragment
+        android:id="@+id/spotifyImportFragment"
+        android:name="code.name.monkey.lost.fragments.settings.SpotifyImportFragment"
+        android:label="Importing Playlists"
+        tools:layout="@layout/fragment_spotify_import" />
 
 </navigation>

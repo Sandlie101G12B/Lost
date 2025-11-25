@@ -98,6 +98,9 @@
         <Preference
             app:key="spotify_login"
             app:title="@string/login" />
+        <Preference
+            app:key="spotify_import"
+            app:title="@string/intergrate_spotify_playlists" />
         <PreferenceCategory
             app:key="spotify_playlists_category"
             app:title="@string/playlists">
