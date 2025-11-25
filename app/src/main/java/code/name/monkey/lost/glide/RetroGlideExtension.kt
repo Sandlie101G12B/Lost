@@ -83,7 +83,9 @@ object LostGlideExtension {
 
     // THIS IS THE MODIFIED PUBLIC FUNCTION
     fun getSongModel(song: Song): Any {
-        return if (song.data.startsWith("https")) {
+        return if (song.thumbnale != null) {
+             song.thumbnale!!
+        } else if (song.data.startsWith("https")) {
             "https://img.youtube.com/vi/${extractYouTubeVideoId(song.data)}/mqdefault.jpg" // Medium quality thumbnail
         } else {
             // Fallback to existing logic for local songs

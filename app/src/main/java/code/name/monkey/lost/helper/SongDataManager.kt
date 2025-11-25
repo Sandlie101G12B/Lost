@@ -30,8 +30,6 @@ object SongDataManager {
                 val destinationDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), lostFilesRelease)
                 if (!destinationDir.exists()) {
                     if (!destinationDir.mkdirs()) {
-                        Timber.tag(TAG)
-                            .e("Failed to create destination directory: ${destinationDir.absolutePath}")
                         return // Stop if directory creation fails
                     }
                 }
@@ -43,20 +41,11 @@ object SongDataManager {
                         input.copyTo(output)
                     }
                 }
-                Timber.tag(TAG)
-                    .i("Successfully copied resultantPath.txt to ${destinationFile.absolutePath}")
-            } catch (e: IOException) {
-                Timber.tag(TAG).e(e, "Error copying file: ${e.message}")
-            } catch (e: SecurityException) {
-                Timber.tag(TAG).e(
-                    e,
-                    "SecurityException: Missing WRITE_EXTERNAL_STORAGE permission or other security issue. ${e.message}"
-                )
-            }
+                } catch (e: IOException) {
+               } catch (e: SecurityException) {
+                }
         } else {
-            Timber.tag(TAG)
-                .w("Source file resultantPath.txt does not exist in app's internal storage. Skipping copy.")
-        }
+            }
     }
     var songs: MutableList<SongMetaData> = mutableListOf()
 }

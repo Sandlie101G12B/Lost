@@ -13,7 +13,7 @@ interface DownloadedSongsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSong(downloadedSongsEntity: DownloadedSongsEntity)
 
-    @Query("SELECT * FROM downloaded_songs")
+    @Query("SELECT * FROM downloaded_songs WHERE isDownloaded = 1")
     fun getAllSongs(): Flow<List<DownloadedSongsEntity>>
 
     @Query("DELETE FROM downloaded_songs WHERE id = :songId")

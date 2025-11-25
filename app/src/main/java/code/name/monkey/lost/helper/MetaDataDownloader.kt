@@ -83,7 +83,6 @@ fun generateTextWithGemini(
     apiKey: String,
     modelName: String
 ): String {
-    Timber.tag(TAG).d("Generating text with model: $modelName")
     val message = JsonObject().apply {
         addProperty("role", "user")
         val partsArray = JsonArray().apply {
@@ -163,8 +162,6 @@ Now, here is the input JSON:
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 val errorBody = response.body.string()
-                Timber.tag(TAG)
-                    .e("Error making API request to $modelName: ${response.code} ${response.message} - $errorBody")
                 return "Error making API request: ${response.code} ${response.message}"
             }
             val responseBodyString = response.body.string()
@@ -175,16 +172,12 @@ Now, here is the input JSON:
                 val parts = content.getAsJsonArray("parts")
                 if (parts != null && parts.size() > 0) {
                     val resultText = parts[0].asJsonObject.get("text").asString
-                    Timber.tag(TAG).d("API Result for model $modelName: $resultText")
                     return resultText
                 }
             }
-            Timber.tag(TAG).e("Unexpected response structure from $modelName: $responseBodyString")
             "Error: Unexpected response structure"
         }
     } catch (e: Exception) {
-        Timber.tag(TAG)
-            .e(e, "An unexpected error occurred in generateTextWithGemini with model $modelName")
         "An unexpected error occurred: $e"
     }
 }
@@ -437,9 +430,7 @@ fun writeToInternalStorage(context: Context, filename: String, content: String) 
         FileOutputStream(file).use {
             it.write(content.toByteArray())
         }
-    } catch (e: Exception) {
-        Timber.tag(TAG).e(e, "Error writing to internal storage")
-    }
+    }catch (_: Exception) {}
 }
 
 fun readFileOrCreate(context: Context, filename: String, defaultContent: String = "[]"): String {
@@ -452,7 +443,6 @@ fun readFileOrCreate(context: Context, filename: String, defaultContent: String 
             defaultContent
         }
     } catch (e: IOException) {
-        Timber.tag(TAG).e(e, "Error reading or creating file")
         defaultContent // Return default content on error to avoid null
     }
 }
@@ -567,7 +557,6 @@ fun mergeSongDataFiles(
                 .asJsonArray
                 .mapNotNull { it.takeIf { it.isJsonObject }?.asJsonObject }
         } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Error parsing $fileName")
             emptyList()
         }
     }
@@ -608,6 +597,5 @@ fun mergeSongDataFiles(
     }
 
     writeToInternalStorage(context, resultFileName, gson.toJson(mergedSongs))
-    Timber.tag(TAG).i("Merged ${mergedSongs.size} songs into $resultFileName")
 }
 
