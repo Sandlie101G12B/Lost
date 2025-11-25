@@ -97,8 +97,8 @@ class MainSettingsFragment : Fragment(), View.OnClickListener, MainActivity.OnSp
     }
 
     override fun onSpotifyLoginComplete() {
-        Timber.tag(TAG).d("onSpotifyLoginComplete called, navigating to other settings")
-        findNavController().navigate(R.id.action_mainSettingsFragment_to_otherSettingsFragment)
+        Timber.tag(TAG).d("onSpotifyLoginComplete called, navigating to spotify import")
+        findNavController().navigate(R.id.action_mainSettingsFragment_to_spotifyImportFragment)
     }
 
     override fun onDestroyView() {
