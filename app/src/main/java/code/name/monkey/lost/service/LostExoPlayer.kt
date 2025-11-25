@@ -13,8 +13,10 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultDataSource // Added import
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import code.name.monkey.lost.R
@@ -26,7 +28,6 @@ import code.name.monkey.lost.util.PreferenceUtil.playbackPitch
 import code.name.monkey.lost.util.PreferenceUtil.playbackSpeed
 import code.name.monkey.lost.util.YTPlayerUtils
 import code.name.monkey.lost.util.AudioQuality
-// Correct import for the USER_AGENT_WEB
 import com.metrolist.innertube.models.YouTubeClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,43 +35,49 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
+import timber.log.Timber
+import java.io.File
 
 class LostExoPlayer @OptIn(UnstableApi::class) constructor
-    (context: Context) : AudioManagerPlayback(context), Player.Listener { // Added private val to context
-    private var player: ExoPlayer // Changed to lateinit
+    (context: Context) : AudioManagerPlayback(context), Player.Listener, KoinComponent {
+    
+    private var player: ExoPlayer
     override var callbacks: PlaybackCallbacks? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val downloadCache: SimpleCache by inject(named("downloadCache"))
 
     override var isInitialized = false
         private set
 
     init {
-        // 1. Create the custom HTTP data source factory for online streams
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent(YouTubeClient.USER_AGENT_WEB)
 
-        // 2. Create a DefaultDataSource.Factory. This factory can handle multiple URI schemes.
-        //    We pass our custom httpDataSourceFactory to its constructor.
-        //    It will use httpDataSourceFactory for HTTP/HTTPS and its internal
-        //    default factories for other schemes like file:/// and content:///.        
-        val mainDataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+        // Configure CacheDataSource to use the download cache
+        val cacheDataSourceFactory = CacheDataSource.Factory()
+            .setCache(downloadCache)
+            .setUpstreamDataSourceFactory(httpDataSourceFactory)
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
-        // 3. Create the MediaSourceFactory using this more versatile mainDataSourceFactory
+        val mainDataSourceFactory = DefaultDataSource.Factory(context, cacheDataSourceFactory)
+
         val mediaSourceFactory = DefaultMediaSourceFactory(context)
-            .setDataSourceFactory(mainDataSourceFactory) // Use the factory that handles all schemes
+            .setDataSourceFactory(mainDataSourceFactory)
 
         player = ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
             .build()
 
         player.setWakeMode(C.WAKE_MODE_LOCAL)
-        player.addListener(this) // Add the main listener
+        player.addListener(this)
     }
 
     fun extractYouTubeVideoId(youtubeUrl: String): String? {
         val patterns = listOf(
             Regex("""(?:https?://)?(?:www\.)?(?:youtube\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})"""),
-            // Add more patterns here if you encounter other YouTube URL formats
         )
 
         for (pattern in patterns) {
@@ -82,6 +89,22 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
         return null
     }
 
+    private fun isUrlExpired(url: String): Boolean {
+        try {
+            val uri = Uri.parse(url)
+            val expire = uri.getQueryParameter("expire")?.toLongOrNull()
+            if (expire != null) {
+                // If expiration time is in the past (or very soon), consider it expired.
+                // expire is in seconds.
+                // Buffer of 5 minutes just to be safe
+                return System.currentTimeMillis() / 1000 > expire - 300
+            }
+        } catch (e: Exception) {
+            return false
+        }
+        return false
+    }
+
     override fun setDataSource(
         song: Song,
         force: Boolean,
@@ -89,43 +112,71 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
     ) {
         isInitialized = false
         coroutineScope.launch {
-            if (song.data.startsWith("https")) {
+            var currentStreamUrl = song.streamUrl
+            
+            // Check expiration of the existing URL
+            if (!currentStreamUrl.isNullOrEmpty() && isUrlExpired(currentStreamUrl!!)) {
+                 Timber.tag(TAG).d("Stream URL expired, clearing to force refresh: $currentStreamUrl")
+                 currentStreamUrl = null
+                 song.streamUrl = null
+            }
+
+            if(!currentStreamUrl.isNullOrEmpty()){
+                // Use existing stream URL, likely from DB or previous fetch
+                // Try to set cache key if we have an ID
+                val mediaItemBuilder = MediaItem.Builder()
+                    .setUri(currentStreamUrl)
+
+                val cacheKey = song.ytID ?: extractYouTubeVideoId(song.data)
+                if (!cacheKey.isNullOrEmpty()) {
+                    Timber.tag(TAG).d("---- ==== Setting custom cache key: $cacheKey ==== ----")
+                    mediaItemBuilder.setCustomCacheKey(cacheKey)
+                }
+                
+                preparePlayer(mediaItemBuilder.build(), completion)
+            } else if (song.isYTSong || song.data.startsWith("https") || !song.ytID.isNullOrEmpty()) {
 
                 val determinedSongId: String? =
-                    if (song.ytID.isNullOrEmpty()) { // Renamed to avoid confusion
+                    if (song.ytID.isNullOrEmpty()) {
                         extractYouTubeVideoId(song.data)
                     } else {
                         song.ytID
                     }
 
-                if (determinedSongId.isNullOrBlank()) { // Check if songId is null or blank
-                    Log.e(TAG,"Could not determine a valid YouTube song ID for song: ${song.title}, data: ${song.data}, ytID: ${song.ytID}")
+                if (determinedSongId.isNullOrBlank()) {
+                    Timber.tag(TAG)
+                        .e("Could not determine a valid YouTube song ID for song: ${song.title}, data: ${song.data}, ytID: ${song.ytID}")
                     withContext(Dispatchers.Main) {
-                        context.showToast(context.getString(R.string.unable_to_play_song_no_id)) // You might want a more specific string resource
+                        context.showToast(context.getString(R.string.unable_to_play_song_no_id))
                         completion(false)
                     }
-                    return@launch // Exit coroutine if no valid ID
+                    return@launch
                 }
-
-                Log.d(TAG, "Fetching stream URL for YouTube song ID: $determinedSongId")
-                // YTPlayerUtils internally handles its own client and user-agent for this call
+                
+                Timber.tag(TAG).d("Fetching stream URL for YouTube song ID: $determinedSongId")
+                
                 val playbackDataResult = YTPlayerUtils.getPlaybackData(
-                    videoId = determinedSongId, // No !! needed now due to the check above
+                    videoId = determinedSongId,
                     audioQuality = AudioQuality.AUTO
                 )
-
-                println("new_gen Playback Data Result: $playbackDataResult")
 
                 withContext(Dispatchers.Main) {
                     playbackDataResult.fold(
                         onSuccess = { playbackData ->
                             song.streamUrl = playbackData.streamUrl
-                            Log.d(TAG, "Successfully fetched stream URL: ${playbackData.streamUrl}")
-                            val mediaItem = MediaItem.fromUri(playbackData.streamUrl)
+                            Timber.tag(TAG)
+                                .d("Successfully fetched stream URL: ${playbackData.streamUrl}")
+                            
+                            // Set custom cache key to match DownloadManager's key (videoId)
+                            val mediaItem = MediaItem.Builder()
+                                .setUri(playbackData.streamUrl)
+                                .setCustomCacheKey(determinedSongId)
+                                .build()
+                                
                             preparePlayer(mediaItem, completion)
                         },
                         onFailure = {
-                            Log.e(TAG, "Failed to get stream URL for $determinedSongId", it)
+                            Timber.tag(TAG).e(it, "Failed to get stream URL for $determinedSongId")
                             context.showToast(context.getString(R.string.unable_to_stream_youtube_song))
                             completion(false)
                         }
@@ -133,10 +184,8 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
                 }
 
             } else {
-
-                Log.d(TAG, "Setting data source for local song: ${song.data}")
+                Timber.tag(TAG).d("Setting data source for local song: ${song.data}")
                 val mediaItem = MediaItem.fromUri(song.uri)
-                println("Setting data source for local song: ${mediaItem}")
                 preparePlayer(mediaItem, completion)
             }
         }
@@ -151,36 +200,32 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
                         .setUsage(C.USAGE_MEDIA)
                         .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                         .build(),
-                    false // Do not handle audio focus automatically, AudioManagerPlayback handles it
+                    false
                 )
                 player.playbackParameters = PlaybackParameters(playbackSpeed, playbackPitch)
 
-                // Add a one-time listener for STATE_READY or error during this preparation
                 val readyListener = object : Player.Listener {
                     override fun onPlaybackStateChanged(state: Int) {
                         if (state == Player.STATE_READY) {
-                            player.removeListener(this) // Remove this specific one-time listener
+                            player.removeListener(this)
                             isInitialized = true
-                            Log.d(TAG, "Player is ready.")
+                            Timber.tag(TAG).d("Player is ready.")
                             completion(true)
-                        } else if (state == Player.STATE_IDLE || state == Player.STATE_BUFFERING) {
-                            // Still waiting for ready or has failed
                         }
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
-                        player.removeListener(this) // Remove this specific one-time listener
-                        Log.e(TAG, "Player error during specific preparation: ", error)
-                        // The global onPlayerError will also be called, but we ensure completion(false) here for this specific prep.
+                        player.removeListener(this)
+                        Timber.tag(TAG).e(error, "Player error during specific preparation: ")
                         completion(false)
                     }
                 }
                 player.addListener(readyListener)
                 player.prepare()
-                Log.d(TAG, "Player preparation started.")
+                Timber.tag(TAG).d("Player preparation started.")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Exception in preparePlayer outer try-catch", e)
+            Timber.tag(TAG).e(e, "Exception in preparePlayer outer try-catch")
             e.printStackTrace()
             completion(false)
         }
@@ -189,34 +234,32 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
     override fun setNextDataSource(path: Uri?) {}
 
     override fun start(): Boolean {
-        super.start() // Handles audio focus and noisy receiver
+        super.start()
         return try {
             player.play()
             true
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "Error starting player", e)
+            Timber.tag(TAG).e(e, "Error starting player")
             e.printStackTrace()
             false
         }
     }
 
     override fun stop() {
-        super.stop() // Handles audio focus and noisy receiver
+        super.stop()
         player.stop()
         isInitialized = false
     }
 
     override fun release() {
-        // super.release() is not called as AudioManagerPlayback doesn't implement it.
-        // super.stop() is called via this.stop() which handles AudioManagerPlayback cleanup.
         stop()
-        player.removeListener(this) // Remove the main listener
+        player.removeListener(this)
         player.release()
-        coroutineScope.cancel() // Cancel coroutines when player is released
+        coroutineScope.cancel()
     }
 
     override fun pause(): Boolean {
-        super.pause() // Handles noisy receiver
+        super.pause()
         return try {
             player.pause()
             true
@@ -285,27 +328,25 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
         @OptIn(UnstableApi::class)
         get() = player.audioSessionId
 
-    // Player.Listener methods (global listener added in init)
     override fun onPlaybackStateChanged(state: Int) {
-        Log.d(TAG, "Global Listener: onPlaybackStateChanged: $state, isInitialized: $isInitialized, current song: ${player.currentMediaItem?.mediaId}")
+        Timber.tag(TAG).d("Global Listener: onPlaybackStateChanged: $state, isInitialized: $isInitialized, current song: ${player.currentMediaItem?.mediaId}")
         if (state == Player.STATE_ENDED) {
             callbacks?.onTrackEnded()
         } else {
-            callbacks?.onPlayStateChanged() // General state change like buffering, ready etc.
+            callbacks?.onPlayStateChanged()
         }
     }
 
     override fun onPlayerError(error: PlaybackException) {
-        Log.e(TAG, "Global Listener: onPlayerError: ", error)
+        Timber.tag(TAG).e(error, "Global Listener: onPlayerError: ")
         isInitialized = false
-        println("PLayer: lostexoplayer error")
         context.showToast(R.string.unplayable_file)
-        callbacks?.onPlayStateChanged() // Notify about state change (e.g., to update UI to a paused/error state)
-        callbacks?.onTrackEnded() // Consider if this should be called to advance queue on error
+        callbacks?.onPlayStateChanged()
+        callbacks?.onTrackEnded()
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        Log.d(TAG, "Global Listener: onMediaItemTransition - New MediaItem: ${mediaItem?.mediaId}, Reason: $reason")
+        Timber.tag(TAG).d("Global Listener: onMediaItemTransition - New MediaItem: ${mediaItem?.mediaId}, Reason: $reason")
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
             callbacks?.onTrackWentToNext()
         }

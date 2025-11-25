@@ -6,6 +6,7 @@ import java.time.ZoneId
 
 fun DownloadedSongsEntity.toSong(context: Context, streamUrl: String?): code.name.monkey.lost.model.Song {
     Timber.tag("SpotifyPlaylist").d("ESong title: $title")
+    Timber.tag("SpotifyPlaylist").d("ESong: $this")
     // Assuming DownloadUtil.getSongFile(ytID) returns the File object for the downloaded song.
     // This is a placeholder for the actual implementation that should be in DownloadUtil.kt.
     return code.name.monkey.lost.model.Song(
@@ -26,6 +27,7 @@ fun DownloadedSongsEntity.toSong(context: Context, streamUrl: String?): code.nam
         ytID = this.id,
         isYTSong = true,
         streamUrl = streamUrl,
-        isLocal = this.isDownloaded
+        isLocal = this.isDownloaded,
+        thumbnale = this.thumbnailUrl
     )
 }

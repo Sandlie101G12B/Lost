@@ -24,7 +24,8 @@ open class Song(
     open val ytID: String? = null,
     open val isYTSong: Boolean = false,
     open var streamUrl: String? = null,
-    open val isLocal: Boolean = false
+    open val isLocal: Boolean = false,
+    open val thumbnale: String? = null,
 ) : Parcelable {
 
     @IgnoredOnParcel

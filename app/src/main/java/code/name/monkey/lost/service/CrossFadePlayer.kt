@@ -164,7 +164,14 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
                 return
             }
 
-            if (song.isYTSong && !song.ytID.isNullOrEmpty()) {
+            if(!song.streamUrl.isNullOrEmpty()){
+                Timber.tag(tag).d("Setting data source for local current song: ${song.streamUrl}")
+                setDataSourceImpl(player, song.streamUrl!!, false) { success -> // Use song.data for local files
+                    mIsInitialized = success
+                    if(success) hasDataSourceForCurrentPlayer = true
+                    completion(success)
+                }
+            } else if (song.data.startsWith("https")) {
                 ioScope.launch {
                     Timber.tag(tag).d("Fetching stream URL for current YT song: ${song.ytID}")
                     val result = YTPlayerUtils.getPlaybackData(song.ytID!!, audioQuality = AudioQuality.AUTO)
@@ -333,7 +340,17 @@ class CrossFadePlayer(context: Context) : AudioManagerPlayback(context), MediaPl
             Timber.tag(tag)
                 .d("Preparing next song for crossfade: ${songToFadeIn.title}, isYT: ${songToFadeIn.isYTSong}")
 
-            if (songToFadeIn.isYTSong && !songToFadeIn.ytID.isNullOrEmpty()) {
+            if(!songToFadeIn.streamUrl.isNullOrEmpty()){
+                Timber.tag(tag).d("Preparing next local song: ${songToFadeIn.streamUrl}")
+                setDataSourceImpl(nextMediaPlayer, songToFadeIn.streamUrl!!, false) { success ->
+                    if (success) {
+                        prepareAndSwitchPlayer(nextMediaPlayer, songToFadeIn)
+                    } else {
+                        Timber.tag(tag)
+                            .e("Failed to setDataSourceImpl for next local song ${songToFadeIn.streamUrl}")
+                    }
+                }
+            } else if (songToFadeIn.data.startsWith("https")) {
                 ioScope.launch {
                     Timber.tag(tag).d("Fetching stream URL for next YT song: ${songToFadeIn.ytID}")
                     val result = YTPlayerUtils.getPlaybackData(songToFadeIn.ytID!!, audioQuality = AudioQuality.AUTO)
