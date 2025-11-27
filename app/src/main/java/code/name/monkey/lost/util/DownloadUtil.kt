@@ -19,7 +19,9 @@ import code.name.monkey.lost.db.LostDatabase
 import code.name.monkey.lost.db.FormatEntity
 import code.name.monkey.lost.db.DownloadedSongsEntity
 import code.name.monkey.lost.db.SongEntity
+import code.name.monkey.lost.helper.LyricsGetter
 import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.model.SongTMPContainer
 import code.name.monkey.lost.service.ExoDownloadService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +30,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.json.JSONObject
 import timber.log.Timber
@@ -595,6 +598,47 @@ class DownloadUtil(
             database.songsDao().insertSong(updatedSong)
             Timber.tag(TAG).d("DB upsert complete for $mediaId")
 
+            // Fetch Lyrics
+            withContext(Dispatchers.IO) {
+                try {
+                    val title = playbackData.videoDetails?.title ?: "Unknown"
+                    val author = playbackData.videoDetails?.author ?: "Unknown"
+                    if (title != "Unknown" && author != "Unknown") {
+                        val tmpContainer = SongTMPContainer(
+                            title = title,
+                            artistName = listOf(author),
+                            data = "",
+                            year = 0,
+                            liked = false,
+                            favorite = false,
+                            rating = 0
+                        )
+                        val lyrics = LyricsGetter.fetchLyricsForSong(tmpContainer)
+                        if (!lyrics.isNullOrBlank() && lyrics != "No Lyrics Found") {
+                            val dummySong = Song(
+                                id = mediaId.hashCode().toLong(),
+                                title = title,
+                                trackNumber = 0,
+                                year = 0,
+                                duration = 0,
+                                data = "/download/$mediaId",
+                                dateModified = 0,
+                                albumId = 0,
+                                albumName = "",
+                                artistId = 0,
+                                artistName = author,
+                                composer = null,
+                                albumArtist = null,
+                                isYTSong = true
+                            )
+                            LyricUtil.writeLrc(dummySong, lyrics)
+                            Timber.tag(TAG).d("Lyrics fetched and saved for $title")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.tag(TAG).e(e, "Failed to fetch lyrics for $mediaId")
+                }
+            }
 
         } catch (e: Exception) {
             // Check if we should rethrow for queue handling

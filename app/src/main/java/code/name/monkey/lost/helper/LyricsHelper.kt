@@ -101,7 +101,7 @@ object LyricsGetter {
                     return ""
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return ""
         }
         return lyricsContentToWrite
@@ -183,7 +183,7 @@ object LyricsGetter {
             }
             val lyrics = fetchLyricsForSong(song)
             if (lyrics != null && lyrics != "No Lyrics Found" && lyrics.isNotBlank()) {
-                 writeLyricsToFile(file, lyrics, context, song, null)
+                writeLyricsToFile(file, lyrics, context, song, null)
             } else if (lyrics == "No Lyrics Found") {
                 // Optionally, log or handle this case, e.g., create an empty .lrc file
                 continue

@@ -39,7 +39,6 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import timber.log.Timber
-import java.io.File
 
 class LostExoPlayer @OptIn(UnstableApi::class) constructor
     (context: Context) : AudioManagerPlayback(context), Player.Listener, KoinComponent {

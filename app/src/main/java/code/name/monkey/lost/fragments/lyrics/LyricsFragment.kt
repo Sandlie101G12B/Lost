@@ -31,11 +31,13 @@ import code.name.monkey.lost.fragments.base.AbsMainActivityFragment
 import code.name.monkey.lost.glide.LostGlideExtension.asBitmapPalette
 import code.name.monkey.lost.glide.SongGlideRequest
 import code.name.monkey.lost.glide.palette.BitmapPaletteWrapper
+import code.name.monkey.lost.helper.LyricsGetter
 import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.helper.MusicProgressViewUpdateHelper
 import code.name.monkey.lost.lyrics.LrcView
 import code.name.monkey.lost.model.AudioTagInfo
 import code.name.monkey.lost.model.Song
+import code.name.monkey.lost.model.SongTMPContainer
 import code.name.monkey.lost.util.ColorUtil
 import code.name.monkey.lost.util.FileUtils
 import code.name.monkey.lost.util.LyricUtil
@@ -349,7 +351,30 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun loadNormalLyrics() {
         val file = File(song.data)
         val lyrics = try {
-            AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
+            if(song.data.startsWith("https")) {
+                try {
+                    val title = song.title
+                    val author = song.artistName
+                    if (title != "Unknown" && author != "Unknown") {
+                        val tmpContainer = SongTMPContainer(
+                            title = title,
+                            artistName = listOf(author),
+                            data = "",
+                            year = 0,
+                            liked = false,
+                            favorite = false,
+                            rating = 0
+                        )
+                        LyricsGetter.fetchLyricsForSong(tmpContainer)
+                    } else {
+                        ""
+                    }
+                } catch (_: Exception){
+                    ""
+                }
+            } else {
+                AudioFileIO.read(file).tagOrCreateDefault.getFirst(FieldKey.LYRICS)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             ""
@@ -363,6 +388,30 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
      * @return success
      */
     private fun loadLRCLyrics(): Boolean {
+        if(song.data.startsWith("https")) {
+            try {
+                val title = song.title
+                val author = song.artistName
+                if (title != "Unknown" && author != "Unknown") {
+                    val tmpContainer = SongTMPContainer(
+                        title = title,
+                        artistName = listOf(author),
+                        data = "",
+                        year = 0,
+                        liked = false,
+                        favorite = false,
+                        rating = 0
+                    )
+                    val lyrics = LyricsGetter.fetchLyricsForSong(tmpContainer)
+                    binding.lyricsView.loadLrc(lyrics)
+                    return true
+                } else {
+                    return false
+                }
+            } catch (_: Exception){
+                return false
+            }
+        }
         val lrcFile = LyricUtil.getSyncedLyricsFile(song)
         if (lrcFile != null) {
             binding.lyricsView.loadLrc(lrcFile)
