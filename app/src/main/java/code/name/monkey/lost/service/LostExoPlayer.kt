@@ -116,9 +116,9 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
             
             // Check expiration of the existing URL
             if (!currentStreamUrl.isNullOrEmpty() && isUrlExpired(currentStreamUrl!!)) {
-                 Timber.tag(TAG).d("Stream URL expired, clearing to force refresh: $currentStreamUrl")
-                 currentStreamUrl = null
-                 song.streamUrl = null
+                Timber.tag(TAG).d("Stream URL expired, clearing to force refresh: $currentStreamUrl")
+                currentStreamUrl = null
+                song.streamUrl = null
             }
 
             if(!currentStreamUrl.isNullOrEmpty()){
@@ -278,7 +278,7 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
         } else try {
             player.duration.toInt()
         } catch (e: Exception) {
-             Log.w(TAG, "Error getting duration", e)
+            Log.w(TAG, "Error getting duration", e)
             -1
         }
     }

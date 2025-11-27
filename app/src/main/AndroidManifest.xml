@@ -313,10 +313,16 @@
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
-        <service android:name=".util.DownloadUtil"
-            android:foregroundServiceType="dataSync"
-            android:exported="false"/>
-
+        <!-- Removed the duplicate incorrect DownloadUtil service declaration -->
+        <service
+            android:name=".service.ExoDownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync">
+            <intent-filter>
+                <action android:name="androidx.media3.exoplayer.downloadService.action.RESTART" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
         <meta-data
             android:name="android.max_aspect"
             android:value="2.1" />

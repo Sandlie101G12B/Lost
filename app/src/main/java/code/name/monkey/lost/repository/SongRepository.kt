@@ -29,19 +29,12 @@ import timber.log.Timber
 import java.text.Collator
 
 interface SongRepository {
-
     fun songs(): List<Song>
-
     fun songs(cursor: Cursor?): List<Song>
-
     fun sortedSongs(cursor: Cursor?): List<Song>
-
     fun songs(query: String): List<Song>
-
     fun songsByFilePath(filePath: String, ignoreBlacklist: Boolean = false): List<Song>
-
     fun song(cursor: Cursor?): Song
-
     fun song(songId: Long): Song
 }
 
@@ -50,26 +43,10 @@ class RealSongRepository(
 ) : SongRepository, KoinComponent {
 
     private val databaseDao: LostDatabase by inject()
+    var databaseSongs: List<Song> = emptyList()
+
     override fun songs(): List<Song> {
-        val localSongs = sortedSongs(makeSongCursor(null, null))
-        val databaseSongs = runBlocking {
-            databaseDao.songsDao().getAllSongs().first().map {
-                val streamUrl = databaseDao.songsDao().getFormatById(it.id).playbackUrl
-                it.toSong(context, streamUrl)
-            }
-        }
-        Timber.tag("SpotifyPlaylist").d("Database songs found: $databaseSongs")
-        // Filter local songs to exclude those that are already present in databaseSongs (based on path/title match)
-        // This prevents duplicates if a song is both scanned and downloaded
-        
-        // A better approach for duplicate check might be needed, but assuming distinct IDs or Title/Artist combo:
-        val allSongs = (databaseSongs + localSongs).distinctBy {
-            // Prefer keeping the database song (downloaded) if it matches a local song
-            // Or just merge them.
-            // For now, simple distinct by title + artist
-             Pair(it.title.trim().lowercase(), it.artistName.trim().lowercase())
-        }
-        
+        val allSongs = sortedSongs(makeSongCursor(null, null))
         return allSongs
     }
 
@@ -86,7 +63,22 @@ class RealSongRepository(
 
     override fun sortedSongs(cursor: Cursor?): List<Song> {
         val collator = Collator.getInstance()
-        val songs = songs(cursor)
+        val localSongs = songs(cursor)
+        databaseSongs = runBlocking {
+            databaseDao.songsDao().getAllSongs().first().map {
+                val streamUrl = databaseDao.songsDao().getFormatById(it.id).playbackUrl
+                it.toSong(context, streamUrl)
+            }
+        }
+        Timber.tag("SpotifyPlaylist").d("Database songs found: $databaseSongs")
+        // Filter local songs to exclude those that are already present in databaseSongs (based on path/title match)
+        // This prevents duplicates if a song is both scanned and downloaded
+
+        // A better approach for duplicate check might be needed, but assuming distinct IDs or Title/Artist combo:
+        val songs = (databaseSongs + localSongs).distinctBy {
+            Pair(it.title.trim().lowercase(), it.artistName.trim().lowercase())
+        }
+
         return when (PreferenceUtil.songSortOrder) {
             SortOrder.SongSortOrder.SONG_A_Z -> {
                 songs.sortedWith { s1, s2 -> collator.compare(s1.title, s2.title) }
@@ -190,7 +182,7 @@ class RealSongRepository(
              // Ideally we'd have a way to lookup by Long ID if that's how it's stored, or by hash.
              // Here we iterate which is slow but safe for now if we can't lookup directly.
              // OR better: check if it's in the loaded list
-             songs().find { it.id == songId }
+            songs().find { it.id == songId }
         }
         
         if (dbSong != null) return dbSong
@@ -286,8 +278,6 @@ class RealSongRepository(
         } else {
             Media.EXTERNAL_CONTENT_URI
         }
-
-
 
         return try {
             context.contentResolver.query(

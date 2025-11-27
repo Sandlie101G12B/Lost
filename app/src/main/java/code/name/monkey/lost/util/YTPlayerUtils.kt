@@ -1,13 +1,9 @@
 package code.name.monkey.lost.util
 
 import android.content.Context
-import android.content.Intent
 import android.net.ConnectivityManager
-import androidx.core.net.toUri
-import androidx.media3.exoplayer.offline.DownloadRequest
-import androidx.media3.exoplayer.offline.DownloadService
+import android.net.Uri
 import code.name.monkey.lost.model.Song
-import code.name.monkey.lost.service.ExoDownloadService
 import com.metrolist.innertube.NewPipeUtils
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
@@ -31,6 +27,9 @@ import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.util.Collections
 import java.util.concurrent.TimeUnit
+import code.name.monkey.lost.fragments.settings.downloadUtil
+import kotlin.getValue
+import org.koin.java.KoinJavaComponent.inject
 
 enum class AudioQuality {
     AUTO,
@@ -70,6 +69,15 @@ object YTPlayerUtils {
     private val httpClient = OkHttpClient.Builder()
         .proxy(YouTube.proxy)
         .build()
+
+    private val koinDownloadUtil by inject<DownloadUtil>(DownloadUtil::class.java) // Koin singleton instance
+
+    fun getDownloadUtil(): DownloadUtil? {
+        if (downloadUtil == null) {
+            downloadUtil = koinDownloadUtil
+        }
+        return downloadUtil
+    }
 
     private val MAIN_CLIENT: YouTubeClient = WEB_REMIX
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
@@ -122,11 +130,13 @@ object YTPlayerUtils {
             var format: PlayerResponse.StreamingData.Format? = null
             var streamUrl: String? = null
             var streamExpiresInSeconds: Int? = null
-            var streamPlayerResponse: PlayerResponse? = null
+            var streamPlayerResponse: PlayerResponse?
 
             val connManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-            for (clientIndex in (-1 until STREAM_FALLBACK_CLIENTS.size)) {
+            // Optimized: Skip MAIN_CLIENT (index -1) because it is currently failing with Regex errors.
+            // Start directly with the fallback clients (index 0 onwards).
+            for (clientIndex in (0 until STREAM_FALLBACK_CLIENTS.size)) {
                 format = null; streamUrl = null; streamExpiresInSeconds = null
 
                 val client: YouTubeClient
@@ -300,12 +310,9 @@ object YTPlayerUtils {
 
             Timber.tag(logTag).d("Requesting download for videoId=$videoId, song=${song.title}")
 
-            val downloadRequest = DownloadRequest.Builder(videoId, song.data.toUri()).build()
-            DownloadService.sendAddDownload(
-                appContext,
-                ExoDownloadService::class.java,
-                downloadRequest,
-                /* foreground= */ false
+            getDownloadUtil()?.addDownload(
+                videoId = videoId,
+                uri = Uri.EMPTY
             )
 
         } catch (e: Exception) {

@@ -25,7 +25,6 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -161,7 +160,6 @@ Now, here is the input JSON:
     return try {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                val errorBody = response.body.string()
                 return "Error making API request: ${response.code} ${response.message}"
             }
             val responseBodyString = response.body.string()
@@ -442,7 +440,7 @@ fun readFileOrCreate(context: Context, filename: String, defaultContent: String 
             file.writeText(defaultContent)
             defaultContent
         }
-    } catch (e: IOException) {
+    } catch (_: IOException) {
         defaultContent // Return default content on error to avoid null
     }
 }
@@ -556,7 +554,7 @@ fun mergeSongDataFiles(
             JsonParser.parseString(content)
                 .asJsonArray
                 .mapNotNull { it.takeIf { it.isJsonObject }?.asJsonObject }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }

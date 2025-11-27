@@ -1,9 +1,7 @@
 package code.name.monkey.lost.util
 
 import android.content.Context
-import android.net.ConnectivityManager
 import android.net.Uri
-import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.DatabaseProvider
@@ -15,6 +13,7 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import androidx.media3.exoplayer.offline.DownloadRequest
+import androidx.media3.exoplayer.offline.DownloadService
 import code.name.monkey.lost.contants.AudioQualityKey
 import code.name.monkey.lost.db.LostDatabase
 import code.name.monkey.lost.db.FormatEntity
@@ -22,14 +21,15 @@ import code.name.monkey.lost.db.DownloadedSongsEntity
 import code.name.monkey.lost.db.SongEntity
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.service.ExoDownloadService
-import com.metrolist.innertube.YouTube
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
+import org.json.JSONObject
 import timber.log.Timber
 import java.time.LocalDateTime
 import java.util.ArrayDeque
@@ -40,7 +40,6 @@ import java.nio.ByteBuffer
 
 sealed class DownloadResult {
     abstract val videoId: String
-
     data class Success(override val videoId: String, val uri: Uri) : DownloadResult()
     data class Failure(override val videoId: String, val reason: String) : DownloadResult()
 }
@@ -51,7 +50,8 @@ sealed class DownloadResult {
 private data class PlaybackCacheEntry(
     val streamUrl: String,
     val format: FormatInfo,
-    val expiresAtMs: Long
+    val expiresAtMs: Long,
+    val title: String?
 )
 
 /**
@@ -74,46 +74,33 @@ private data class PendingDownloadRequest(
     val playlistId: Long?
 )
 
+//private const val TAG = "SpotifyPlaylist YTPlayerUtils"
+private const val TAG = "YTPlayerUtils"
+
 @UnstableApi
 class DownloadUtil(
-    context: Context,
+    private val context: Context,
     private val database: LostDatabase,
-    private val databaseProvider: DatabaseProvider,
-    private val downloadCache: SimpleCache,
+    databaseProvider: DatabaseProvider,
+    downloadCache: SimpleCache,
     private val playerCache: SimpleCache
 ) {
-    private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    // thread-safe in-memory cache for playback URLs & metadata
     private val playbackCache = ConcurrentHashMap<String, PlaybackCacheEntry>()
-
-    // Executor for DownloadManager - use a proper thread pool
     private val downloadExecutor: Executor = Executors.newFixedThreadPool(4)
-
-    // Using enumPreference from the original code (ensure PreferenceUtil or similar exists)
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
-
     val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
-
     private val _downloadResult = MutableSharedFlow<DownloadResult>()
-    val downloadResult: Flow<DownloadResult> = _downloadResult.asSharedFlow()
-
-    // --- Custom Queueing Logic Variables ---
     private val pendingQueue = ArrayDeque<PendingDownloadRequest>()
     private val activeBatchIds = ConcurrentHashMap.newKeySet<String>()
     private val queueLock = Any()
-
-    // We track how many pairs (batches) have been downloaded in the current "burst"
     private var pairsDownloadedInBurst = 0
     private var isCoolingDown = false
-    private var isRateLimited = false // New flag for 403 errors
-
-    // Constants for the throttling logic
-    private val BATCH_SIZE = 3
-    private val PAIRS_BEFORE_COOLDOWN = 2
-    private val COOLDOWN_MS = 15000L
-    private val RATE_LIMIT_BACKOFF_MS = 60000L // 1 minute wait if Google blocks us
+    private var isRateLimited = false
+    private val batchSize = 3
+    private val pairsBeforeCooldown = 2
+    private val coolDownMS = 15000L
+    private val rateLimitBackOffMS = 60000L
 
     /**
      * DataSource factory used both by player and by DownloadManager (as upstream for downloads).
@@ -129,51 +116,34 @@ class DownloadUtil(
                 .setUpstreamDataSourceFactory(
                     OkHttpDataSource.Factory(
                         OkHttpClient.Builder()
-                            .proxy(YouTube.proxy)
-                            .proxyAuthenticator { _, response ->
-                                YouTube.proxyAuth?.let { auth ->
-                                    response.request.newBuilder()
-                                        .header("Proxy-Authorization", auth)
-                                        .build()
-                                } ?: response.request
-                            }
                             .build(),
                     ),
                 ),
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: run {
-                Timber.tag("SpotifyPlaylist").w("No media id in DataSpec")
+                Timber.tag(TAG).w("No media id in DataSpec")
                 return@Factory dataSpec
             }
 
             val length = if (dataSpec.length >= 0) dataSpec.length else 1
 
             try {
-                // If this range is already cached in playerCache, let CacheDataSource handle it.
                 if (playerCache.isCached(mediaId, dataSpec.position, length)) {
-                    Timber.tag("SpotifyPlaylist").d("Cache hit for $mediaId at pos ${dataSpec.position}")
+                    Timber.tag(TAG).d("Cache hit for $mediaId at pos ${dataSpec.position}")
                     return@Factory dataSpec
                 }
 
                 // Check in-memory playbackCache for a prepared streamUrl that is still valid
                 playbackCache[mediaId]?.let { entry ->
                     if (entry.expiresAtMs > System.currentTimeMillis()) {
-                        Timber.tag("SpotifyPlaylist").d("Playback cache hit for $mediaId")
+                        Timber.tag(TAG).d("Playback cache hit for $mediaId")
                         return@Factory dataSpec.withUri(entry.streamUrl.toUri())
                     } else {
-                        // expired -> remove
                         playbackCache.remove(mediaId)
                     }
                 }
 
-                // No cached playback URL available. Trigger asynchronous fetch (non-blocking)
-                // so future resolution attempts will find the URL.
-                val playbackData = kotlinx.coroutines.runBlocking(Dispatchers.IO) {
-                    // We call your existing logic, but we need the return value here.
-                    // You might need to refactor fetchAndCachePlaybackData to return the PlaybackCacheEntry
-                    // or call YTPlayerUtils directly here like the original code did.
-
-                    // Simplest fix without refactoring your whole class:
+                val playbackData = runBlocking(Dispatchers.IO) {
                     fetchAndCachePlaybackData(mediaId) // This populates playbackCache
                     playbackCache[mediaId] // Return the entry we just cached
                 }
@@ -182,10 +152,9 @@ class DownloadUtil(
                     return@Factory dataSpec.withUri(it.streamUrl.toUri())
                 }
 
-                Timber.tag("SpotifyPlaylist").d("Playback cache miss for $mediaId - triggered async fetch")
+                Timber.tag(TAG).d("Playback cache miss for $mediaId - triggered async fetch")
             } catch (e: Exception) {
-                Timber.tag("SpotifyPlaylist").w(e, "Exception in resolver for $mediaId")
-                // Fall through: return original dataSpec (will try upstream)
+                Timber.tag(TAG).w(e, "Exception in resolver for $mediaId")
             }
 
             dataSpec
@@ -202,8 +171,6 @@ class DownloadUtil(
             dataSourceFactory,
             downloadExecutor
         ).apply {
-            // Ensure ExoPlayer doesn't try to run more than our batch size,
-            // though we throttle the inputs anyway.
             maxParallelDownloads = 2
             addListener(
                 object : DownloadManager.Listener {
@@ -212,7 +179,7 @@ class DownloadUtil(
                         download: Download,
                         finalException: Exception?,
                     ) {
-                        Timber.tag("SpotifyPlaylist").d("Download changed: ${download.request.id}, state: ${download.state}, exception: $finalException")
+                        Timber.tag(TAG).d("Download changed: ${download.request.id}, state: ${download.state}, exception: $finalException")
                         // Update the downloads map
                         downloads.update { map ->
                             map.toMutableMap().apply {
@@ -220,7 +187,6 @@ class DownloadUtil(
                             }
                         }
 
-                        // Check if an active batch item finished
                         if (download.state == Download.STATE_COMPLETED || download.state == Download.STATE_FAILED) {
                             val wasActive = activeBatchIds.remove(download.request.id)
                             if (wasActive) {
@@ -230,12 +196,12 @@ class DownloadUtil(
 
                         scope.launch {
                             val song = database.songsDao().getSongById(download.request.id)
-                            Timber.tag("SpotifyPlaylist").d("Download request id: ${download.request.id}")
-                            Timber.tag("SpotifyPlaylist").d("-- Song: $song")
+                            Timber.tag(TAG).d("Download request id: ${download.request.id}")
+                            Timber.tag(TAG).d("-- Song: $song")
                             if (song != null) {
                                 when (download.state) {
                                     Download.STATE_COMPLETED -> {
-                                        Timber.tag("SpotifyPlaylist").d("Download completed: ${download.request.id}")
+                                        Timber.tag(TAG).d("Download completed: ${download.request.id}")
                                         val updatedSong = song.copy(isDownloaded = true, dateDownload = LocalDateTime.now(), inLibrary = LocalDateTime.now())
                                         database.songsDao().updateSong(updatedSong)
                                         _downloadResult.emit(
@@ -247,34 +213,45 @@ class DownloadUtil(
 
                                         if (download.request.data.isNotEmpty()) {
                                             try {
-                                                val buffer = ByteBuffer.wrap(download.request.data)
-                                                val playlistId = buffer.long
+                                                var playlistId: Long? = null
+                                                val dataString = String(download.request.data, Charsets.UTF_8)
+                                                if (dataString.startsWith("{")) {
+                                                    val json = JSONObject(dataString)
+                                                    if (json.has("playlistId")) {
+                                                        playlistId = json.getLong("playlistId")
+                                                    }
+                                                } else if (download.request.data.size == 8) {
+                                                    // Legacy fallback
+                                                    playlistId = ByteBuffer.wrap(download.request.data).long
+                                                }
 
-                                                val songEntity = SongEntity(
-                                                    playlistCreatorId = playlistId,
-                                                    id = updatedSong.id.hashCode().toLong(),
-                                                    title = updatedSong.title,
-                                                    trackNumber = updatedSong.trackNumber,
-                                                    year = updatedSong.year,
-                                                    duration = updatedSong.duration,
-                                                    data = updatedSong.data,
-                                                    dateModified = updatedSong.dateModified,
-                                                    albumId = updatedSong.albumId,
-                                                    albumName = updatedSong.albumName,
-                                                    artistId = updatedSong.artistId,
-                                                    artistName = updatedSong.artistName,
-                                                    composer = updatedSong.composer,
-                                                    albumArtist = updatedSong.albumArtist
-                                                )
-                                                database.playlistDao().insertSongsToPlaylist(listOf(songEntity))
-                                                Timber.tag("SpotifyPlaylist").d("Added ${updatedSong.title} to playlist $playlistId")
+                                                if (playlistId != null) {
+                                                    val songEntity = SongEntity(
+                                                        playlistCreatorId = playlistId,
+                                                        id = updatedSong.id.hashCode().toLong(),
+                                                        title = updatedSong.title,
+                                                        trackNumber = updatedSong.trackNumber,
+                                                        year = updatedSong.year,
+                                                        duration = updatedSong.duration,
+                                                        data = updatedSong.data,
+                                                        dateModified = updatedSong.dateModified,
+                                                        albumId = updatedSong.albumId,
+                                                        albumName = updatedSong.albumName,
+                                                        artistId = updatedSong.artistId,
+                                                        artistName = updatedSong.artistName,
+                                                        composer = updatedSong.composer,
+                                                        albumArtist = updatedSong.albumArtist
+                                                    )
+                                                    database.playlistDao().insertSongsToPlaylist(listOf(songEntity))
+                                                    Timber.tag(TAG).d("Added ${updatedSong.title} to playlist $playlistId")
+                                                }
                                             } catch (e: Exception) {
-                                                Timber.tag("SpotifyPlaylist").e(e, "Failed to add to playlist from download data")
+                                                Timber.tag(TAG).e(e, "Failed to add to playlist from download data")
                                             }
                                         }
                                     }
                                     Download.STATE_FAILED -> {
-                                        Timber.tag("SpotifyPlaylist").e(finalException, "Download failed: ${download.request.id}")
+                                        Timber.tag(TAG).e(finalException, "Download failed: ${download.request.id}")
                                         database.songsDao().updateSong(song.copy(isDownloaded = false, dateDownload = null))
                                         _downloadResult.emit(
                                             DownloadResult.Failure(
@@ -285,11 +262,12 @@ class DownloadUtil(
                                     }
                                     Download.STATE_STOPPED,
                                     Download.STATE_REMOVING -> {
-                                        Timber.tag("SpotifyPlaylist").d("Download stopped or removing: ${download.request.id}")
+                                        Timber.tag(TAG).d("Download stopped or removing: ${download.request.id}")
                                         database.songsDao().updateSong(song.copy(isDownloaded = false, dateDownload = null))
                                     }
                                     else -> {
-                                        // Other states not handled explicitly
+                                        Timber.tag(TAG).d("Download still pending...")
+                                        Timber.tag(TAG).d("Download: $download")
                                     }
                                 }
                             }
@@ -306,7 +284,7 @@ class DownloadUtil(
     }
 
     private fun initializeDownloads() {
-        Timber.tag("SpotifyPlaylist").d("Initializing downloads")
+        Timber.tag(TAG).d("Initializing downloads")
         val result = mutableMapOf<String, Download>()
         downloadManager.downloadIndex.getDownloads().use { cursor ->
             while (cursor.moveToNext()) {
@@ -319,7 +297,10 @@ class DownloadUtil(
             }
         }
         downloads.value = result
-        Timber.tag("SpotifyPlaylist").d("Initialized ${result.size} downloads")
+        if (activeBatchIds.isNotEmpty()) {
+            DownloadService.start(context, ExoDownloadService::class.java)
+        }
+        Timber.tag(TAG).d("Initialized ${result.size} downloads")
     }
 
     /**
@@ -333,17 +314,17 @@ class DownloadUtil(
 
                 // If we are in rate limit mode, do not proceed automatically. The cooldown timer will restart the queue.
                 if (isRateLimited) {
-                    Timber.tag("SpotifyPlaylist").d("Batch finished but rate limit is active. Waiting for cooldown.")
+                    Timber.tag(TAG).d("Batch finished but rate limit is active. Waiting for cooldown.")
                     return
                 }
 
-                if (pairsDownloadedInBurst >= PAIRS_BEFORE_COOLDOWN) {
+                if (pairsDownloadedInBurst >= pairsBeforeCooldown) {
                     // We finished 2 pairs (4 songs). Trigger cooldown.
                     if (!isCoolingDown) {
                         isCoolingDown = true
-                        Timber.tag("SpotifyPlaylist").d("Burst limit reached ($PAIRS_BEFORE_COOLDOWN pairs). Cooling down for ${COOLDOWN_MS}ms.")
+                        Timber.tag(TAG).d("Burst limit reached ($pairsBeforeCooldown pairs). Cooling down for ${coolDownMS}ms.")
                         scope.launch {
-                            delay(COOLDOWN_MS)
+                            delay(coolDownMS)
                             synchronized(queueLock) {
                                 isCoolingDown = false
                                 pairsDownloadedInBurst = 0 // Reset burst counter
@@ -365,11 +346,11 @@ class DownloadUtil(
             if (isCoolingDown || isRateLimited) return // Waiting for cooldown or error backoff
             if (pendingQueue.isEmpty()) return // Nothing to do
 
-            Timber.tag("SpotifyPlaylist").d("Processing next batch. Queue size: ${pendingQueue.size}")
+            Timber.tag(TAG).d("Processing next batch. Queue size: ${pendingQueue.size}")
 
-            // Take up to BATCH_SIZE (2) items
+            // Take up to batchSize (2) items
             val batch = mutableListOf<PendingDownloadRequest>()
-            while (batch.size < BATCH_SIZE && pendingQueue.isNotEmpty()) {
+            while (batch.size < batchSize && pendingQueue.isNotEmpty()) {
                 batch.add(pendingQueue.removeFirst())
             }
 
@@ -391,28 +372,32 @@ class DownloadUtil(
 
                     try {
                         // We do metadata fetch HERE. propagateRateLimit = true means it will throw on 403
-                        Timber.tag("SpotifyPlaylist").d("Fetching metadata for ${request.videoId}")
+                        Timber.tag(TAG).d("Fetching metadata for ${request.videoId}")
                         fetchAndCachePlaybackData(request.videoId, propagateRateLimit = true)
+
+                        val title = playbackCache[request.videoId]?.title ?: "Unknown"
 
                         val requestBuilder = DownloadRequest.Builder(request.videoId, request.uri)
                             .setCustomCacheKey(request.videoId)
 
+                        val json = JSONObject()
+                        json.put("title", title)
                         if (request.playlistId != null) {
-                            val buffer = ByteBuffer.allocate(Long.SIZE_BYTES)
-                            buffer.putLong(request.playlistId)
-                            requestBuilder.setData(buffer.array())
+                            json.put("playlistId", request.playlistId)
                         }
+                        requestBuilder.setData(json.toString().toByteArray(Charsets.UTF_8))
 
-                        Timber.tag("SpotifyPlaylist").d("Adding ${request.videoId} to DownloadManager")
+                        Timber.tag(TAG).d("Adding ${request.videoId} to DownloadManager")
                         downloadManager.addDownload(requestBuilder.build())
+                        DownloadService.start(context, ExoDownloadService::class.java)
                     } catch (e: Exception) {
                         if (isRateLimitError(e)) {
-                            Timber.tag("SpotifyPlaylist").e("Rate limit (403) detected for ${request.videoId}. Triggering backoff.")
+                            Timber.tag(TAG).e("Rate limit (403) detected for ${request.videoId}. Triggering backoff.")
                             handleRateLimit(request, batch.subList(index + 1, batch.size))
                             break // Stop processing this batch
                         } else {
                             // Standard error (e.g. network timeout, video unavailable)
-                            Timber.tag("SpotifyPlaylist").e(e, "Metadata fetch failed for ${request.videoId}, skipping download add")
+                            Timber.tag(TAG).e(e, "Metadata fetch failed for ${request.videoId}, skipping download add")
                             // Remove from active IDs since we won't get a download completion event for it
                             activeBatchIds.remove(request.videoId)
                             // If this failure emptied the active batch, we need to ensure the queue keeps moving
@@ -451,15 +436,15 @@ class DownloadUtil(
 
         // Launch long cooldown
         scope.launch {
-            Timber.tag("SpotifyPlaylist").w("Rate limit active. Pausing queue for ${RATE_LIMIT_BACKOFF_MS}ms")
-            delay(RATE_LIMIT_BACKOFF_MS)
+            Timber.tag(TAG).w("Rate limit active. Pausing queue for ${rateLimitBackOffMS}ms")
+            delay(rateLimitBackOffMS)
 
             synchronized(queueLock) {
                 isRateLimited = false
                 pairsDownloadedInBurst = 0 // Reset burst counter to be safe
             }
 
-            Timber.tag("SpotifyPlaylist").d("Rate limit cooldown finished. Resuming queue.")
+            Timber.tag(TAG).d("Rate limit cooldown finished. Resuming queue.")
             processQueue()
         }
     }
@@ -476,7 +461,7 @@ class DownloadUtil(
 
     /**
      * Public API: prepare many ids (useful before batch downloads)
-     */
+    
     fun preparePlaybackDataForDownloads(ids: Collection<String>) {
         scope.launch {
             ids.forEach { id ->
@@ -489,27 +474,29 @@ class DownloadUtil(
         fetchAndCachePlaybackData(mediaId)
     }
 
+     */
+
     /**
      * Attempt to fetch playback data from YTPlayerUtils and cache it.
      * @param propagateRateLimit if true, rethrows 403 errors so the caller can handle backoff.
      */
     private suspend fun fetchAndCachePlaybackData(mediaId: String, propagateRateLimit: Boolean = false) {
-        Timber.tag("SpotifyPlaylist").d("fetchAndCachePlaybackData called for $mediaId")
+        Timber.tag(TAG).d("fetchAndCachePlaybackData called for $mediaId")
         // If another coroutine already fetched it successfully, skip
         val existing = playbackCache[mediaId]
         if (existing != null && existing.expiresAtMs > System.currentTimeMillis()) {
-            Timber.tag("SpotifyPlaylist").d("Skipping fetch for $mediaId, found valid in-memory cache")
+            Timber.tag(TAG).d("Skipping fetch for $mediaId, found valid in-memory cache")
             return
         }
 
         try {
-            Timber.tag("SpotifyPlaylist").d("Fetching playback data for $mediaId from YTPlayerUtils")
+            Timber.tag(TAG).d("Fetching playback data for $mediaId from YTPlayerUtils")
             // getPlaybackData is a suspend function in this variant; adapt if yours is not.
-            val playbackDataResult = YTPlayerUtils.getPlaybackData(mediaId) // suspend
+            val playbackDataResult = YTPlayerUtils.getPlaybackData(mediaId, audioQuality = audioQuality)
 
             if (playbackDataResult.isFailure) {
                 val ex = playbackDataResult.exceptionOrNull()
-                Timber.tag("SpotifyPlaylist").e("YTPlayerUtils.getPlaybackData failed for $mediaId: $ex")
+                Timber.tag(TAG).e("YTPlayerUtils.getPlaybackData failed for $mediaId: $ex")
                 // If the result is failure and it's a rate limit, we might need to throw if required
                 if (ex != null && propagateRateLimit && isRateLimitError(ex)) {
                     throw ex
@@ -517,10 +504,10 @@ class DownloadUtil(
             }
 
             val playbackData = playbackDataResult.getOrThrow()
-            Timber.tag("SpotifyPlaylist").d("Successfully fetched playback data for $mediaId. Video Title: ${playbackData.videoDetails?.title}")
+            Timber.tag(TAG).d("Successfully fetched playback data for $mediaId. Video Title: ${playbackData.videoDetails?.title}")
 
             val format = playbackData.format
-            Timber.tag("SpotifyPlaylist").d("Format info: itag=${format.itag}, mimeType=${format.mimeType}, bitrate=${format.bitrate}")
+            Timber.tag(TAG).d("Format info: itag=${format.itag}, mimeType=${format.mimeType}, bitrate=${format.bitrate}")
 
             val codecs = format.mimeType.split(";").find { it.trim().startsWith("codecs=") }
                 ?.substringAfter("=")
@@ -528,7 +515,7 @@ class DownloadUtil(
 
             val contentLength = format.contentLength
             val expiresAt = System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L)
-            Timber.tag("SpotifyPlaylist").d("Stream expires in ${playbackData.streamExpiresInSeconds} seconds. ExpiresAt timestamp: $expiresAt")
+            Timber.tag(TAG).d("Stream expires in ${playbackData.streamExpiresInSeconds} seconds. ExpiresAt timestamp: $expiresAt")
 
             val formatInfo = FormatInfo(
                 itag = format.itag,
@@ -542,17 +529,18 @@ class DownloadUtil(
             val streamUrl = playbackData.streamUrl.let {
                 "${it}&range=0-${format.contentLength ?: 10000000}"
             }
-            Timber.tag("SpotifyPlaylist").d("Stream URL obtained (length: ${streamUrl.length})")
+            Timber.tag(TAG).d("Stream URL obtained (length: ${streamUrl.length})")
 
             // cache in-memory for quick access by resolver
             playbackCache[mediaId] = PlaybackCacheEntry(
                 streamUrl = streamUrl,
                 format = formatInfo,
-                expiresAtMs = expiresAt
+                expiresAtMs = expiresAt,
+                title = playbackData.videoDetails?.title
             )
-            Timber.tag("SpotifyPlaylist").d("Added $mediaId to playbackCache")
+            Timber.tag(TAG).d("Added $mediaId to playbackCache")
 
-            Timber.tag("SpotifyPlaylist").d("Upserting format and song info for $mediaId into DB")
+            Timber.tag(TAG).d("Upserting format and song info for $mediaId into DB")
             val now = LocalDateTime.now()
 
             val formatEntity = FormatEntity(
@@ -566,29 +554,29 @@ class DownloadUtil(
                 loudnessDb = playbackData.audioConfig?.loudnessDb,
                 playbackUrl = playbackData.playbackTracking?.videostatsPlaybackUrl?.baseUrl
             )
-            Timber.tag("SpotifyPlaylist").d("Inserting FormatEntity: $formatEntity")
+            Timber.tag(TAG).d("Inserting FormatEntity: $formatEntity")
             database.songsDao().insertFormat(formatEntity)
 
             val existingSong = database.songsDao().getSongById(mediaId)
-            Timber.tag("SpotifyPlaylist").d("Checking existing song in DB for $mediaId: ${existingSong != null}")
+            Timber.tag(TAG).d("Checking existing song in DB for $mediaId: ${existingSong != null}")
 
             val updatedSong: DownloadedSongsEntity = if (existingSong != null) {
                 if (existingSong.dateDownload == null) {
-                    Timber.tag("SpotifyPlaylist").d("Existing song has no download date, updating with now")
+                    Timber.tag(TAG).d("Existing song has no download date, updating with now")
                     existingSong.copy(dateDownload = now)
                 } else {
-                    Timber.tag("SpotifyPlaylist").d("Existing song already has download date, keeping it")
+                    Timber.tag(TAG).d("Existing song already has download date, keeping it")
                     existingSong
                 }
             } else {
-                Timber.tag("SpotifyPlaylist").d("Creating new DownloadedSongsEntity for $mediaId")
+                Timber.tag(TAG).d("Creating new DownloadedSongsEntity for $mediaId")
                 DownloadedSongsEntity(
                     id = mediaId, // Assuming mediaId can be converted to a Long hash
                     title = playbackData.videoDetails?.title ?: "Unknown",
                     trackNumber = 0,
                     year = 0,
                     duration = playbackData.videoDetails?.lengthSeconds?.toLongOrNull() ?: 0L,
-                    data = "/",
+                    data = "/download/$mediaId",
                     dateModified = 0,
                     albumId = 0,
                     albumName = "",
@@ -603,9 +591,9 @@ class DownloadUtil(
                 )
             }
 
-            Timber.tag("SpotifyPlaylist").d("Inserting/Updating SongEntity: $updatedSong")
+            Timber.tag(TAG).d("Inserting/Updating SongEntity: $updatedSong")
             database.songsDao().insertSong(updatedSong)
-            Timber.tag("SpotifyPlaylist").d("DB upsert complete for $mediaId")
+            Timber.tag(TAG).d("DB upsert complete for $mediaId")
 
 
         } catch (e: Exception) {
@@ -614,14 +602,13 @@ class DownloadUtil(
                 throw e
             }
 
-            Timber.tag("SpotifyPlaylist").e(e, "Failed to fetch playback data for $mediaId")
-            // don't throw — resolver will fall back to upstream
+            Timber.tag(TAG).e(e, "Failed to fetch playback data for $mediaId")
         }
     }
 
     /**
      * Convenience to get the currently cached stream URI (if available and not expired)
-     */
+    
     fun getCachedStreamUri(mediaId: String): Uri? {
         val entry = playbackCache[mediaId]
         return if (entry != null && entry.expiresAtMs > System.currentTimeMillis()) {
@@ -634,12 +621,16 @@ class DownloadUtil(
 
     fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
 
+     */
     fun addDownload(videoId: String, uri: Uri, playlistId: Long? = null) {
-        // We now just add to our internal queue and trigger the processor.
-        // This prevents 50 concurrent metadata fetches which would overload the server.
         synchronized(queueLock) {
             pendingQueue.add(PendingDownloadRequest(videoId, uri, playlistId))
             processQueue()
+        }        // Start service to ensure it runs and shows notification
+        try {
+            DownloadService.start(context, ExoDownloadService::class.java)
+        } catch (e: Exception) {
+            Timber.tag(TAG).e(e, "Failed to start download service")
         }
     }
 
