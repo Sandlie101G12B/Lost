@@ -21,6 +21,8 @@
         android:text="@string/suggestion_songs"
         android:textAppearance="@style/TextViewHeadline16"
         android:textSize="20sp"
+        android:lineHeight="25sp"
+        app:lineHeight="25sp"
         app:layout_constrainedWidth="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

@@ -30,9 +30,56 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 
+/**
+ * Custom TypeAdapter for List<String> fields (like 'genre') that sometimes contain
+ * JSON objects instead of strings, causing a JsonSyntaxException.
+ * It skips the objects and only reads the strings, preventing the crash.
+ */
+class ListStringTypeAdapter : TypeAdapter<List<String>>() {
+    override fun read(reader: JsonReader): List<String> {
+        val list = mutableListOf<String>()
+        // Ensure we start with an array
+        if (reader.peek() != JsonToken.BEGIN_ARRAY) {
+            reader.skipValue() // Skip if it's not an array
+            return list
+        }
+
+        reader.beginArray()
+        while (reader.hasNext()) {
+            when (reader.peek()) {
+                // This is what Gson expects: a string
+                JsonToken.STRING -> {
+                    val genre = reader.nextString()
+                    if (genre.isNotBlank()) list.add(genre)
+                }
+                // This is the source of the crash: an object instead of a string
+                JsonToken.BEGIN_OBJECT -> {
+                    reader.skipValue() // Consume the entire object safely
+                }
+                // Handle nulls and other primitives by skipping them
+                else -> reader.skipValue()
+            }
+        }
+        reader.endArray()
+        return list
+    }
+
+    override fun write(out: JsonWriter, value: List<String>?) {
+        // This is not strictly needed for reading but required by the interface.
+        if (value == null) {
+            out.nullValue()
+            return
+        }
+        out.beginArray()
+        for (item in value) {
+            out.value(item)
+        }
+        out.endArray()
+    }
+}
 object ShuffleHelper : KoinComponent {
     private const val TAG = "ShuffleHelper"
-    private var metadataMap: Map<String, SongMetaData>? = null
+    var metadataMap: Map<String, SongMetaData>? = null
 
     // Injected by Koin. Assumes Repository is defined in your Koin modules.
     private val repository: Repository by inject()
@@ -404,7 +451,7 @@ object ShuffleHelper : KoinComponent {
     // === START: Custom File Logging Logic (Now internal to ShuffleHelper) ===
 
     // Use a unique tag to trigger file logging (prevents all other logs from going to the file)
-    private const val FILE_LOGGER_TAG = "JSON_DUMP"
+    const val FILE_LOGGER_TAG = "JSON_DUMP"
 
     /**
      * A custom Timber.Tree that specifically captures logs with the tag "JSON_DUMP"
@@ -459,57 +506,6 @@ object ShuffleHelper : KoinComponent {
     // === END: Custom File Logging Logic ===
 
     // === START: Custom TypeAdapter to handle mixed JSON types in List<String> ===
-
-    /**
-     * Custom TypeAdapter for List<String> fields (like 'genre') that sometimes contain
-     * JSON objects instead of strings, causing a JsonSyntaxException.
-     * It skips the objects and only reads the strings, preventing the crash.
-     */
-    private class ListStringTypeAdapter : TypeAdapter<List<String>>() {
-        override fun read(reader: JsonReader): List<String> {
-            val list = mutableListOf<String>()
-            // Ensure we start with an array
-            if (reader.peek() != JsonToken.BEGIN_ARRAY) {
-                reader.skipValue() // Skip if it's not an array
-                return list
-            }
-
-            reader.beginArray()
-            while (reader.hasNext()) {
-                when (reader.peek()) {
-                    // This is what Gson expects: a string
-                    JsonToken.STRING -> {
-                        val genre = reader.nextString()
-                        if (genre.isNotBlank()) list.add(genre)
-                    }
-                    // This is the source of the crash: an object instead of a string
-                    JsonToken.BEGIN_OBJECT -> {
-                        Timber.tag(TAG).w("Skipped unexpected JSON object in genre list to prevent crash.")
-                        reader.skipValue() // Consume the entire object safely
-                    }
-                    // Handle nulls and other primitives by skipping them
-                    else -> reader.skipValue()
-                }
-            }
-            reader.endArray()
-            return list
-        }
-
-        override fun write(out: JsonWriter, value: List<String>?) {
-            // This is not strictly needed for reading but required by the interface.
-            if (value == null) {
-                out.nullValue()
-                return
-            }
-            out.beginArray()
-            for (item in value) {
-                out.value(item)
-            }
-            out.endArray()
-        }
-    }
-
-    // === END: Custom TypeAdapter ===
 
     private fun loadMetadataMap(): Map<String, SongMetaData> {
         if (metadataMap != null) return metadataMap!!

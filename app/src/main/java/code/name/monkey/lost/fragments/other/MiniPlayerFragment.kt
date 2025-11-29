@@ -2,6 +2,9 @@ package code.name.monkey.lost.fragments.other
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
@@ -10,6 +13,9 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.core.text.toSpannable
 import androidx.core.view.isVisible
+import code.name.monkey.appthemehelper.util.ATHUtil
+import code.name.monkey.appthemehelper.util.ColorUtil
+import code.name.monkey.appthemehelper.util.TintHelper
 import code.name.monkey.lost.R
 import code.name.monkey.lost.databinding.FragmentMiniPlayerBinding
 import code.name.monkey.lost.extensions.accentColor
@@ -18,13 +24,18 @@ import code.name.monkey.lost.extensions.textColorPrimary
 import code.name.monkey.lost.extensions.textColorSecondary
 import code.name.monkey.lost.fragments.base.AbsMusicServiceFragment
 import code.name.monkey.lost.glide.LostGlideExtension
+import code.name.monkey.lost.glide.LostGlideExtension.asBitmapPalette
 import code.name.monkey.lost.glide.LostGlideExtension.songCoverOptions
+import code.name.monkey.lost.glide.palette.BitmapPaletteWrapper
 import code.name.monkey.lost.helper.MusicPlayerRemote
 import code.name.monkey.lost.helper.MusicProgressViewUpdateHelper
 import code.name.monkey.lost.helper.PlayPauseButtonOnClickHandler
-import code.name.monkey.lost.util.PreferenceUtil
 import code.name.monkey.lost.util.LostUtil
+import code.name.monkey.lost.util.PreferenceUtil
+import code.name.monkey.lost.util.color.MediaNotificationProcessor
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import kotlin.math.abs
 
 open class MiniPlayerFragment : AbsMusicServiceFragment(R.layout.fragment_mini_player),
@@ -75,36 +86,79 @@ open class MiniPlayerFragment : AbsMusicServiceFragment(R.layout.fragment_mini_p
         binding.miniPlayerPlayPauseButton.setOnClickListener(PlayPauseButtonOnClickHandler())
     }
 
-    private fun updateSongTitle() {
-
+    private fun updateSongTitle(primaryColor: Int? = null, secondaryColor: Int? = null) {
         val song = MusicPlayerRemote.currentSong
-
         val builder = SpannableStringBuilder()
 
         val title = song.title.toSpannable()
-        title.setSpan(ForegroundColorSpan(textColorPrimary()), 0, title.length, 0)
+        title.setSpan(ForegroundColorSpan(primaryColor ?: textColorPrimary()), 0, title.length, 0)
 
         val text = song.artistName.toSpannable()
-        text.setSpan(ForegroundColorSpan(textColorSecondary()), 0, text.length, 0)
+        text.setSpan(ForegroundColorSpan(secondaryColor ?: textColorSecondary()), 0, text.length, 0)
 
         builder.append(title).append(" • ").append(text)
 
         binding.miniPlayerTitle.isSelected = true
         binding.miniPlayerTitle.text = builder
-
-//        binding.title.isSelected = true
-//        binding.title.text = song.title
-//        binding.text.isSelected = true
-//        binding.text.text = song.artistName
     }
 
     private fun updateSongCover() {
         val song = MusicPlayerRemote.currentSong
         Glide.with(requireContext())
-            .load(LostGlideExtension.getSongModel(song))
-            .transition(LostGlideExtension.getDefaultTransition())
+            .asBitmapPalette()
             .songCoverOptions(song)
-            .into(binding.image)
+            .load(LostGlideExtension.getSongModel(song))
+            .into(object : CustomTarget<BitmapPaletteWrapper>() {
+                override fun onResourceReady(
+                    resource: BitmapPaletteWrapper,
+                    transition: Transition<in BitmapPaletteWrapper>?
+                ) {
+                    binding.image.setImageBitmap(resource.bitmap)
+                    val processor = MediaNotificationProcessor(requireContext(), resource.bitmap)
+                    updateColors(processor)
+                }
+
+                override fun onLoadFailed(errorDrawable: Drawable?) {
+                    binding.image.setImageDrawable(errorDrawable)
+                    resetColors()
+                }
+
+                override fun onLoadCleared(placeholder: Drawable?) {
+                    // Not implemented
+                }
+            })
+    }
+
+    private fun updateColors(processor: MediaNotificationProcessor) {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(processor.backgroundColor, hsv)
+        hsv[1] = 0.25f
+        val desaturatedColor = Color.HSVToColor(hsv)
+
+        binding.root.setBackgroundColor(desaturatedColor)
+
+        val isLight = ColorUtil.isColorLight(desaturatedColor)
+        val primaryColor = if (isLight) Color.BLACK else Color.WHITE
+        val secondaryColor = if (isLight) ColorUtil.adjustAlpha(Color.BLACK, 0.7f) else ColorUtil.adjustAlpha(Color.WHITE, 0.7f)
+
+        updateSongTitle(primaryColor, secondaryColor)
+
+        binding.actionNext.setColorFilter(primaryColor)
+        binding.actionPrevious.setColorFilter(primaryColor)
+        binding.miniPlayerPlayPauseButton.setColorFilter(primaryColor)
+        binding.progressBar.setIndicatorColor(primaryColor)
+    }
+
+    private fun resetColors() {
+        val defaultBackgroundColor = ATHUtil.resolveColor(requireContext(), com.google.android.material.R.attr.colorSurface)
+        binding.root.setBackgroundColor(defaultBackgroundColor)
+        updateSongTitle()
+        
+        val defaultIconColor = ATHUtil.resolveColor(requireContext(), androidx.appcompat.R.attr.colorControlNormal)
+        binding.actionNext.setColorFilter(defaultIconColor)
+        binding.actionPrevious.setColorFilter(defaultIconColor)
+        binding.miniPlayerPlayPauseButton.setColorFilter(defaultIconColor)
+        binding.progressBar.accentColor()
     }
 
     override fun onServiceConnected() {

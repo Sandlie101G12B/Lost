@@ -99,7 +99,13 @@ class RealPlaylistRepository(
             artistId = song.artistId,
             artistName = song.artistName,
             composer = song.composer,
-            albumArtist = song.albumArtist // Assuming Song model has albumArtistName
+            albumArtist = song.albumArtist, // Assuming Song model has albumArtistName
+            dateDownload = null,
+            isDownloaded = song.isLocal,
+            thumbnailUrl = song.thumbnale,
+            inLibrary = null,
+            ytID = song.ytID,
+            streamUrl = song.streamUrl
         )
     }
 
@@ -117,7 +123,12 @@ class RealPlaylistRepository(
             artistId = entity.artistId,
             artistName = entity.artistName,
             composer = entity.composer ?: "",
-            albumArtist = entity.albumArtist ?: ""
+            albumArtist = entity.albumArtist ?: "",
+            ytID = entity.ytID,
+            isYTSong = entity.ytID != null,
+            isLocal = entity.isDownloaded,
+            thumbnale = entity.thumbnailUrl,
+            streamUrl = entity.streamUrl
         )
     }
 

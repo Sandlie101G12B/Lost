@@ -2,6 +2,7 @@ package code.name.monkey.lost.fragments.lyrics
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -12,12 +13,13 @@ import android.view.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.graphics.ColorUtils
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.isVisible
 import androidx.navigation.fragment.findNavController
 import androidx.transition.Fade
 import code.name.monkey.appthemehelper.common.ATHToolbarActivity
 import code.name.monkey.appthemehelper.util.ATHUtil
+import code.name.monkey.appthemehelper.util.ColorUtil
 import code.name.monkey.appthemehelper.util.ToolbarContentTintHelper
 import code.name.monkey.appthemehelper.util.VersionUtils
 import code.name.monkey.lost.R
@@ -28,8 +30,9 @@ import code.name.monkey.lost.extensions.materialDialog
 import code.name.monkey.lost.extensions.openUrl
 import code.name.monkey.lost.extensions.uri
 import code.name.monkey.lost.fragments.base.AbsMainActivityFragment
+import code.name.monkey.lost.glide.LostGlideExtension
 import code.name.monkey.lost.glide.LostGlideExtension.asBitmapPalette
-import code.name.monkey.lost.glide.SongGlideRequest
+import code.name.monkey.lost.glide.LostGlideExtension.songCoverOptions
 import code.name.monkey.lost.glide.palette.BitmapPaletteWrapper
 import code.name.monkey.lost.helper.LyricsGetter
 import code.name.monkey.lost.helper.MusicPlayerRemote
@@ -38,10 +41,10 @@ import code.name.monkey.lost.lyrics.LrcView
 import code.name.monkey.lost.model.AudioTagInfo
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.SongTMPContainer
-import code.name.monkey.lost.util.ColorUtil
 import code.name.monkey.lost.util.FileUtils
 import code.name.monkey.lost.util.LyricUtil
 import code.name.monkey.lost.util.UriUtil
+import code.name.monkey.lost.util.color.MediaNotificationProcessor
 import com.afollestad.materialdialogs.input.input
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
@@ -113,7 +116,6 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
         updateTitleSong()
         setupLyricsView()
         loadLyrics()
-
         setupWakelock()
         setupViews()
         setupToolbar()
@@ -122,43 +124,61 @@ class LyricsFragment : AbsMainActivityFragment(R.layout.fragment_lyrics),
     private fun setupLyricsView() {
         if (!isAdded) return // Ensure fragment is added
 
+        val typeface = ResourcesCompat.getFont(requireContext(), R.font.google_sans_bold)
+        if (typeface != null) {
+            binding.lyricsView.setTypeface(typeface)
+        }
+
         Glide.with(requireContext())
             .asBitmapPalette()
-            .load(SongGlideRequest.Builder.from(song).build())
-            .into(object : CustomTarget<BitmapPaletteWrapper>() {
+            .songCoverOptions(song)
+            .load(LostGlideExtension.getSongModel(song))
+            .into(object : CustomTarget<BitmapPaletteWrapper>(500, 500) {
                 override fun onResourceReady(
                     resource: BitmapPaletteWrapper,
                     transition: Transition<in BitmapPaletteWrapper>?
                 ) {
-                    val backgroundColor = ColorUtil.getColor(
-                        resource.palette,
-                        ATHUtil.resolveColor(requireContext(), R.attr.defaultFooterColor)
-                    )
-                    binding.lyricsView.setBackgroundColor(backgroundColor)
-                    val textColor = if (ColorUtils.calculateLuminance(backgroundColor) > 0.5) {
-                        Color.BLACK
-                    } else {
-                        Color.WHITE
-                    }
+                    val processor = MediaNotificationProcessor(requireContext(), resource.bitmap)
+                    binding.colorGradientBackground.setBackgroundColor(processor.backgroundColor)
+                    val alphaPrimary = ColorUtil.withAlpha(processor.primaryTextColor, 0.5f)
                     binding.lyricsView.apply {
-                        setCurrentColor(textColor)
-                        setTimeTextColor(textColor)
-                        setTimelineColor(textColor)
-                        setTimelineTextColor(textColor)
+                        setCurrentColor(processor.primaryTextColor)
+                        setNormalTextColor(alphaPrimary)
+                        setTimeTextColor(alphaPrimary)
+                        setTimelineColor(alphaPrimary)
+                        setTimelineTextColor(alphaPrimary)
                     }
+                    binding.normalLyrics.setTextColor(processor.primaryTextColor)
+                    binding.noLyricsFound.setTextColor(processor.primaryTextColor)
+                    binding.toolbar.setTitleTextColor(processor.primaryTextColor)
+                    ToolbarContentTintHelper.colorizeToolbar(
+                        binding.toolbar,
+                        processor.primaryTextColor,
+                        requireActivity()
+                    )
                 }
 
                 override fun onLoadFailed(errorDrawable: Drawable?) {
                     // Set default colors if image loading fails
                     val defaultBackgroundColor = ATHUtil.resolveColor(requireContext(), R.attr.defaultFooterColor)
-                    binding.lyricsView.setBackgroundColor(defaultBackgroundColor)
+                    binding.colorGradientBackground.setBackgroundColor(defaultBackgroundColor)
                     val defaultTextColor = accentColor()
+                    val alphaDefault = ColorUtil.withAlpha(defaultTextColor, 0.5f)
                     binding.lyricsView.apply {
                         setCurrentColor(defaultTextColor)
-                        setTimeTextColor(defaultTextColor)
-                        setTimelineColor(defaultTextColor)
-                        setTimelineTextColor(defaultTextColor)
+                        setNormalTextColor(alphaDefault)
+                        setTimeTextColor(alphaDefault)
+                        setTimelineColor(alphaDefault)
+                        setTimelineTextColor(alphaDefault)
                     }
+                    binding.normalLyrics.setTextColor(defaultTextColor)
+                    binding.noLyricsFound.setTextColor(defaultTextColor)
+                    binding.toolbar.setTitleTextColor(defaultTextColor)
+                    ToolbarContentTintHelper.colorizeToolbar(
+                        binding.toolbar,
+                        defaultTextColor,
+                        requireActivity()
+                    )
                 }
 
                 override fun onLoadCleared(placeholder: Drawable?) {

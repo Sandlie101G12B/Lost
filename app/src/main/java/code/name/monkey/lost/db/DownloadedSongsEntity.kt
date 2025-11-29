@@ -31,8 +31,9 @@ data class DownloadedSongsEntity(
     val composer: String?,
     @ColumnInfo(name = "album_artist")
     val albumArtist: String?,
-    val dateDownload: LocalDateTime?,
-    val isDownloaded: Boolean,
-    val thumbnailUrl: String?,
-    val inLibrary: LocalDateTime?
+    val dateDownload: LocalDateTime? = null,
+    val isDownloaded: Boolean = false,
+    val thumbnailUrl: String? = null,
+    val inLibrary: LocalDateTime? = null,
+    val streamUrl: String? = null
 ) : Parcelable

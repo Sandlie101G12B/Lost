@@ -30,44 +30,57 @@ fun Song.toHistoryEntity(timePlayed: Long): HistoryEntity {
         artistName = artistName,
         composer = composer,
         albumArtist = albumArtist,
-        timePlayed = timePlayed
+        timePlayed = timePlayed,
+        streamUrl = streamUrl
     )
 }
 
 fun Song.toSongEntity(playListId: Long): SongEntity {
     return SongEntity(
         playlistCreatorId = playListId,
-        id = id,
-        title = title,
-        trackNumber = trackNumber,
-        year = year,
-        duration = duration,
-        data = data,
-        dateModified = dateModified,
-        albumId = albumId,
-        albumName = albumName,
-        artistId = artistId,
-        artistName = artistName,
-        composer = composer,
-        albumArtist = albumArtist
+        id = this.id,
+        title = this.title,
+        trackNumber = this.trackNumber,
+        year = this.year,
+        duration = this.duration,
+        data = this.data,
+        dateModified = this.dateModified,
+        albumId = this.albumId,
+        albumName = this.albumName,
+        artistId = this.artistId,
+        artistName = this.artistName,
+        composer = this.composer,
+        albumArtist = this.albumArtist,
+        dateDownload = null,
+        isDownloaded = this.isLocal,
+        thumbnailUrl = this.thumbnale,
+        inLibrary = null,
+        ytID = this.ytID,
+        streamUrl = this.streamUrl
     )
 }
 
 fun SongEntity.toSong(): Song {
     return Song(
-        id = id,
-        title = title,
-        trackNumber = trackNumber,
-        year = year,
-        duration = duration,
-        data = data,
-        dateModified = dateModified,
-        albumId = albumId,
-        albumName = albumName,
-        artistId = artistId,
-        artistName = artistName,
-        composer = composer,
-        albumArtist = albumArtist
+        id = this.id,
+        title = this.title,
+        trackNumber = this.trackNumber,
+        year = this.year,
+        duration = this.duration,
+        data = this.data,
+        dateModified = this.dateModified,
+        albumId = this.albumId,
+        albumName = this.albumName,
+        artistId = this.artistId,
+        artistName = this.artistName,
+        composer = this.composer,
+        albumArtist = this.albumArtist,
+        bpm = null,
+        ytID = this.ytID,
+        isYTSong = this.ytID != null,
+        streamUrl = this.streamUrl,
+        isLocal = this.isDownloaded,
+        thumbnale = this.thumbnailUrl
     )
 }
 
@@ -85,7 +98,8 @@ fun PlayCountEntity.toSong(): Song {
         artistId = artistId,
         artistName = artistName,
         composer = composer,
-        albumArtist = albumArtist
+        albumArtist = albumArtist,
+        streamUrl = streamUrl
     )
 }
 
@@ -103,7 +117,8 @@ fun HistoryEntity.toSong(): Song {
         artistId = artistId,
         artistName = artistName,
         composer = composer,
-        albumArtist = albumArtist
+        albumArtist = albumArtist,
+        streamUrl = streamUrl
     )
 }
 
@@ -123,7 +138,8 @@ fun Song.toPlayCount(): PlayCountEntity {
         composer = composer,
         albumArtist = albumArtist,
         timePlayed = System.currentTimeMillis(),
-        playCount = 1
+        playCount = 1,
+        streamUrl = streamUrl
     )
 }
 

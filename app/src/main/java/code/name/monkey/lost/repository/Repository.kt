@@ -58,7 +58,7 @@ interface Repository {
     suspend fun albumArtists(): List<Artist>
     suspend fun fetchLegacyPlaylist(): List<Playlist>
     suspend fun fetchGenres(): List<Genre>
-    suspend fun search(query: String?, filter: Filter): MutableList<Any>
+    fun search(query: String?, filter: Filter): Flow<List<Any>>
     suspend fun getPlaylistSongs(playlist: Playlist): List<Song>
     suspend fun getGenre(genreId: Long): List<Song>
     suspend fun artistInfo(name: String, lang: String?, cache: String?): Result<LastFmArtist>
@@ -222,7 +222,7 @@ class RealRepository(
 
     override suspend fun allSongs(): List<Song> = songRepository.songs()
 
-    override suspend fun search(query: String?, filter: Filter): MutableList<Any> =
+    override fun search(query: String?, filter: Filter): Flow<List<Any>> =
         searchRepository.searchAll(context, query, filter)
 
     override suspend fun getPlaylistSongs(playlist: Playlist): List<Song> =

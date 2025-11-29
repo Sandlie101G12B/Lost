@@ -38,8 +38,10 @@
             android:layout_weight="1"
             android:orientation="vertical"
             app:cardBackgroundColor="@android:color/transparent"
-            android:padding="10dp"
-            android:paddingTop="5dp">
+            android:paddingBottom="10dp"
+            android:paddingLeft="15dp"
+            android:paddingRight="15px"
+            android:paddingTop="15dp">
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/title"

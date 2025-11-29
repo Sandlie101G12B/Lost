@@ -14,6 +14,7 @@
 
 package code.name.monkey.lost.lyrics;
 
+import android.graphics.Paint;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -38,7 +39,7 @@ class LrcEntry implements Comparable<LrcEntry> {
     this.text = text;
   }
 
-  void init(TextPaint paint, int width, int gravity) {
+  void init(TextPaint paint, int width, int gravity, float lineHeight) {
     Layout.Alignment align = switch (gravity) {
         case GRAVITY_LEFT -> Layout.Alignment.ALIGN_NORMAL;
         case GRAVITY_RIGHT -> Layout.Alignment.ALIGN_OPPOSITE;
@@ -46,9 +47,17 @@ class LrcEntry implements Comparable<LrcEntry> {
     };
 
       String currentText = getShowText();
+      
+      float spacingAdd = 0f;
+      if (lineHeight > 0) {
+          Paint.FontMetrics fm = paint.getFontMetrics();
+          float textHeight = fm.descent - fm.ascent;
+          spacingAdd = lineHeight - textHeight;
+      }
+
       staticLayout = StaticLayout.Builder.obtain(currentText, 0, currentText.length(), paint, width)
               .setAlignment(align)
-              .setLineSpacing(0f, 1f) // spacingadd, spacingmult
+              .setLineSpacing(spacingAdd, 1f) // spacingadd, spacingmult
               .setIncludePad(false)
               .build();
 

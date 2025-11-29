@@ -3,11 +3,10 @@ package code.name.monkey.lost.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import code.name.monkey.lost.db.FormatEntity
 
 @Database(
     entities = [PlaylistEntity::class, SongEntity::class, HistoryEntity::class, PlayCountEntity::class, SimilarSongEntity::class, FormatEntity::class, DownloadedSongsEntity::class],
-    version = 28, // We'll need to increment this when we add the migration
+    version = 31, // Incremented version
     exportSchema = false
 )
 @TypeConverters(Converters::class)

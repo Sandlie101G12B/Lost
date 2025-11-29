@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.util.UnstableApi
@@ -25,6 +24,7 @@ import code.name.monkey.lost.repository.SongRepository
 import code.name.monkey.lost.service.SpotifyPlaylistIntergrator
 import code.name.monkey.lost.util.DownloadUtil
 import code.name.monkey.lost.util.PreferenceUtil
+import code.name.monkey.lost.util.YTPlayerUtils
 import com.metrolist.innertube.YouTube
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -34,7 +34,6 @@ import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 import timber.log.Timber
 
-// At the top level of a file (outside the class)
 @UnstableApi
 var downloadUtil: DownloadUtil? = null
 
@@ -123,10 +122,11 @@ class OtherSettingsFragment : AbsSettingsFragment(), MainActivity.OnSpotifyLogin
         syncSpotifyPlaylists()
     }
 
-    private fun sanitize(input: String): String = input.replace("[\\\\/:*?\"<>|#%]".toRegex(), "_")
+    private fun sanitize(input: String): String = input //input.replace("[\\\\/:*?\"<>|#%]".toRegex(), "_")
 
     private fun syncSpotifyPlaylists() {
         val context = context ?: return
+        var shouldUpdateUI = true
 
         val scrollView = android.widget.ScrollView(context)
         val logTextView = android.widget.TextView(context)
@@ -140,6 +140,7 @@ class OtherSettingsFragment : AbsSettingsFragment(), MainActivity.OnSpotifyLogin
             .setView(scrollView)
             .setCancelable(false)
             .setNegativeButton(R.string.action_cancel) { dialog, _ ->
+                shouldUpdateUI = false
                 dialog.dismiss()
             }
             .create()
@@ -151,10 +152,12 @@ class OtherSettingsFragment : AbsSettingsFragment(), MainActivity.OnSpotifyLogin
                 val playlists = SpotifyPlaylistIntergrator.getPlaylists()
                 if (playlists == null) {
                     withContext(Dispatchers.Main) {
-                        logTextView.append("\nFailed to fetch playlists")
-                        scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
-                        delay(2000)
-                        progressDialog.dismiss()
+                        if (shouldUpdateUI) {
+                            logTextView.append("\nFailed to fetch playlists")
+                            scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                            delay(2000)
+                            progressDialog.dismiss()
+                        }
                     }
                     return@launch
                 }
@@ -164,9 +167,11 @@ class OtherSettingsFragment : AbsSettingsFragment(), MainActivity.OnSpotifyLogin
                 val total = playlists.size
                 playlists.forEachIndexed { index, spotifyPlaylist ->
                     withContext(Dispatchers.Main) {
-                        val message = "Processing ${spotifyPlaylist.name} (${index + 1}/$total)"
-                        logTextView.append("\n$message")
-                        scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                        if (shouldUpdateUI) {
+                            val message = "Processing ${spotifyPlaylist.name} (${index + 1}/$total)"
+                            logTextView.append(message)
+                            scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                        }
                     }
 
                     try {
@@ -174,29 +179,59 @@ class OtherSettingsFragment : AbsSettingsFragment(), MainActivity.OnSpotifyLogin
 
                         val allLocalSongs = songRepository.songs()
                         val tracks = SpotifyPlaylistIntergrator.getPlaylistTracks(spotifyPlaylist.id) ?: emptyList()
-                        val localMap = allLocalSongs.associateBy { sanitize("${it.title}-${it.artistName}").lowercase() }
+                        
+                        val localSongsByTitle = allLocalSongs.groupBy { sanitize(it.title).lowercase() }
                         
                         val songsToAddLocally = mutableListOf<Song>()
                         val videosToDownload = mutableListOf<String>()
                         val seenKeys = mutableSetOf<String>()
 
                         tracks.forEach { track ->
-                            val key = sanitize("${track.name}-${track.artists.firstOrNull()?.name}").lowercase()
+                            val trackName = sanitize(track.name).lowercase()
+                            val spotifyArtists = track.artists.map { sanitize(it.name).lowercase() }
+                            val key = "$trackName-${spotifyArtists.sorted().joinToString(",")}"
                             
                             if (!seenKeys.contains(key)) {
                                 seenKeys.add(key)
                                 
-                                val localSong = localMap[key]
+                                val localSong = localSongsByTitle[trackName]?.find { song ->
+                                    val localArtists = song.artistNames.map { sanitize(it).lowercase() }
+                                    localArtists.any { localArtist ->
+                                        spotifyArtists.any { spotifyArtist ->
+                                            localArtist == spotifyArtist || localArtist.contains(spotifyArtist, ignoreCase = true) || spotifyArtist.contains(localArtist, ignoreCase = true)
+                                        }
+                                    }
+                                }
+                                
                                 if (localSong != null) {
                                     songsToAddLocally.add(localSong)
                                 } else {
                                     val query = "${track.name} ${track.artists.firstOrNull()?.name}"
+                                    withContext(Dispatchers.Main) {
+                                        if (shouldUpdateUI) {
+                                            logTextView.append("\n-- Querying for $query")
+                                            scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                                        }
+                                    }
                                     val videoId = YouTube
                                         .search(query, YouTube.SearchFilter.FILTER_SONG)
                                         .getOrNull()?.items?.firstOrNull()?.id
                                     
                                     if (videoId != null) {
                                         videosToDownload.add(videoId)
+                                        withContext(Dispatchers.Main) {
+                                            if (shouldUpdateUI) {
+                                                logTextView.append("\n-- Song found: $videoId\n")
+                                                scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                                            }
+                                        }
+                                    }else{
+                                        withContext(Dispatchers.Main) {
+                                            if (shouldUpdateUI) {
+                                                logTextView.append("\n-- Song not found\n")
+                                                scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -208,7 +243,15 @@ class OtherSettingsFragment : AbsSettingsFragment(), MainActivity.OnSpotifyLogin
                             
                             songsToAddLocally.forEach {
                                 @UnstableApi
-                                downloadUtil?.addLocalSongToPlaylist(it, playlistId) 
+                                downloadUtil?.addLocalSongToPlaylist(it, playlistId)
+                                Timber.tag(TAG).d("Adding ${it.title} to playlist")
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                if (shouldUpdateUI) {
+                                    logTextView.append("\n# Added local songs to playlist")
+                                    scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                                }
                             }
                             
                             // Batch downloading: 2 songs per batch, then 5 seconds delay
@@ -216,11 +259,11 @@ class OtherSettingsFragment : AbsSettingsFragment(), MainActivity.OnSpotifyLogin
                             chunks.forEachIndexed { chunkIndex, batch ->
                                 batch.forEach { videoId ->
                                     @UnstableApi
-                                    downloadUtil?.addDownload(videoId, "https://www.youtube.com/watch?v=$videoId".toUri(), playlistId)
+                                    YTPlayerUtils.initiateVideoDownload(videoId, playlistId)
                                 }
                                 // Delay after each batch, but not after the last one
                                 if (chunkIndex < chunks.size - 1) {
-                                    delay(5000)
+                                    delay(2000)
                                 }
                             }
                         }
@@ -231,19 +274,23 @@ class OtherSettingsFragment : AbsSettingsFragment(), MainActivity.OnSpotifyLogin
                 }
                 
                 withContext(Dispatchers.Main) {
-                    logTextView.append("\nImport Complete!")
-                    scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
-                    delay(1000)
-                    progressDialog.dismiss()
+                    if (shouldUpdateUI) {
+                        logTextView.append("\n\n\nImport Complete!")
+                        scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                        delay(1000)
+                        progressDialog.dismiss()
+                    }
                 }
 
             } catch (e: Exception) {
                 Timber.tag(TAG).e(e, "Sync failed")
                 withContext(Dispatchers.Main) {
-                    logTextView.append("\nError: ${e.message}")
-                    scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
-                    delay(2000)
-                    progressDialog.dismiss()
+                    if (shouldUpdateUI) {
+                        logTextView.append("\n\n\nError: ${e.message}")
+                        scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
+                        delay(2000)
+                        progressDialog.dismiss()
+                    }
                 }
             }
         }

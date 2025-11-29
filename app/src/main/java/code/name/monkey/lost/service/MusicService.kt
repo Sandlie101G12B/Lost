@@ -968,17 +968,28 @@ class MusicService : MediaBrowserServiceCompat(),
                         SAVED_POSITION_IN_TRACK, -1
                     )
                 if (restoredQueue.size > 0 && restoredQueue.size == restoredOriginalQueue.size && restoredPosition != -1) {
+                    // Check if the target song has a streamUrl
+                    val restoredSong = restoredQueue.getOrNull(restoredPosition)
+                    if (restoredSong?.streamUrl != null) {
+                        return@withContext
+                    }
+
                     originalPlayingQueue = ArrayList(restoredOriginalQueue)
                     playingQueue = ArrayList(restoredQueue)
                     position = restoredPosition
                     withContext(Main) {
-                        openCurrent {
-                            prepareNext()
-                            if (restoredPositionInTrack > 0) {
-                                seek(restoredPositionInTrack)
+                        openCurrent { success ->
+                            if (success) {
+                                prepareNext()
+                                if (restoredPositionInTrack > 0) {
+                                    seek(restoredPositionInTrack)
+                                }
+                                notHandledMetaChangedForCurrentTrack = true
+                                sendChangeInternal(META_CHANGED)
+                            } else {
+                                clearQueue()
+                                stopForegroundAndNotification()
                             }
-                            notHandledMetaChangedForCurrentTrack = true
-                            sendChangeInternal(META_CHANGED)
                         }
                         if (receivedHeadsetConnected) {
                             play()

@@ -11,8 +11,9 @@ import code.name.monkey.lost.model.Genre
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.network.InternetConnection
 import code.name.monkey.lost.util.YTPlayerUtils.searchVideos
-import code.name.monkey.lost.util.YouTubeSearchItem
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlin.collections.emptyList
 import kotlin.let
 
@@ -23,113 +24,121 @@ class RealSearchRepository(
     private val roomRepository: RoomRepository,
     private val genreRepository: GenreRepository,
 ) {
-    suspend fun searchAll(context: Context, query: String?, filter: Filter): MutableList<Any> {
+    fun searchAll(context: Context, query: String?, filter: Filter): Flow<List<Any>> = channelFlow {
         val results = mutableListOf<Any>()
-        if (query.isNullOrEmpty()) return results
-        query.let { searchString ->
-
-            /** Songs **/
-            val songs: List<Song> = if (filter == Filter.SONGS || filter == Filter.NO_FILTER) {
-                songRepository.songs(searchString)
-            } else {
-                emptyList()
-            }
-
-            val onlineSearch: List<Song> = if ((filter == Filter.SONGS || filter == Filter.NO_FILTER) && InternetConnection.hasInternetConnection(MetaData.getContext())) {
-                runBlocking {
-                    searchVideos(query)
-                        .fold(
-                            onSuccess = { searchResults: List<YouTubeSearchItem> -> // searchResults is List<YouTubeSearchItem>
-                                searchResults.mapNotNull { item ->
-                                    item.videoId?.let { videoId ->
-                                        Song(
-                                            id = videoId.hashCode().toLong(), // Using videoId's hashcode as a placeholder ID
-                                            title = item.title ?: "Unknown Title",
-                                            trackNumber = 0, // Default value
-                                            year = 0, // Default value
-                                            duration = 0L, // TODO: Parse item.duration (String) to Long (milliseconds) correctly
-                                            data = "https://www.youtube.com/watch?v=$videoId", // YouTube URL as data
-                                            dateModified = System.currentTimeMillis(), // Current time for dateModified
-                                            albumId = 0L, // Default value
-                                            albumName = "Online Songs", // Default album name for online searches
-                                            artistId = (item.author ?: "Unknown Artist").hashCode().toLong(), // Placeholder artist ID
-                                            artistName = item.author ?: "Unknown Artist",
-                                            composer = null, // No composer info from YouTubeSearchItem
-                                            albumArtist = null, // No album artist info
-                                            bpm = null, // No BPM info
-                                            ytID = videoId,
-                                            isYTSong = true
-                                        )
-                                    }
-                                }
-                            },
-                            onFailure = { _ -> // Can log exception if needed
-                                emptyList()
-                            }
-                        )
-                }
-            } else {
-                emptyList()
-            }
-            if (songs.isNotEmpty() || onlineSearch.isNotEmpty()) {
-                results.add(context.resources.getString(R.string.songs))
-                if (songs.isNotEmpty()) {
-                    results.addAll(songs)
-                }
-                if (onlineSearch.isNotEmpty()) {
-                    results.addAll(onlineSearch) // Corrected: add onlineSearch results
-                }
-            }
-            
-            /** Artists **/
-            val artists: List<Artist> =
-                if (filter == Filter.ARTISTS || filter == Filter.NO_FILTER) {
-                    artistRepository.artists(searchString)
-                } else {
-                    emptyList()
-                }
-            if (artists.isNotEmpty()) {
-                results.add(context.resources.getString(R.string.artists))
-                results.addAll(artists)
-            }
-
-            /** Albums **/
-            val albums: List<Album> = if (filter == Filter.ALBUMS || filter == Filter.NO_FILTER) {
-                albumRepository.albums(searchString)
-            } else {
-                emptyList()
-            }
-            if (albums.isNotEmpty()) {
-                results.add(context.resources.getString(R.string.albums))
-                results.addAll(albums)
-            }
-
-            /** Genres **/
-            val genres: List<Genre> = if (filter == Filter.GENRES || filter == Filter.NO_FILTER) {
-                genreRepository.genres(query)
-            } else {
-                emptyList()
-            }
-            if (genres.isNotEmpty()) {
-                results.add(context.resources.getString(R.string.genres))
-                results.addAll(genres)
-            }
-
-            /** Playlists **/
-            val playlist: List<PlaylistWithSongs> =
-                if (filter == Filter.PLAYLISTS || filter == Filter.NO_FILTER) {
-                    roomRepository.playlistWithSongs().filter { playlist ->
-                        playlist.playlistEntity.playlistName.lowercase().contains(searchString.lowercase())
-                    }
-                } else {
-                    emptyList()
-                }
-
-            if (playlist.isNotEmpty()) {
-                results.add(context.getString(R.string.playlists))
-                results.addAll(playlist)
-            }
+        if (query.isNullOrEmpty()) {
+            send(results)
+            return@channelFlow
         }
-        return results
+        val searchString = query
+
+        /** Songs **/
+        val songs: List<Song> = if (filter == Filter.SONGS || filter == Filter.NO_FILTER) {
+            songRepository.songs(searchString)
+        } else {
+            emptyList()
+        }
+
+        /** Artists **/
+        val artists: List<Artist> =
+            if (filter == Filter.ARTISTS || filter == Filter.NO_FILTER) {
+                artistRepository.artists(searchString)
+            } else {
+                emptyList()
+            }
+
+        /** Albums **/
+        val albums: List<Album> = if (filter == Filter.ALBUMS || filter == Filter.NO_FILTER) {
+            albumRepository.albums(searchString)
+        } else {
+            emptyList()
+        }
+
+        /** Genres **/
+        val genres: List<Genre> = if (filter == Filter.GENRES || filter == Filter.NO_FILTER) {
+            genreRepository.genres(query)
+        } else {
+            emptyList()
+        }
+
+        /** Playlists **/
+        val playlist: List<PlaylistWithSongs> =
+            if (filter == Filter.PLAYLISTS || filter == Filter.NO_FILTER) {
+                roomRepository.playlistWithSongs().filter { playlist ->
+                    playlist.playlistEntity.playlistName.lowercase().contains(searchString.lowercase())
+                }
+            } else {
+                emptyList()
+            }
+
+        if (songs.isNotEmpty()) {
+            results.add(context.resources.getString(R.string.songs))
+            results.addAll(songs)
+        }
+
+        if (artists.isNotEmpty()) {
+            results.add(context.resources.getString(R.string.artists))
+            results.addAll(artists)
+        }
+
+        if (albums.isNotEmpty()) {
+            results.add(context.resources.getString(R.string.albums))
+            results.addAll(albums)
+        }
+
+        if (genres.isNotEmpty()) {
+            results.add(context.resources.getString(R.string.genres))
+            results.addAll(genres)
+        }
+
+        if (playlist.isNotEmpty()) {
+            results.add(context.getString(R.string.playlists))
+            results.addAll(playlist)
+        }
+
+        send(results.toList())
+
+        if ((filter == Filter.SONGS || filter == Filter.NO_FILTER) && InternetConnection.hasInternetConnection(MetaData.getContext())) {
+            delay(1000)
+            searchVideos(query)
+                .onSuccess { searchResults ->
+                    val onlineSearch = searchResults.mapNotNull { item ->
+                        item.videoId?.let { videoId ->
+                            Song(
+                                id = videoId.hashCode().toLong(),
+                                title = item.title ?: "Unknown Title",
+                                trackNumber = 0,
+                                year = 0,
+                                duration = 0L,
+                                data = "https://www.youtube.com/watch?v=$videoId",
+                                dateModified = System.currentTimeMillis(),
+                                albumId = 0L,
+                                albumName = "Online Songs",
+                                artistId = (item.author ?: "Unknown Artist").hashCode().toLong(),
+                                artistName = item.author ?: "Unknown Artist",
+                                composer = null,
+                                albumArtist = null,
+                                bpm = null,
+                                ytID = videoId,
+                                isYTSong = true
+                            )
+                        }
+                    }
+
+                    if (onlineSearch.isNotEmpty()) {
+                        val newResults = results.toMutableList()
+                        if (songs.isNotEmpty()) {
+                            val songsHeaderIndex = newResults.indexOf(context.resources.getString(R.string.songs))
+                            if (songsHeaderIndex != -1) {
+                                newResults.addAll(songsHeaderIndex + 1 + songs.size, onlineSearch)
+                            }
+                        } else {
+                            newResults.add(0, context.resources.getString(R.string.songs))
+                            newResults.addAll(1, onlineSearch)
+                        }
+                        send(newResults)
+                    }
+                }
+        }
     }
 }

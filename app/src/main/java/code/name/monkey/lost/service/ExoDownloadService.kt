@@ -7,10 +7,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.drawable.Icon
-import android.os.Build
+import android.text.format.Formatter
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresPermission
 import androidx.media3.common.util.NotificationUtil
@@ -25,16 +23,9 @@ import androidx.media3.exoplayer.scheduler.Scheduler
 import code.name.monkey.lost.R
 import code.name.monkey.lost.util.DownloadUtil
 import code.name.monkey.lost.util.YTPlayerUtils
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.koin.core.component.KoinComponent
 import timber.log.Timber
-import java.net.URL
 
 @OptIn(UnstableApi::class)
 class ExoDownloadService : DownloadService(
@@ -45,24 +36,21 @@ class ExoDownloadService : DownloadService(
     0
 ), KoinComponent {
     private val downloadUtil: DownloadUtil = YTPlayerUtils.getDownloadUtil()!!
-    private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-    private val bitmapCache = mutableMapOf<String, Bitmap>()
-    private val fetchingBitmaps = mutableSetOf<String>()
     private lateinit var terminalStateNotificationHelper: TerminalStateNotificationHelper
+
+    private val speedTracker = mutableMapOf<String, Pair<Long, Long>>() // videoId -> (bytes, time)
+    private val previousSecondaryIds = mutableSetOf<String>()
 
     override fun onCreate() {
         super.onCreate()
-        // Create the NotificationChannel on API 26+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.downloading)
-            val descriptionText = "Background downloads"
-            val importance = NotificationManager.IMPORTANCE_LOW
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val name = getString(R.string.downloading)
+        val descriptionText = "Background downloads"
+        val importance = NotificationManager.IMPORTANCE_LOW
+        val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+            description = descriptionText
         }
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
 
         terminalStateNotificationHelper = TerminalStateNotificationHelper(
             this,
@@ -74,7 +62,6 @@ class ExoDownloadService : DownloadService(
 
     override fun onDestroy() {
         downloadUtil.downloadManager.removeListener(terminalStateNotificationHelper)
-        serviceScope.cancel()
         super.onDestroy()
     }
 
@@ -85,6 +72,12 @@ class ExoDownloadService : DownloadService(
             downloadManager.currentDownloads.forEach { download ->
                 Timber.tag(TAG).d("Removing download: ${download.request.id}")
                 downloadManager.removeDownload(download.request.id)
+            }
+        } else if (intent?.action == ACTION_CANCEL_DOWNLOAD) {
+            val id = intent.getStringExtra(EXTRA_DOWNLOAD_ID)
+            if (id != null) {
+                Timber.tag(TAG).d("Cancelling download: $id")
+                downloadManager.removeDownload(id)
             }
         }
         return super.onStartCommand(intent, flags, startId)
@@ -100,70 +93,110 @@ class ExoDownloadService : DownloadService(
         notMetRequirements: Int
     ): Notification {
         Timber.tag(TAG).d("getForegroundNotification for ${downloads.size} downloads")
+
+        // Handle multiple notifications for downloads > 1
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         
-        val title = if (downloads.size == 1) {
-            getTitle(downloads[0].request.data)
-        } else {
-            resources.getQuantityString(R.plurals.n_song, downloads.size, downloads.size)
+        // Identify secondary downloads (all except the first one, which belongs to the service foreground notification)
+        val secondaryDownloads = if (downloads.size > 1) downloads.subList(1, downloads.size) else emptyList()
+        val currentSecondaryIds = secondaryDownloads.map { it.request.id }.toSet()
+
+        // Cancel notifications for downloads that are no longer secondary (finished or moved to primary)
+        val toCancel = previousSecondaryIds - currentSecondaryIds
+        toCancel.forEach { videoId ->
+            notificationManager.cancel(videoId.hashCode())
+            speedTracker.remove(videoId)
+        }
+        previousSecondaryIds.clear()
+        previousSecondaryIds.addAll(currentSecondaryIds)
+
+        // Update/Post secondary notifications
+        secondaryDownloads.forEach { download ->
+            val notification = buildDownloadNotification(download, notMetRequirements)
+            notificationManager.notify(download.request.id.hashCode(), notification)
         }
 
-        val notification = downloadUtil.downloadNotificationHelper.buildProgressNotification(
-            this,
-            R.drawable.ic_download,
-            null,
-            title,
-            downloads,
-            notMetRequirements
-        )
+        // Return the primary notification (for the first download)
+        return if (downloads.isNotEmpty()) {
+            buildDownloadNotification(downloads[0], notMetRequirements)
+        } else {
+            // Fallback empty notification if list is empty (shouldn't happen in getForegroundNotification usually)
+            downloadUtil.downloadNotificationHelper.buildProgressNotification(
+                this,
+                R.drawable.ic_download,
+                null,
+                null,
+                downloads,
+                notMetRequirements
+            )
+        }
+    }
 
-        val builder = Notification.Builder.recoverBuilder(this, notification)
+    private fun buildDownloadNotification(download: Download, notMetRequirements: Int): Notification {
+        val videoId = download.request.id
+        val title = getTitle(download.request.data)
+        
+        val bytesDownloaded = download.bytesDownloaded
+        val contentLength = download.contentLength
+        val progress = if (contentLength != -1L && contentLength > 0) {
+            (bytesDownloaded * 100 / contentLength).toInt()
+        } else {
+            0
+        }
+        val indeterminate = contentLength == -1L
 
-        // Set the song image as the large icon (thumbnail)
-        val download = downloads.firstOrNull()
-        if (download != null) {
-            val videoId = download.request.id
-            val bitmap = bitmapCache[videoId]
-            if (bitmap != null) {
-                builder.setLargeIcon(bitmap)
-            } else if (!fetchingBitmaps.contains(videoId)) {
-                fetchingBitmaps.add(videoId)
-                serviceScope.launch(Dispatchers.IO) {
-                    try {
-                        val url = URL("https://img.youtube.com/vi/$videoId/mqdefault.jpg")
-                        val bmp = BitmapFactory.decodeStream(url.openStream())
-                        if (bmp != null) {
-                            withContext(Dispatchers.Main) {
-                                bitmapCache[videoId] = bmp
-                                invalidateForegroundNotification()
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Timber.tag(TAG).e(e, "Failed to load notification icon for $videoId")
-                    } finally {
-                        withContext(Dispatchers.Main) {
-                            fetchingBitmaps.remove(videoId)
-                        }
-                    }
-                }
+        // Calculate Speed
+        val now = System.currentTimeMillis()
+        var speedString = ""
+        val lastTracked = speedTracker[videoId]
+        if (lastTracked != null) {
+            val deltaBytes = bytesDownloaded - lastTracked.first
+            val deltaTime = now - lastTracked.second
+            if (deltaTime > 0) {
+                val speedBytesPerSec = (deltaBytes * 1000) / deltaTime
+                // Average or smooth? For now, instantaneous.
+                speedString = " • ${Formatter.formatFileSize(this, speedBytesPerSec)}/s"
             }
         }
+        // Update tracker
+        speedTracker[videoId] = bytesDownloaded to now
 
-        return builder.addAction(
+        // Format Sizes
+        val downloadedSize = Formatter.formatFileSize(this, bytesDownloaded)
+        val totalSize = if (contentLength != -1L) Formatter.formatFileSize(this, contentLength) else "?"
+        val progressText = "$downloadedSize / $totalSize$speedString"
+
+        val builder = Notification.Builder(this, CHANNEL_ID)
+
+        builder.setContentTitle(title)
+            .setContentText(progressText)
+            .setSmallIcon(R.drawable.ic_download)
+            .setOnlyAlertOnce(true)
+            .setOngoing(true)
+            .setProgress(100, progress, indeterminate)
+        
+        // Add Cancel Action
+        val cancelIntent = Intent(this, ExoDownloadService::class.java).apply {
+            action = ACTION_CANCEL_DOWNLOAD
+            putExtra(EXTRA_DOWNLOAD_ID, videoId)
+        }
+        val pendingIntent = PendingIntent.getService(
+            this, 
+            videoId.hashCode(), 
+            cancelIntent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        builder.addAction(
             Notification.Action.Builder(
                 Icon.createWithResource(this, R.drawable.ic_close),
                 getString(android.R.string.cancel),
-                PendingIntent.getService(
-                    this,
-                    0,
-                    Intent(this, ExoDownloadService::class.java).setAction(
-                        REMOVE_ALL_PENDING_DOWNLOADS
-                    ),
-                    PendingIntent.FLAG_IMMUTABLE
-                )
+                pendingIntent
             ).build()
-        ).build()
-    }
+        )
 
+        return builder.build()
+    }
 
     /**
      * This helper will outlive the lifespan of a single instance of [ExoDownloadService]
@@ -179,6 +212,9 @@ class ExoDownloadService : DownloadService(
             download: Download,
             finalException: Exception?,
         ) {
+            // Clean up speed tracker for finished/failed downloads?
+            // We rely on getForegroundNotification logic to clean up secondary IDs.
+            
             Timber.tag(TAG).d("onDownloadChanged: ${download.request.id}, state: ${download.state}")
             if (download.state == Download.STATE_FAILED) {
                 Timber.tag(TAG).e(finalException, "Download failed: ${download.request.id}")
@@ -208,6 +244,8 @@ class ExoDownloadService : DownloadService(
         const val NOTIFICATION_ID = 1
         const val JOB_ID = 1
         const val REMOVE_ALL_PENDING_DOWNLOADS = "REMOVE_ALL_PENDING_DOWNLOADS"
+        const val ACTION_CANCEL_DOWNLOAD = "ACTION_CANCEL_DOWNLOAD"
+        const val EXTRA_DOWNLOAD_ID = "extra_download_id"
 
         fun getTitle(data: ByteArray): String {
             return try {

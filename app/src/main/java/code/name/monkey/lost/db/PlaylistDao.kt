@@ -70,4 +70,7 @@ interface PlaylistDao {
     // New method to find old automatic playlists
     @Query("SELECT * FROM PlaylistEntity WHERE playlist_name LIKE :likePattern AND playlist_name != :actualName")
     suspend fun getPlaylistsWithNameLikeAndNotName(likePattern: String, actualName: String): List<PlaylistEntity>
+    
+    @Update
+    suspend fun updateSong(songEntity: SongEntity)
 }

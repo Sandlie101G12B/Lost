@@ -26,7 +26,6 @@ import code.name.monkey.lost.util.PreferenceUtil
 import code.name.monkey.lost.util.color.MediaNotificationProcessor
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -106,17 +105,7 @@ class AlbumCoverPagerAdapter(
             lifecycleScope.launch(Dispatchers.IO) {
                 val data: String? = MusicUtil.getLyrics(song)
                 withContext(Dispatchers.Main) {
-                    MaterialAlertDialogBuilder(
-                        requireContext(),
-                        com.google.android.material.R.style.ThemeOverlay_MaterialComponents_Dialog_Alert
-                    ).apply {
-                        setTitle(song.title)
-                        setMessage(if (data.isNullOrEmpty()) "No lyrics found" else data)
-                        setNegativeButton(R.string.synced_lyrics) { _, _ ->
-                            goToLyrics(requireActivity())
-                        }
-                        show()
-                    }
+                    goToLyrics(requireActivity())
                 }
             }
         }

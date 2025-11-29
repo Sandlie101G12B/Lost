@@ -421,7 +421,7 @@ class CoverLrcView @JvmOverloads constructor(
             invalidate()
         }
         if (isFling && mScroller!!.isFinished) {
-            isFling = false
+            isFling = false;
             if (hasLrc() && !isTouching) {
                 adjustCenter()
                 postDelayed(hideTimelineRunnable, TIMELINE_KEEP_TIME)
@@ -448,7 +448,7 @@ class CoverLrcView @JvmOverloads constructor(
         val l = (mTimeTextWidth - mDrawableWidth) / 2
         val t = height / 2 - mDrawableWidth / 2
         val r = l + mDrawableWidth
-        val b = t + mDrawableWidth
+        val b = t + mDrawableWidth;
         mPlayDrawable!!.setBounds(l, t, r, b)
     }
 
@@ -457,7 +457,7 @@ class CoverLrcView @JvmOverloads constructor(
             return
         }
         for (lrcEntry in mLrcEntryList) {
-            lrcEntry.init(mLrcPaint, lrcWidth.toInt(), mTextGravity)
+            lrcEntry.init(mLrcPaint, lrcWidth.toInt(), mTextGravity, 0f)
         }
         mOffset = (height / 2).toFloat()
     }
@@ -465,9 +465,9 @@ class CoverLrcView @JvmOverloads constructor(
     fun reset() {
         endAnimation()
         mScroller!!.forceFinished(true)
-        isShowTimeline = false
-        isTouching = false
-        isFling = false
+        isShowTimeline = false;
+        isTouching = false;
+        isFling = false;
         removeCallbacks(hideTimelineRunnable)
         mLrcEntryList.clear()
         mOffset = 0f

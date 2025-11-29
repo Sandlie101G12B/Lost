@@ -17,8 +17,10 @@ import androidx.media3.exoplayer.offline.DownloadService
 import code.name.monkey.lost.contants.AudioQualityKey
 import code.name.monkey.lost.db.LostDatabase
 import code.name.monkey.lost.db.FormatEntity
+import code.name.monkey.lost.db.songToSongEntity
+import code.name.monkey.lost.db.toSongEntity
+import code.name.monkey.lost.db.toSong
 import code.name.monkey.lost.db.DownloadedSongsEntity
-import code.name.monkey.lost.db.SongEntity
 import code.name.monkey.lost.helper.LyricsGetter
 import code.name.monkey.lost.model.Song
 import code.name.monkey.lost.model.SongTMPContainer
@@ -229,22 +231,7 @@ class DownloadUtil(
                                                 }
 
                                                 if (playlistId != null) {
-                                                    val songEntity = SongEntity(
-                                                        playlistCreatorId = playlistId,
-                                                        id = updatedSong.id.hashCode().toLong(),
-                                                        title = updatedSong.title,
-                                                        trackNumber = updatedSong.trackNumber,
-                                                        year = updatedSong.year,
-                                                        duration = updatedSong.duration,
-                                                        data = updatedSong.data,
-                                                        dateModified = updatedSong.dateModified,
-                                                        albumId = updatedSong.albumId,
-                                                        albumName = updatedSong.albumName,
-                                                        artistId = updatedSong.artistId,
-                                                        artistName = updatedSong.artistName,
-                                                        composer = updatedSong.composer,
-                                                        albumArtist = updatedSong.albumArtist
-                                                    )
+                                                    val songEntity = updatedSong.toSongEntity(playlistId)
                                                     database.playlistDao().insertSongsToPlaylist(listOf(songEntity))
                                                     Timber.tag(TAG).d("Added ${updatedSong.title} to playlist $playlistId")
                                                 }
@@ -590,7 +577,8 @@ class DownloadUtil(
                     dateDownload = now,
                     isDownloaded = false,
                     thumbnailUrl = playbackData.videoDetails?.thumbnail?.thumbnails?.lastOrNull()?.url,
-                    inLibrary = null
+                    inLibrary = null,
+                    streamUrl = formatEntity.playbackUrl
                 )
             }
 
@@ -615,22 +603,7 @@ class DownloadUtil(
                         )
                         val lyrics = LyricsGetter.fetchLyricsForSong(tmpContainer)
                         if (!lyrics.isNullOrBlank() && lyrics != "No Lyrics Found") {
-                            val dummySong = Song(
-                                id = mediaId.hashCode().toLong(),
-                                title = title,
-                                trackNumber = 0,
-                                year = 0,
-                                duration = 0,
-                                data = "/download/$mediaId",
-                                dateModified = 0,
-                                albumId = 0,
-                                albumName = "",
-                                artistId = 0,
-                                artistName = author,
-                                composer = null,
-                                albumArtist = null,
-                                isYTSong = true
-                            )
+                            val dummySong = updatedSong.toSong()
                             LyricUtil.writeLrc(dummySong, lyrics)
                             Timber.tag(TAG).d("Lyrics fetched and saved for $title")
                         }
@@ -680,22 +653,7 @@ class DownloadUtil(
 
     fun addLocalSongToPlaylist(song: Song, playlistId: Long) {
         scope.launch {
-            val songEntity = SongEntity(
-                playlistCreatorId = playlistId,
-                id = song.id,
-                title = song.title,
-                trackNumber = song.trackNumber,
-                year = song.year,
-                duration = song.duration,
-                data = song.data,
-                dateModified = song.dateModified,
-                albumId = song.albumId,
-                albumName = song.albumName,
-                artistId = song.artistId,
-                artistName = song.artistName,
-                composer = song.composer,
-                albumArtist = song.albumArtist
-            )
+            val songEntity = song.songToSongEntity(playlistId)
             database.playlistDao().insertSongsToPlaylist(listOf(songEntity))
         }
     }

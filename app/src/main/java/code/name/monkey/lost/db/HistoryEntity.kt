@@ -28,5 +28,7 @@ class HistoryEntity(
     @ColumnInfo(name = "album_artist")
     val albumArtist: String?,
     @ColumnInfo(name = "time_played")
-    val timePlayed: Long
+    val timePlayed: Long,
+    @ColumnInfo(name = "streamUrl")
+    val streamUrl: String? = null
 )

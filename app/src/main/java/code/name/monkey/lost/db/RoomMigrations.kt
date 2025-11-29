@@ -87,3 +87,28 @@ val MIGRATION_27_28 = object : Migration(27, 28) {
         """)
     }
 }
+
+val MIGRATION_28_29 = object : Migration(28, 29) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `SongEntity` ADD COLUMN `dateDownload` INTEGER")
+        db.execSQL("ALTER TABLE `SongEntity` ADD COLUMN `isDownloaded` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `SongEntity` ADD COLUMN `thumbnailUrl` TEXT")
+        db.execSQL("ALTER TABLE `SongEntity` ADD COLUMN `inLibrary` INTEGER")
+        db.execSQL("ALTER TABLE `SongEntity` ADD COLUMN `ytID` TEXT")
+    }
+}
+
+val MIGRATION_29_30 = object : Migration(29, 30) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `downloaded_songs` ADD COLUMN `streamUrl` TEXT")
+        db.execSQL("ALTER TABLE `SongEntity` ADD COLUMN `streamUrl` TEXT")
+    }
+}
+
+val MIGRATION_30_31 = object : Migration(30, 31) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `HistoryEntity` ADD COLUMN `streamUrl` TEXT")
+        db.execSQL("ALTER TABLE `similar_songs_data` ADD COLUMN `streamUrl` TEXT")
+        db.execSQL("ALTER TABLE `PlayCountEntity` ADD COLUMN `streamUrl` TEXT")
+    }
+}

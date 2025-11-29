@@ -27,6 +27,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Path
+import retrofit2.http.Query
 import timber.log.Timber
 import java.io.IOException
 
@@ -60,13 +61,26 @@ object SpotifyPlaylistIntergrator {
     // Retrofit service
     private interface SpotifyApiService {
         @GET("v1/me/playlists")
-        suspend fun getMyPlaylists(@Header("Authorization") token: String): PagedResult<SpotifyPlaylist>
+        suspend fun getMyPlaylists(
+            @Header("Authorization") token: String,
+            @Query("limit") limit: Int = 50,
+            @Query("offset") offset: Int = 0
+        ): PagedResult<SpotifyPlaylist>
 
         @GET("v1/me/tracks")
-        suspend fun getMyLikedSongs(@Header("Authorization") token: String): PagedResult<SpotifySavedTrack>
+        suspend fun getMyLikedSongs(
+            @Header("Authorization") token: String,
+            @Query("limit") limit: Int = 50,
+            @Query("offset") offset: Int = 0
+        ): PagedResult<SpotifySavedTrack>
 
         @GET("v1/playlists/{playlist_id}/tracks")
-        suspend fun getPlaylistTracks(@Header("Authorization") token: String, @Path("playlist_id") playlistId: String): PagedResult<SpotifyPlaylistItem>
+        suspend fun getPlaylistTracks(
+            @Header("Authorization") token: String,
+            @Path("playlist_id") playlistId: String,
+            @Query("limit") limit: Int = 50,
+            @Query("offset") offset: Int = 0
+        ): PagedResult<SpotifyPlaylistItem>
     }
 
     private val spotifyApi: SpotifyApiService by lazy {
@@ -180,14 +194,33 @@ object SpotifyPlaylistIntergrator {
         return try {
             withRetry {
                 val token = getAccessToken() ?: throw IOException("Not logged in to Spotify")
-                val playlists = spotifyApi.getMyPlaylists(token).items.toMutableList()
-                val likedSongs = getLikedSongs()
-                if (likedSongs != null) {
-                    val likedSongsPlaylist = SpotifyPlaylist("liked_songs", "Liked Songs", emptyList())
-                    playlists.add(0, likedSongsPlaylist)
+                val allPlaylists = mutableListOf<SpotifyPlaylist>()
+                var offset = 0
+                val limit = 50
+                var fetchMore = true
+
+                while (fetchMore) {
+                    val pagedResult = spotifyApi.getMyPlaylists(token, limit, offset)
+                    allPlaylists.addAll(pagedResult.items)
+                    if (pagedResult.items.size < limit) {
+                        fetchMore = false
+                    } else {
+                        offset += limit
+                    }
                 }
-                Timber.tag(TAG).d("Successfully fetched %d playlists", playlists.size)
-                playlists
+
+                try {
+                    val likedSongsCheck = spotifyApi.getMyLikedSongs(token, limit = 1)
+                    if (likedSongsCheck.items.isNotEmpty()) {
+                        val likedSongsPlaylist = SpotifyPlaylist("liked_songs", "Liked Songs", emptyList())
+                        allPlaylists.add(0, likedSongsPlaylist)
+                    }
+                } catch (e: Exception) {
+                    Timber.tag(TAG).w("Failed to check liked songs existence: ${e.message}")
+                }
+
+                Timber.tag(TAG).d("Successfully fetched %d playlists", allPlaylists.size)
+                allPlaylists
             }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to get playlists after retries.")
@@ -200,9 +233,23 @@ object SpotifyPlaylistIntergrator {
         return try {
             withRetry {
                 val token = getAccessToken() ?: throw IOException("Not logged in to Spotify")
-                val tracks = spotifyApi.getMyLikedSongs(token).items.map { it.track }
-                Timber.tag(TAG).d("Successfully fetched %d liked songs", tracks.size)
-                tracks
+                val allTracks = mutableListOf<SpotifyTrack>()
+                var offset = 0
+                val limit = 50
+                var fetchMore = true
+
+                while (fetchMore) {
+                    val pagedResult = spotifyApi.getMyLikedSongs(token, limit, offset)
+                    val tracks = pagedResult.items.map { it.track }
+                    allTracks.addAll(tracks)
+                    if (pagedResult.items.size < limit) {
+                        fetchMore = false
+                    } else {
+                        offset += limit
+                    }
+                }
+                Timber.tag(TAG).d("Successfully fetched %d liked songs", allTracks.size)
+                allTracks
             }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to get liked songs after retries.")
@@ -218,9 +265,23 @@ object SpotifyPlaylistIntergrator {
                 if (playlistId == "liked_songs") {
                     return@withRetry getLikedSongs()
                 }
-                val tracks = spotifyApi.getPlaylistTracks(token, playlistId).items.map { it.track }
-                Timber.tag(TAG).d("Successfully fetched %d tracks for playlist %s", tracks.size, playlistId)
-                tracks
+                val allTracks = mutableListOf<SpotifyTrack>()
+                var offset = 0
+                val limit = 50
+                var fetchMore = true
+
+                while (fetchMore) {
+                    val pagedResult = spotifyApi.getPlaylistTracks(token, playlistId, limit, offset)
+                    val tracks = pagedResult.items.map { it.track }
+                    allTracks.addAll(tracks)
+                    if (pagedResult.items.size < limit) {
+                        fetchMore = false
+                    } else {
+                        offset += limit
+                    }
+                }
+                Timber.tag(TAG).d("Successfully fetched %d tracks for playlist %s", allTracks.size, playlistId)
+                allTracks
             }
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Failed to get tracks for playlist %s after retries.", playlistId)

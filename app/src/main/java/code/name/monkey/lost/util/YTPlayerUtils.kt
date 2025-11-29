@@ -3,8 +3,10 @@ package code.name.monkey.lost.util
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Uri
+import code.name.monkey.lost.db.LostDatabase
 import code.name.monkey.lost.model.Song
 import com.metrolist.innertube.NewPipeUtils
+import androidx.media3.common.util.UnstableApi
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
@@ -30,6 +32,7 @@ import java.util.concurrent.TimeUnit
 import code.name.monkey.lost.fragments.settings.downloadUtil
 import kotlin.getValue
 import org.koin.java.KoinJavaComponent.inject
+import code.name.monkey.lost.db.toSong
 
 enum class AudioQuality {
     AUTO,
@@ -70,8 +73,11 @@ object YTPlayerUtils {
         .proxy(YouTube.proxy)
         .build()
 
+    @get:UnstableApi
     private val koinDownloadUtil by inject<DownloadUtil>(DownloadUtil::class.java) // Koin singleton instance
+    private val databaseDao by inject<LostDatabase>(LostDatabase::class.java)
 
+    @UnstableApi
     fun getDownloadUtil(): DownloadUtil? {
         if (downloadUtil == null) {
             downloadUtil = koinDownloadUtil
@@ -289,6 +295,7 @@ object YTPlayerUtils {
 
     suspend fun initiateVideoDownload(
         song: Song,
+        playlistId: Long? = null,
         audioQuality: AudioQuality = AudioQuality.HIGH
     ) = withContext(Dispatchers.IO) {
         try {
@@ -302,17 +309,24 @@ object YTPlayerUtils {
                 Timber.tag(logTag).e("Failed to extract valid videoId from song data: ${song.data}")
                 return@withContext
             }
-
-            if (offlineVideos.containsKey(videoId)) {
+            val offlinevideo = databaseDao.songsDao().getSongById(videoId)
+            if (offlinevideo != null) {
+                val song = offlinevideo.toSong()
                 Timber.tag(logTag).i("Video $videoId is already in offlineVideos map.")
+                if(playlistId !== null){
+                    @UnstableApi
+                    getDownloadUtil()?.addLocalSongToPlaylist(song, playlistId)
+                }
                 return@withContext
             }
 
             Timber.tag(logTag).d("Requesting download for videoId=$videoId, song=${song.title}")
 
+            @UnstableApi
             getDownloadUtil()?.addDownload(
                 videoId = videoId,
-                uri = Uri.EMPTY
+                uri = Uri.EMPTY,
+                playlistId = playlistId
             )
 
         } catch (e: Exception) {
@@ -320,6 +334,42 @@ object YTPlayerUtils {
         }
     }
 
+    suspend fun initiateVideoDownload(
+        videoId: String,
+        playlistId: Long? = null
+    ) = withContext(Dispatchers.IO) {
+        try {
+            if (!::appContext.isInitialized) {
+                Timber.tag(logTag).e("AppContext not initialized. Cannot start download.")
+                return@withContext
+            }
+
+            if (offlineVideos.containsKey(videoId)) {
+                Timber.tag(logTag).i("Video $videoId is already in offlineVideos map.")
+                if(playlistId !== null){
+                    val offlineVideo = databaseDao.songsDao().getSongById(videoId)
+                    if (offlineVideo != null) {
+                        val song = offlineVideo.toSong()
+                        @UnstableApi
+                        getDownloadUtil()?.addLocalSongToPlaylist(song, playlistId)
+                    }
+                }
+                return@withContext
+            }
+
+            Timber.tag(logTag).d("Requesting download for videoId=$videoId, song=${videoId}")
+
+            @UnstableApi
+            getDownloadUtil()?.addDownload(
+                videoId = videoId,
+                uri = Uri.EMPTY,
+                playlistId = playlistId
+            )
+
+        } catch (e: Exception) {
+            Timber.tag(logTag).e(e, "Failed to initiate download for ${videoId}")
+        }
+    }
 
     suspend fun getVideoMetadata(
         videoId: String,

@@ -15,6 +15,9 @@ import code.name.monkey.lost.db.MIGRATION_25_26
 import code.name.monkey.lost.db.MIGRATION_26_27
 import code.name.monkey.lost.db.LostDatabase
 import code.name.monkey.lost.db.MIGRATION_27_28
+import code.name.monkey.lost.db.MIGRATION_28_29
+import code.name.monkey.lost.db.MIGRATION_29_30
+import code.name.monkey.lost.db.MIGRATION_30_31
 import code.name.monkey.lost.fragments.LibraryViewModel
 import code.name.monkey.lost.fragments.albums.AlbumDetailsViewModel
 import code.name.monkey.lost.fragments.artists.ArtistDetailsViewModel
@@ -56,7 +59,7 @@ private val roomModule = module {
 
     single {
         Room.databaseBuilder(androidContext(), LostDatabase::class.java, "playlist.db")
-            .addMigrations(MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28)
+            .addMigrations(MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31)
             .build()
     }
 

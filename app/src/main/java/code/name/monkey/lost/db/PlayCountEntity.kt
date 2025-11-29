@@ -30,5 +30,7 @@ class PlayCountEntity(
     @ColumnInfo(name = "time_played")
     val timePlayed: Long,
     @ColumnInfo(name = "play_count")
-    var playCount: Int
+    var playCount: Int,
+    @ColumnInfo(name = "streamUrl")
+    val streamUrl: String? = null
 )

@@ -85,14 +85,14 @@ class SpotifyImportFragment : Fragment() {
                     return@launch
                 }
                 Timber.tag("SpotifyImport").d("Found ${playlists.size} playlists")
-                appendLog("Found ${playlists.size} playlists")
+                appendLog("Found ${playlists.size} playlists\n\n########################################\n")
 
                 val totalPlaylists = playlists.size
                 var processedPlaylists = 0
 
                 playlists.forEachIndexed { index, spotifyPlaylist ->
                     setStatus("Processing playlist: ${spotifyPlaylist.name} (${index + 1}/$totalPlaylists)")
-                    appendLog("Processing '${spotifyPlaylist.name}'...")
+                    appendLog("########################################\n\nProcessing '${spotifyPlaylist.name}'...")
 
                     try {
                         if (playlistDao.getPlaylistByName(spotifyPlaylist.name) != null) {
@@ -110,7 +110,7 @@ class SpotifyImportFragment : Fragment() {
                         val videosToDownload = mutableListOf<String>()
                         val seenKeys = mutableSetOf<String>()
 
-                        appendLog("Found ${tracks.size} tracks in '${spotifyPlaylist.name}'")
+                        appendLog("Found ${tracks.size} tracks in '${spotifyPlaylist.name}'\n------------------------------------------")
 
                         tracks.forEach { track ->
                             val key = sanitize("${track.name}-${track.artists.firstOrNull()?.name}").lowercase()
@@ -134,7 +134,7 @@ class SpotifyImportFragment : Fragment() {
                             }
                         }
 
-                        appendLog("Local songs: ${songsToAddLocally.size}, To download: ${videosToDownload.size}")
+                        appendLog("Local songs: ${songsToAddLocally.size}, To download: ${videosToDownload.size}\n------------------------------------------\n")
 
                         if (songsToAddLocally.isNotEmpty() || videosToDownload.isNotEmpty()) {
                             val playlistEntity = PlaylistEntity(playlistName = spotifyPlaylist.name)
@@ -170,8 +170,9 @@ class SpotifyImportFragment : Fragment() {
                                     delay(5000)
                                 }
                             }
-
+                            appendLog("------------------------------------------")
                             appendLog("Created playlist '${spotifyPlaylist.name}'")
+                            appendLog("------------------------------------------")
                         } else {
                             appendLog("No songs found to add for '${spotifyPlaylist.name}'")
                         }

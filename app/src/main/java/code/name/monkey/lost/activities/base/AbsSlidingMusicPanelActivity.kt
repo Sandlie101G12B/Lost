@@ -470,6 +470,19 @@ abstract class AbsSlidingMusicPanelActivity : AbsMusicServiceActivity(),
         libraryViewModel.paletteColor.observe(this) { color ->
             this.paletteColor = color
             onPaletteColorChanged()
+            if (binding.navigationView is BottomNavigationView) {
+                val hsv = FloatArray(3)
+                android.graphics.Color.colorToHSV(color, hsv)
+                hsv[1] = 0.25f
+                val desaturatedColor = android.graphics.Color.HSVToColor(hsv)
+
+                binding.navigationView.setBackgroundColor(desaturatedColor)
+                val isLight = desaturatedColor.isColorLight
+                val contentColor = if (isLight) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+                val colorStateList = ColorStateList.valueOf(contentColor)
+                (binding.navigationView as BottomNavigationView).itemIconTintList = colorStateList
+                (binding.navigationView as BottomNavigationView).itemTextColor = colorStateList
+            }
         }
     }
 

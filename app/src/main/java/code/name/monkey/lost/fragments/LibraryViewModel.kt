@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -159,8 +160,9 @@ class LibraryViewModel(
 
     fun search(query: String?, filter: Filter) =
         viewModelScope.launch(IO) {
-            val result = repository.search(query, filter)
-            searchResults.postValue(result)
+            repository.search(query, filter).collectLatest {
+                searchResults.postValue(it)
+            }
         }
 
     fun forceReload(reloadType: ReloadType) = viewModelScope.launch(IO) {

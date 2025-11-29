@@ -16,7 +16,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
@@ -30,14 +30,14 @@
         app:hideOnScroll="true"
         app:titleMargin="0dp"
         app:titleMarginStart="0dp"
+        android:background="@android:color/transparent"
         tools:backgroundTint="@color/md_red_400">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="?attr/colorSurface"
-            android:gravity="center"
+            android:background="@android:color/transparent"
             app:contentInsetLeft="0dp"
             app:contentInsetStart="0dp"
             app:contentInsetStartWithNavigation="0dp"
@@ -64,12 +64,14 @@
                 android:layout_height="wrap_content"
                 android:padding="@dimen/normal_lyrics_padding"
                 android:textIsSelectable="true"
-                android:textSize="50sp"
                 android:textColor="?android:attr/textColorPrimary"
                 android:paddingStart="45dp"
                 android:paddingEnd="45dp"
                 tools:text="@tools:sample/lorem[200]"
-                tools:gravity="center"/>
+                android:fontFamily="@font/google_sans_bold"
+                android:textSize="35sp"
+                android:lineHeight="40dp"
+                android:letterSpacing="0.0"/>
 
         </ScrollView>
 
@@ -80,19 +82,25 @@
             android:textColor="?android:attr/textColorPrimary"
             app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
             app:lrcLabel="@string/no_lyrics_found"
-            app:lrcNormalTextSize="24sp"
+            app:lrcNormalTextSize="35sp"
             app:lrcPadding="18dp"
-            app:lrcTextGravity="center"
-            app:lrcTextSize="30sp" />
+            app:lrcTextGravity="left"
+            app:lrcTextSize="35sp"
+            app:lrcLineHeight="40dp"
+            app:lrcLetterSpacing="0.0"
+            app:lrcDividerHeight="20dp"
+            android:fontFamily="@font/google_sans_bold"/>
 
         <TextView
             android:id="@+id/noLyricsFound"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center"
             android:text="@string/no_lyrics_found"
             android:textColor="?android:attr/textColorPrimary"
-            android:textSize="24sp"
+            android:textSize="35sp"
+            android:lineHeight="40dp"
+            android:letterSpacing="0.0"
+            android:fontFamily="@font/google_sans_bold"
             android:visibility="gone" />
     </FrameLayout>
 

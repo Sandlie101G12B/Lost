@@ -66,8 +66,7 @@ class RealSongRepository(
         val localSongs = songs(cursor)
         databaseSongs = runBlocking {
             databaseDao.songsDao().getAllSongs().first().map {
-                val streamUrl = databaseDao.songsDao().getFormatById(it.id).playbackUrl
-                it.toSong(context, streamUrl)
+                it.toSong()
             }
         }
         Timber.tag("SpotifyPlaylist").d("Database songs found: $databaseSongs")

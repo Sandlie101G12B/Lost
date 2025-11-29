@@ -5,7 +5,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import code.name.monkey.lost.db.FormatEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -15,6 +14,9 @@ interface DownloadedSongsDao {
 
     @Query("SELECT * FROM downloaded_songs WHERE isDownloaded = 1")
     fun getAllSongs(): Flow<List<DownloadedSongsEntity>>
+
+    @Query("SELECT * FROM downloaded_songs WHERE isDownloaded = 1 AND title LIKE '%' || :query || '%' OR artist_name LIKE '%' || :query || '%'")
+    fun searchSongs(query: String): Flow<List<DownloadedSongsEntity>>
 
     @Query("DELETE FROM downloaded_songs WHERE id = :songId")
     suspend fun deleteSong(songId: String)

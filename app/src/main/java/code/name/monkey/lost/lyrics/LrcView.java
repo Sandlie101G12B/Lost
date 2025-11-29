@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Looper;
 import android.text.Layout;
@@ -79,6 +80,7 @@ public class LrcView extends View {
     private boolean isTouching;
     private boolean isFling;
     private int mTextGravity;
+    private float mLineHeight;
     private final Runnable hideTimelineRunnable =
             new Runnable() {
                 @Override
@@ -244,6 +246,8 @@ public class LrcView extends View {
                         R.styleable.LrcView_lrcTimeTextSize,
                         getResources().getDimension(R.dimen.lrc_time_text_size));
         mTextGravity = ta.getInteger(R.styleable.LrcView_lrcTextGravity, LrcEntry.GRAVITY_CENTER);
+        mLineHeight = ta.getDimension(R.styleable.LrcView_lrcLineHeight, 0);
+        float letterSpacing = ta.getFloat(R.styleable.LrcView_lrcLetterSpacing, 0f);
 
         ta.recycle();
 
@@ -253,19 +257,32 @@ public class LrcView extends View {
         mLrcPaint.setAntiAlias(true);
         mLrcPaint.setTextSize(mCurrentTextSize);
         mLrcPaint.setTextAlign(Paint.Align.LEFT);
+        mLrcPaint.setLetterSpacing(letterSpacing);
         mTimePaint.setAntiAlias(true);
         mTimePaint.setTextSize(timeTextSize);
         mTimePaint.setTextAlign(Paint.Align.CENTER);
         mTimePaint.setStrokeWidth(timelineHeight);
         mTimePaint.setStrokeCap(Paint.Cap.ROUND);
+        mTimePaint.setLetterSpacing(letterSpacing);
 
         mGestureDetector = new GestureDetector(getContext(), mSimpleOnGestureListener);
         mGestureDetector.setIsLongpressEnabled(false);
         mScroller = new Scroller(getContext());
     }
 
+    public void setTypeface(Typeface typeface) {
+        mLrcPaint.setTypeface(typeface);
+        mTimePaint.setTypeface(typeface);
+        postInvalidate();
+    }
+
     public void setCurrentColor(int currentColor) {
         mCurrentTextColor = currentColor;
+        postInvalidate();
+    }
+
+    public void setNormalTextColor(int normalTextColor) {
+        mNormalTextColor = normalTextColor;
         postInvalidate();
     }
 
@@ -504,7 +521,7 @@ public class LrcView extends View {
         }
 
         for (LrcEntry lrcEntry : mLrcEntryList) {
-            lrcEntry.init(mLrcPaint, (int) getLrcWidth(), mTextGravity);
+            lrcEntry.init(mLrcPaint, (int) getLrcWidth(), mTextGravity, mLineHeight);
         }
 
         mOffset = getHeight() / 2F;

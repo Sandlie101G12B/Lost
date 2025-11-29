@@ -41,8 +41,9 @@ object SongDataManager {
                         input.copyTo(output)
                     }
                 }
-                } catch (e: IOException) {
-               } catch (e: SecurityException) {
+                } catch (_: IOException) {
+
+                } catch (_: SecurityException) {
                 }
         } else {
             }

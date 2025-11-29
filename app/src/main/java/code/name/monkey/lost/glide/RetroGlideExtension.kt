@@ -48,8 +48,8 @@ object LostGlideExtension {
     private val DEFAULT_ERROR_IMAGE_BANNER
         get() = R.drawable.material_design_default
 
-    private val DEFAULT_DISK_CACHE_STRATEGY_ARTIST = DiskCacheStrategy.RESOURCE
-    private val DEFAULT_DISK_CACHE_STRATEGY = DiskCacheStrategy.RESOURCE // Changed from NONE to RESOURCE
+    private val DEFAULT_DISK_CACHE_STRATEGY_ARTIST = DiskCacheStrategy.ALL
+    private val DEFAULT_DISK_CACHE_STRATEGY = DiskCacheStrategy.ALL
 
     private const val DEFAULT_ANIMATION = android.R.anim.fade_in
 

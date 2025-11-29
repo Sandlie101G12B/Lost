@@ -98,7 +98,7 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
                 // Buffer of 5 minutes just to be safe
                 return System.currentTimeMillis() / 1000 > expire - 300
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return false
         }
         return false
@@ -112,23 +112,30 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
         isInitialized = false
         coroutineScope.launch {
             var currentStreamUrl = song.streamUrl
-            
+            val thumbnailUrl = song.thumbnale
+
             // Check expiration of the existing URL
-            if (!currentStreamUrl.isNullOrEmpty() && isUrlExpired(currentStreamUrl!!)) {
+            if (!currentStreamUrl.isNullOrEmpty() && isUrlExpired(currentStreamUrl)) {
                 Timber.tag(TAG).d("Stream URL expired, clearing to force refresh: $currentStreamUrl")
                 currentStreamUrl = null
                 song.streamUrl = null
             }
 
-            if(!currentStreamUrl.isNullOrEmpty()){
+            if(!currentStreamUrl.isNullOrEmpty() || !thumbnailUrl.isNullOrEmpty()){
                 // Use existing stream URL, likely from DB or previous fetch
                 // Try to set cache key if we have an ID
                 val mediaItemBuilder = MediaItem.Builder()
-                    .setUri(currentStreamUrl)
+
+                if(currentStreamUrl.isNullOrEmpty()){
+                    mediaItemBuilder.setUri(Uri.EMPTY)
+                }else{
+                    mediaItemBuilder.setUri(currentStreamUrl)
+                }
 
                 val cacheKey = song.ytID ?: extractYouTubeVideoId(song.data)
                 if (!cacheKey.isNullOrEmpty()) {
                     Timber.tag(TAG).d("---- ==== Setting custom cache key: $cacheKey ==== ----")
+                    Timber.tag(TAG).d("$song")
                     mediaItemBuilder.setCustomCacheKey(cacheKey)
                 }
                 
@@ -307,7 +314,7 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
         return try {
             player.volume = vol
             true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -317,7 +324,7 @@ class LostExoPlayer @OptIn(UnstableApi::class) constructor
         return try {
             player.audioSessionId = sessionId
             true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }

@@ -575,13 +575,13 @@ object PreferenceUtil {
 
     var nowPlayingScreen: NowPlayingScreen
         get() {
-            val id: Int = sharedPreferences.getInt(NOW_PLAYING_SCREEN_ID, 0)
+            val id: Int = sharedPreferences.getInt(NOW_PLAYING_SCREEN_ID, 5)
             for (nowPlayingScreen in NowPlayingScreen.entries) {
                 if (nowPlayingScreen.id == id) {
                     return nowPlayingScreen
                 }
             }
-            return NowPlayingScreen.Adaptive
+            return NowPlayingScreen.Color
         }
         set(value) = sharedPreferences.edit {
             putInt(NOW_PLAYING_SCREEN_ID, value.id)

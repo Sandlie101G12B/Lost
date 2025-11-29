@@ -137,7 +137,7 @@ class LrcUtils {
     }
 
     String times = lineMatcher.group(1);
-    String text = lineMatcher.group(3);
+    String text = lineMatcher.group(3).trim();
     List<LrcEntry> entryList = new ArrayList<>();
 
     // [00:17.65]
