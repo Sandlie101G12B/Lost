@@ -116,17 +116,14 @@ abstract class AbsSlidingMusicPanelActivity : AbsMusicServiceActivity(),
     private var taskColor: Int = 0
     private var paletteColor: Int = android.graphics.Color.WHITE
     private var navigationBarColor = 0
-
     private val panelState: Int
         get() = bottomSheetBehavior.state
     private var panelStateBefore: Int? = null
     private var panelStateCurrent: Int? = null
     private lateinit var binding: SlidingMusicPanelLayoutBinding
     private var isInOneTabMode = false
-
     private var navigationBarColorAnimator: ValueAnimator? = null
     private val argbEvaluator: ArgbEvaluator = ArgbEvaluator()
-
     private val onBackPressedCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
             if (handleBackPress()) {
@@ -139,7 +136,6 @@ abstract class AbsSlidingMusicPanelActivity : AbsMusicServiceActivity(),
             }
         }
     }
-
     private val bottomSheetCallbackList by lazy {
         object : BottomSheetCallback() {
 
@@ -193,7 +189,6 @@ abstract class AbsSlidingMusicPanelActivity : AbsMusicServiceActivity(),
             }
         }
     }
-
     fun getBottomSheetBehavior() = bottomSheetBehavior
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -383,9 +378,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsMusicServiceActivity(),
     }
 
     val navigationView get() = binding.navigationView
-
     val slidingPanel get() = binding.slidingPanel
-
     val isBottomNavVisible get() = navigationView.isVisible && navigationView is BottomNavigationView
 
     override fun onServiceConnected() {

@@ -13,6 +13,7 @@ import code.name.monkey.appthemehelper.util.ColorUtil
 import code.name.monkey.appthemehelper.util.TintHelper
 import code.name.monkey.lost.R
 import code.name.monkey.lost.databinding.FragmentColorPlayerPlaybackControlsBinding
+import code.name.monkey.lost.dialogs.GoToArtistDialog
 import code.name.monkey.lost.extensions.applyColor
 import code.name.monkey.lost.extensions.getSongInfo
 import code.name.monkey.lost.extensions.hide
@@ -64,7 +65,12 @@ class ColorPlaybackControlsFragment :
             goToAlbum(requireActivity())
         }
         binding.text.setOnClickListener {
-            goToArtist(requireActivity())
+            val song = MusicPlayerRemote.currentSong
+            if (song.artistIds.size > 1) {
+                GoToArtistDialog.newInstance(song).show(childFragmentManager, "GO_TO_ARTIST")
+            } else {
+                goToArtist(requireActivity())
+            }
         }
     }
 

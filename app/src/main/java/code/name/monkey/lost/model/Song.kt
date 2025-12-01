@@ -4,7 +4,6 @@ import android.os.Parcelable
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
-// update equals and hashcode if fields changes
 @Parcelize
 open class Song(
     open val id: Long,
@@ -17,7 +16,7 @@ open class Song(
     open val albumId: Long,
     open val albumName: String,
     open val artistId: Long,
-    open val artistName: String, // Main artist name string, used to derive artistNames
+    open val artistName: String,
     open val composer: String?,
     open val albumArtist: String?,
     open val bpm: Float? = null,
@@ -33,8 +32,6 @@ open class Song(
         val names = artistName.split(Regex("\\s*[/,&;]\\s*"))
             .map { it.trim() }
             .filter { it.isNotEmpty() }
-        // If splitting results in an empty list but the original artistName was not blank,
-        // use the original artistName as a single entry.
         if (names.isEmpty() && artistName.isNotBlank()) {
             listOf(artistName)
         } else {
@@ -51,9 +48,7 @@ open class Song(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
-
         other as Song
-
         if (id != other.id) return false
         if (title != other.title) return false
         if (trackNumber != other.trackNumber) return false
@@ -68,14 +63,13 @@ open class Song(
         if (composer != other.composer) return false
         if (albumArtist != other.albumArtist) return false
         if (bpm != other.bpm) return false
-        // Compare the derived lists
+        if (ytID != other.ytID) return false
+        if (isYTSong != other.isYTSong) return false
+        if (streamUrl != other.streamUrl) return false
+        if (isLocal != other.isLocal) return false
+        if (thumbnale != other.thumbnale) return false
         if (artistNames != other.artistNames) return false
         if (artistIds != other.artistIds) return false
-
-        // Note: The constructor parameters artistNames and artistIds are not directly compared here,
-        // as we are focusing on the derived lists for equality.
-        // If they should also be part of equality, this logic would need adjustment.
-
         return true
     }
 
@@ -94,11 +88,13 @@ open class Song(
         result = 31 * result + (composer?.hashCode() ?: 0)
         result = 31 * result + (albumArtist?.hashCode() ?: 0)
         result = 31 * result + (bpm?.hashCode() ?: 0)
-        // Hash the derived lists
+        result = 31 * result + (ytID?.hashCode() ?: 0)
+        result = 31 * result + isYTSong.hashCode()
+        result = 31 * result + (streamUrl?.hashCode() ?: 0)
+        result = 31 * result + isLocal.hashCode()
+        result = 31 * result + (thumbnale?.hashCode() ?: 0)
         result = 31 * result + artistNames.hashCode()
         result = 31 * result + artistIds.hashCode()
-
-        // Note: The constructor parameters artistNames and artistIds are not directly included here.
         return result
     }
 
@@ -109,6 +105,7 @@ open class Song(
                 "albumId=$albumId, albumName='$albumName', artistId=$artistId, " +
                 "artistName='$artistName', composer=$composer, albumArtist=$albumArtist, " +
                 "bpm=$bpm, ytID=$ytID, isYTSong=$isYTSong, streamUrl=$streamUrl, " +
+                "isLocal=$isLocal, thumbnale=$thumbnale, " +
                 "artistNames=$artistNames, artistIds=$artistIds)"
     }
 
@@ -130,7 +127,8 @@ open class Song(
         ytID: String? = this.ytID,
         isYTSong: Boolean = this.isYTSong,
         streamUrl: String? = this.streamUrl,
-        isLocal: Boolean = this.isLocal
+        isLocal: Boolean = this.isLocal,
+        thumbnale: String? = this.thumbnale
     ): Song {
         return Song(
             id,
@@ -150,12 +148,12 @@ open class Song(
             ytID,
             isYTSong,
             streamUrl,
-            isLocal
+            isLocal,
+            thumbnale
         )
     }
 
     companion object {
-
         @JvmStatic
         val emptySong = Song(
             id = -1,
@@ -168,11 +166,12 @@ open class Song(
             albumId = -1,
             albumName = "",
             artistId = -1,
-            artistName = "", // This will lead to empty artistNames and artistIds
+            artistName = "",
             composer = "",
             albumArtist = "",
-            bpm = null,  // Explicit constructor args for emptySong
-            isLocal = false
+            bpm = null,
+            isLocal = false,
+            thumbnale = null
         )
     }
 }

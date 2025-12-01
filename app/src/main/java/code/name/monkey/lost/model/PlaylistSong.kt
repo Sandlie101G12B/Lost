@@ -21,7 +21,13 @@ class PlaylistSong(
     val playlistId: Long,
     val idInPlayList: Long,
     override val composer: String?,
-    override val albumArtist: String?
+    override val albumArtist: String?,
+    override val bpm: Float? = null,
+    override val ytID: String? = null,
+    override val isYTSong: Boolean = false,
+    override var streamUrl: String? = null,
+    override val isLocal: Boolean = false,
+    override val thumbnale: String? = null
 ) : Song(
     id = id,
     title = title,
@@ -35,7 +41,13 @@ class PlaylistSong(
     artistId = artistId,
     artistName = artistName,
     composer = composer,
-    albumArtist = albumArtist
+    albumArtist = albumArtist,
+    bpm = bpm,
+    ytID = ytID,
+    isYTSong = isYTSong,
+    streamUrl = streamUrl,
+    isLocal = isLocal,
+    thumbnale = thumbnale
 ) {
 
     override fun equals(other: Any?): Boolean {
@@ -60,6 +72,12 @@ class PlaylistSong(
         if (idInPlayList != other.idInPlayList) return false
         if (composer != other.composer) return false
         if (albumArtist != other.albumArtist) return false
+        if (bpm != other.bpm) return false
+        if (ytID != other.ytID) return false
+        if (isYTSong != other.isYTSong) return false
+        if (streamUrl != other.streamUrl) return false
+        if (isLocal != other.isLocal) return false
+        if (thumbnale != other.thumbnale) return false
 
         return true
     }
@@ -81,6 +99,12 @@ class PlaylistSong(
         result = 31 * result + idInPlayList.hashCode()
         result = 31 * result + composer.hashCode()
         result = 31 * result + (albumArtist?.hashCode() ?: 0)
+        result = 31 * result + (bpm?.hashCode() ?: 0)
+        result = 31 * result + (ytID?.hashCode() ?: 0)
+        result = 31 * result + isYTSong.hashCode()
+        result = 31 * result + (streamUrl?.hashCode() ?: 0)
+        result = 31 * result + isLocal.hashCode()
+        result = 31 * result + (thumbnale?.hashCode() ?: 0)
         return result
     }
 }

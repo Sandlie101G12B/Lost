@@ -25,6 +25,7 @@ import code.name.monkey.lost.service.MusicService
 import code.name.monkey.lost.util.MusicUtil
 import code.name.monkey.lost.util.PreferenceUtil
 import code.name.monkey.lost.util.color.MediaNotificationProcessor
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
 
 /**

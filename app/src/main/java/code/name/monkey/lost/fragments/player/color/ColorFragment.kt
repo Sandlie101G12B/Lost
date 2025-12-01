@@ -44,14 +44,12 @@ import java.io.File
 import java.io.FileOutputStream
 
 class ColorFragment : AbsPlayerFragment(R.layout.fragment_color_player), TextureView.SurfaceTextureListener {
-
     private var lastColor: Int = 0
     private var navigationColor: Int = 0
     private lateinit var playbackControlsFragment: ColorPlaybackControlsFragment
     private var valueAnimator: ValueAnimator? = null
     private var _binding: FragmentColorPlayerBinding? = null
     private val binding get() = _binding!!
-
     private val idleHandler = Handler(Looper.getMainLooper())
     private val idleTimeout = 10000L // 10 seconds
     private val idleRunnable = Runnable { onIdle() }
@@ -109,7 +107,7 @@ class ColorFragment : AbsPlayerFragment(R.layout.fragment_color_player), Texture
         val endColor = ColorUtil.withAlpha(color.backgroundColor, 1f)
         val gradient = GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(startColor, ColorUtil.withAlpha(color.backgroundColor, 0.5f), endColor)
+            intArrayOf(startColor, ColorUtil.withAlpha(color.backgroundColor, 0.6f), ColorUtil.withAlpha(color.backgroundColor, 0.6f), ColorUtil.withAlpha(color.backgroundColor, 0.6f), ColorUtil.withAlpha(color.backgroundColor, 0.6f), endColor)
         )
         binding.videoGradientOverlay?.background = gradient
 

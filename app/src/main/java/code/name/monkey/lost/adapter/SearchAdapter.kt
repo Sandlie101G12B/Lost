@@ -256,7 +256,6 @@ class SearchAdapter(
                 SONG -> {
                     val song = item as Song
                     if(!song.ytID.isNullOrBlank() && InternetConnection.hasInternetConnection(activity)) { // if there is internet connection and the song is not a local song
-
                         MusicPlayerRemote.clearQueue()
                         runBlocking {
                             getSimilarContent(song.ytID!!)

@@ -157,7 +157,11 @@ abstract class AbsPlayerFragment(@LayoutRes layout: Int) : AbsMusicServiceFragme
             }
 
             R.id.action_go_to_artist -> {
-                goToArtist(requireActivity())
+                if (song.artistIds.size > 1) {
+                    GoToArtistDialog.newInstance(song).show(childFragmentManager, "GO_TO_ARTIST")
+                } else {
+                    goToArtist(requireActivity())
+                }
                 return true
             }
 

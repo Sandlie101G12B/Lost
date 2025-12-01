@@ -136,7 +136,6 @@ class RealRepository(
     private val roomRepository: RoomRepository,
     private val localDataRepository: LocalDataRepository,
 ) : Repository {
-
     // Helper to map SimilarSongEntity to Song (you should create a proper extension function)
     private fun SimilarSongEntity.toSong(): Song {
         return Song(
@@ -152,8 +151,8 @@ class RealRepository(
             artistId = this.artistId,
             artistName = this.artistName,
             composer = this.composer,
-            albumArtist = this.albumArtist
-            // Add any other fields from Song model not in SimilarSongEntity directly (e.g., from your ESong.kt)
+            albumArtist = this.albumArtist,
+            streamUrl = this.streamUrl
         )
     }
 
@@ -173,7 +172,8 @@ class RealRepository(
             artistId = this.artistId,
             artistName = this.artistName,
             composer = this.composer,
-            albumArtist = this.albumArtist
+            albumArtist = this.albumArtist,
+            streamUrl = this.streamUrl
         )
     }
 
@@ -328,7 +328,7 @@ class RealRepository(
 
     override suspend fun upsertSongInHistory(currentSong: Song) = try{
         roomRepository.upsertSongInHistory(currentSong)
-    }catch (e: Exception){
+    }catch (_: Exception){
         roomRepository.upsertSongInHistory(currentSong)
     }
     override suspend fun favoritePlaylistSongs(): List<SongEntity> =
