@@ -30,11 +30,13 @@ object SearchQueryHelper : KoinComponent {
         val albumName = extras.getString(MediaStore.EXTRA_MEDIA_ALBUM, null)
         val titleName = extras.getString(MediaStore.EXTRA_MEDIA_TITLE, null)
         
-        val databaseSongs = runBlocking {
-            database.songsDao().searchSongs(query).first().map {
-                it.toSong()
-            }
-        }
+//        val databaseSongs = runBlocking {
+//            database.songsDao().searchSongs(query).first().map {
+//                it.toSong()
+//            }
+//        }
+
+        val databaseSongs = emptyList<Song>()
 
         Timber.tag("YTPlayerUtils").d("getSongs: query=$query, artistName=$artistName, albumName=$albumName, titleName=$titleName")
         Timber.tag("YTPlayerUtils").d("getSongs: databaseSongs=$databaseSongs")

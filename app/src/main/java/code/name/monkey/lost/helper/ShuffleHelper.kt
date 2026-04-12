@@ -105,7 +105,6 @@ object ShuffleHelper : KoinComponent {
         "longing" to "sadness", "regretful" to "sadness", "anguished" to "sadness", "depressed" to "sadness",
         "heartbreak" to "sadness", "heartfelt" to "sadness", "melancholy" to "sadness", "nostalgic" to "sadness",
         "bittersweet" to "sadness", "yearning" to "sadness", "wistful" to "sadness", "grieving" to "sadness",
-
         // Aggression/Intensity Group -> AGGRESSION
         "aggressive" to "aggression", "fierce" to "aggression", "hard" to "aggression", "tough" to "aggression",
         "hard-hitting" to "aggression", "conflict" to "aggression", "confrontational" to "aggression",
@@ -406,8 +405,8 @@ object ShuffleHelper : KoinComponent {
 
         val baseScore = (similarity * weight).toInt()
 
-        // 🔸 Add ±10% random variation to smooth comparisons
-        val factor = rand.nextDouble(0.9, 1.1)
+        // 🔸 Add ±1% random variation to smooth comparisons
+        val factor = rand.nextDouble(0.99, 1.01)
         return (baseScore * factor).toInt()
     }
 
@@ -929,8 +928,8 @@ object ShuffleHelper : KoinComponent {
         if (a == null || b == null) return 0
         val diff = (abs(a - b) / maxDiff).coerceAtMost(1.0)
         val baseScore = ((1 - diff) * scale).toInt()
-        // 🔸 Add ±10% random variation to smooth numeric comparisons
-        val factor = rand.nextDouble(0.9, 1.1)
+        // 🔸 Add ±1% random variation to smooth numeric comparisons
+        val factor = rand.nextDouble(0.99, 1.01)
         return (baseScore * factor).toInt()
     }
 
